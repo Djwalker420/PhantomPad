@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF06060C"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="32dp">
+
+        <!-- Logo -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚡"
+            android:textSize="56sp"
+            android:layout_marginTop="40dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PhantomPad"
+            android:textSize="28sp"
+            android:textColor="@color/primary"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.15"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wireless Game Controller"
+            android:textSize="14sp"
+            android:textColor="#66FFFFFF"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="40dp" />
+
+        <!-- IP Input -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SERVER IP ADDRESS"
+            android:textSize="11sp"
+            android:textColor="#66FFFFFF"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp"
+            android:maxWidth="380dp" />
+
+        <EditText
+            android:id="@+id/ip_input"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:maxWidth="380dp"
+            android:background="@drawable/input_background"
+            android:hint="192.168.1.100"
+            android:textColorHint="#33FFFFFF"
+            android:textColor="#FFE8E8F0"
+            android:textSize="16sp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:inputType="textUri"
+            android:padding="14dp"
+            android:singleLine="true"
+            android:layout_marginBottom="14dp"
+            android:importantForAutofill="no" />
+
+        <!-- Port Input -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PORT"
+            android:textSize="11sp"
+            android:textColor="#66FFFFFF"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp"
+            android:maxWidth="380dp" />
+
+        <EditText
+            android:id="@+id/port_input"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:maxWidth="380dp"
+            android:background="@drawable/input_background"
+            android:hint="3000"
+            android:text="3000"
+            android:textColorHint="#33FFFFFF"
+            android:textColor="#FFE8E8F0"
+            android:textSize="16sp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:inputType="number"
+            android:padding="14dp"
+            android:singleLine="true"
+            android:layout_marginBottom="18dp"
+            android:importantForAutofill="no" />
+
+        <!-- Connect Button -->
+        <Button
+            android:id="@+id/connect_btn"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:maxWidth="380dp"
+            android:text="CONNECT"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FF000000"
+            android:letterSpacing="0.1"
+            android:background="@drawable/connect_button_background"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Status Text -->
+        <TextView
+            android:id="@+id/status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textSize="13sp"
+            android:textColor="#66FFFFFF"
+            android:layout_marginBottom="24dp"
+            android:maxWidth="380dp" />
+
+        <!-- Recent Servers -->
+        <LinearLayout
+            android:id="@+id/recent_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxWidth="380dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Recent Servers"
+                android:textSize="12sp"
+                android:textColor="#44FFFFFF"
+                android:gravity="center"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/recent_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

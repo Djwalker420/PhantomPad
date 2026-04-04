@@ -1,0 +1,21 @@
+{
+  "name": "phantompad-mobile",
+  "version": "1.0.0",
+  "description": "PhantomPad Mobile Controller",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Static web app - no build needed'",
+    "cap:init": "npx cap init PhantomPad com.phantompad.controller --web-dir www",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android",
+    "cap:run": "npx cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  }
+}

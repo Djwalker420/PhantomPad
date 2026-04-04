@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#06060c">
+  <meta name="description" content="PhantomPad - Turn your phone into a wireless game controller for PC">
+  <title>PhantomPad — Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <h1>Phantom<span class="accent">Pad</span></h1>
+      </div>
+      <div class="header-status">
+        <span class="status-pill" id="server-status">● Server Running</span>
+        <span class="status-pill offline-pill">🔒 Fully Offline</span>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Connection Card -->
+      <section class="card connection-card" id="connection-card">
+        <div class="card-header">
+          <h2>📱 Connect Your Phone</h2>
+        </div>
+        <div class="card-body">
+          <div class="conn-tabs" id="conn-tabs"></div>
+          <div class="connect-body">
+            <div class="qr-container">
+              <div class="qr-frame">
+                <img id="qr-code" alt="QR Code" class="qr-img">
+                <div class="qr-loading" id="qr-loading">Loading...</div>
+              </div>
+            </div>
+            <div class="connect-info">
+              <div id="conn-instructions" class="conn-instructions"></div>
+              <div class="url-box">
+                <code id="controller-url">Loading...</code>
+                <button id="copy-url-btn" class="copy-btn" title="Copy URL">📋</button>
+              </div>
+              <div class="ip-info">
+                <span>Interface: <strong id="iface-display">—</strong></span>
+                <span>IP: <strong id="ip-display">—</strong></span>
+                <span>Port: <strong id="port-display">—</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADB Help -->
+          <div id="adb-help" class="adb-help hidden">
+            <div class="adb-step"><span class="step-num">1</span> Connect phone via USB cable</div>
+            <div class="adb-step"><span class="step-num">2</span> Enable USB Debugging on phone (Settings → Developer Options)</div>
+            <div class="adb-step"><span class="step-num">3</span> Run this command on your PC:</div>
+            <div class="adb-cmd">
+              <code>adb reverse tcp:3000 tcp:3000</code>
+              <button class="copy-btn" id="copy-adb-btn" title="Copy">📋</button>
+            </div>
+            <div class="adb-step"><span class="step-num">4</span> Open <strong>http://127.0.0.1:3000/controller</strong> in phone's browser</div>
+          </div>
+
+          <!-- USB Tether Help -->
+          <div id="usb-tether-help" class="adb-help hidden">
+            <div class="adb-step"><span class="step-num">1</span> Connect phone to PC via USB cable</div>
+            <div class="adb-step"><span class="step-num">2</span> Enable <strong>USB Tethering</strong> on phone (Settings → Hotspot & Tethering)</div>
+            <div class="adb-step"><span class="step-num">3</span> Open the URL shown above in phone's browser</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Controllers Card -->
+      <section class="card controllers-card">
+        <div class="card-header">
+          <h2>🎮 Controllers</h2>
+          <span class="badge" id="controller-count">0</span>
+        </div>
+        <div class="card-body">
+          <div id="controllers-list" class="controllers-list">
+            <div class="empty-state">No controllers connected</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode & Preset Card -->
+      <section class="card mode-card">
+        <div class="card-header">
+          <h2>⚙️ Input Mode</h2>
+        </div>
+        <div class="card-body">
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="mode-keyboard" data-mode="keyboard">
+              <span class="mode-icon">⌨️</span>
+              <span class="mode-label">Keyboard</span>
+              <span class="mode-desc">Map buttons to keys</span>
+            </button>
+            <button class="mode-btn" id="mode-gamepad" data-mode="gamepad">
+              <span class="mode-icon">🎮</span>
+              <span class="mode-label">Gamepad</span>
+              <span class="mode-desc">Virtual Xbox 360</span>
+            </button>
+          </div>
+          <div id="gamepad-warning" class="warning hidden">
+            ⚠️ ViGEmBus driver not installed. <a href="https://github.com/nefarius/ViGEmBus/releases" target="_blank">Download</a>
+          </div>
+          <div class="preset-section">
+            <label>Key Preset</label>
+            <div class="preset-buttons" id="preset-buttons">
+              <button class="preset-btn active" data-preset="default">Default</button>
+              <button class="preset-btn" data-preset="ryujinx">Ryujinx</button>
+              <button class="preset-btn" data-preset="retroarch">RetroArch</button>
+              <button class="preset-btn" data-preset="fps">FPS</button>
+              <button class="preset-btn" data-preset="racing">Racing</button>
+              <button class="preset-btn" data-preset="platformer">Platformer</button>
+            </div>
+          </div>
+          <div class="preset-section" style="margin-top: 20px;">
+            <label>Visual Controller Layout</label>
+            <select id="dashboard-layout-select" class="editor-select" style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--surface); color: var(--text);">
+              <option value="xbox">Xbox (Default)</option>
+              <option value="playstation">PlayStation Consoles</option>
+              <option value="nintendo">Nintendo Switch</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Input Visualizer -->
+      <section class="card visualizer-card">
+        <div class="card-header">
+          <h2>📊 Input Visualizer</h2>
+        </div>
+        <div class="card-body vis-body">
+          <div class="vis-controller">
+            <div class="vis-stick-box">
+              <div class="vis-stick" id="vis-left-stick">
+                <div class="vis-crosshair"></div>
+                <div class="vis-stick-dot" id="vis-ls-dot"></div>
+              </div>
+              <span class="vis-label">L Stick</span>
+            </div>
+            <div class="vis-buttons-grid">
+              <div class="vis-row">
+                <span class="vis-btn" id="vis-lb">LB</span>
+                <span class="vis-btn" id="vis-lt">LT</span>
+                <span class="vis-btn" id="vis-rt">RT</span>
+                <span class="vis-btn" id="vis-rb">RB</span>
+              </div>
+              <div class="vis-row">
+                <span class="vis-btn" id="vis-dpadUp">▲</span>
+                <span class="vis-btn" id="vis-dpadLeft">◄</span>
+                <span class="vis-btn" id="vis-dpadRight">►</span>
+                <span class="vis-btn" id="vis-dpadDown">▼</span>
+              </div>
+              <div class="vis-row">
+                <span class="vis-btn vis-y" id="vis-Y">Y</span>
+                <span class="vis-btn vis-x" id="vis-X">X</span>
+                <span class="vis-btn vis-b" id="vis-B">B</span>
+                <span class="vis-btn vis-a" id="vis-A">A</span>
+              </div>
+              <div class="vis-row">
+                <span class="vis-btn small" id="vis-back">BK</span>
+                <span class="vis-btn small" id="vis-home">HM</span>
+                <span class="vis-btn small" id="vis-start">ST</span>
+                <span class="vis-btn small" id="vis-ls">LS</span>
+                <span class="vis-btn small" id="vis-rs">RS</span>
+              </div>
+            </div>
+            <div class="vis-stick-box">
+              <div class="vis-stick" id="vis-right-stick">
+                <div class="vis-crosshair"></div>
+                <div class="vis-stick-dot" id="vis-rs-dot"></div>
+              </div>
+              <span class="vis-label">R Stick</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Mapping Editor -->
+      <section class="card card-full mapping-card" id="mapping-card">
+        <div class="card-header">
+          <h2>🗺️ Key Mapping Editor</h2>
+        </div>
+        <div class="mapping-editor">
+          <div class="editor-toolbar">
+            <select class="editor-select" id="mapping-select">
+              <optgroup label="Built-in Presets" id="preset-optgroup"></optgroup>
+              <optgroup label="Custom Mappings" id="custom-optgroup"></optgroup>
+            </select>
+            <button class="editor-btn" id="edit-mapping-btn">✏️ Edit</button>
+            <button class="editor-btn primary" id="new-mapping-btn">＋ New Mapping</button>
+            <div class="editor-spacer"></div>
+            <button class="editor-btn" id="export-mapping-btn">📤 Export</button>
+            <button class="editor-btn" id="import-mapping-btn">📥 Import</button>
+            <button class="editor-btn danger" id="delete-mapping-btn">🗑️ Delete</button>
+          </div>
+          <div class="mapping-grid" id="mapping-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Macros Card -->
+      <section class="card card-full macros-card" id="macros-card">
+        <div class="card-header">
+          <h2>🎬 Macros</h2>
+        </div>
+        <div class="card-body">
+          <div class="macro-controls">
+            <input type="text" class="macro-name-input" id="macro-name" placeholder="Macro name...">
+            <button class="editor-btn primary" id="macro-record-btn">⏺ Record</button>
+            <button class="editor-btn danger hidden" id="macro-stop-btn">⏹ Stop</button>
+            <div id="recording-status" class="recording-indicator hidden">
+              <span class="recording-dot"></span>
+              <span>Recording: <strong id="recording-name"></strong></span>
+            </div>
+          </div>
+          <div class="macro-list" id="macro-list">
+            <div class="empty-state">No macros recorded yet. Record button sequences and replay them!</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Save Mapping Modal -->
+  <div class="modal-overlay" id="save-modal">
+    <div class="modal">
+      <h3>💾 Save Custom Mapping</h3>
+      <input type="text" class="modal-input" id="mapping-name-input" placeholder="Enter mapping name...">
+      <div class="modal-actions">
+        <button class="editor-btn" id="save-cancel-btn">Cancel</button>
+        <button class="editor-btn primary" id="save-confirm-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="import-file-input" accept=".json" style="display:none">
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

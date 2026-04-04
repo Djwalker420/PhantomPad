@@ -1,0 +1,55 @@
+{
+  "name": "phantompad",
+  "version": "1.0.0",
+  "description": "Turn your phone into a wireless game controller for PC",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "start:pc": "electron .",
+    "dev": "node --watch server/index.js",
+    "build:pc": "electron-builder --win",
+    "cap:init": "cd mobile-app && npx cap init PhantomPad com.phantompad.controller --web-dir www",
+    "cap:android": "cd mobile-app && npx cap add android",
+    "cap:build": "cd mobile-app && npx cap sync android",
+    "cap:open": "cd mobile-app && npx cap open android"
+  },
+  "build": {
+    "appId": "com.phantompad.app",
+    "productName": "PhantomPad",
+    "directories": {
+      "output": "dist/electron"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.0"
+  },
+  "optionalDependencies": {
+    "vigemclient": "^1.1.1"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "keywords": [
+    "gamepad",
+    "controller",
+    "mobile",
+    "emulation",
+    "wireless",
+    "phantompad"
+  ],
+  "license": "MIT"
+}

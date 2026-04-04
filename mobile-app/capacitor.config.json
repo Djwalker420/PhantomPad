@@ -1,0 +1,31 @@
+{
+  "appId": "com.phantompad.controller",
+  "appName": "PhantomPad",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#06060c",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false,
+      "androidSpinnerStyle": "small",
+      "spinnerColor": "#00e5ff"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#06060c"
+    },
+    "Keyboard": {
+      "resize": "none"
+    }
+  }
+}

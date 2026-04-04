@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#06060c">
+  <title>PhantomPad</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #06060c;
+      --primary: #00e5ff;
+      --primary-glow: rgba(0,229,255,0.3);
+      --secondary: #7c4dff;
+      --text: #e8e8f0;
+      --text-dim: rgba(255,255,255,0.4);
+      --border: rgba(255,255,255,0.08);
+      --surface: rgba(255,255,255,0.04);
+      --success: #00e676;
+      --danger: #ff1744;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ===== Connect Screen ===== */
+    .connect-screen {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 50% 30%, rgba(0,229,255,0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse at 50% 80%, rgba(124,77,255,0.04) 0%, transparent 50%),
+                  var(--bg);
+      position: relative;
+      padding: 24px;
+    }
+
+    .connect-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    .connect-logo {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .connect-logo .logo-icon {
+      font-size: 56px;
+      display: block;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px var(--primary-glow));
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .connect-logo h1 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, var(--text), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .connect-logo p {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .connect-form {
+      width: 100%;
+      max-width: 380px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+
+    .server-input {
+      width: 100%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 16px 18px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .server-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 24px rgba(0,229,255,0.1);
+    }
+
+    .server-input::placeholder {
+      color: rgba(255,255,255,0.2);
+    }
+
+    .connect-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--primary), #00b8d4);
+      border: none;
+      border-radius: 14px;
+      color: #000;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .connect-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .connect-btn:active {
+      transform: scale(0.97);
+    }
+
+    .connect-btn:active::before { opacity: 1; }
+
+    .connect-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .connect-status {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    .connect-status.error { color: var(--danger); }
+    .connect-status.success { color: var(--success); }
+    .connect-status.connecting { color: var(--primary); }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 20px 0;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .recent-servers {
+      width: 100%;
+      max-width: 380px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .recent-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+
+    .recent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .recent-item:active {
+      border-color: var(--primary);
+      background: rgba(0,229,255,0.08);
+      transform: scale(0.98);
+    }
+
+    .recent-ip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .recent-time {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .recent-delete {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 16px;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    /* ===== Connecting Animation ===== */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(0,229,255,0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Connect Screen -->
+  <div id="connect-screen" class="connect-screen">
+    <div class="connect-logo">
+      <span class="logo-icon">⚡</span>
+      <h1>PhantomPad</h1>
+      <p>Wireless Game Controller</p>
+    </div>
+
+    <div class="connect-form">
+      <div class="input-group">
+        <label>Server IP Address</label>
+        <input type="text" class="server-input" id="server-ip" placeholder="192.168.1.100" inputmode="url" autocomplete="off" autocorrect="off">
+      </div>
+
+      <div class="input-group">
+        <label>Port (default: 3000)</label>
+        <input type="text" class="server-input" id="server-port" placeholder="3000" value="3000" inputmode="numeric">
+      </div>
+
+      <button class="connect-btn" id="connect-btn">CONNECT</button>
+      <div class="connect-status" id="connect-status"></div>
+    </div>
+
+    <div class="recent-servers" id="recent-section">
+      <div class="divider">Recent Servers</div>
+      <div id="recent-list"></div>
+    </div>
+  </div>
+
+  <!-- Controller (injected after connection) -->
+  <div id="controller-container" class="hidden"></div>
+
+  <script>
+    // PhantomPad Mobile — Connection Manager
+    (function() {
+      'use strict';
+
+      const STORAGE_KEY = 'phantompad_servers';
+      const MAX_RECENT = 5;
+
+      // Load recent servers
+      function getRecentServers() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        catch(e) { return []; }
+      }
+
+      function saveServer(ip, port) {
+        let servers = getRecentServers();
+        servers = servers.filter(s => !(s.ip === ip && s.port === port));
+        servers.unshift({ ip, port, time: Date.now() });
+        if (servers.length > MAX_RECENT) servers = servers.slice(0, MAX_RECENT);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(servers));
+      }
+
+      function removeServer(ip, port) {
+        let servers = getRecentServers().filter(s => !(s.ip === ip && s.port === port));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(servers));
+        renderRecent();
+      }
+
+      function renderRecent() {
+        const servers = getRecentServers();
+        const list = document.getElementById('recent-list');
+        const section = document.getElementById('recent-section');
+
+        if (servers.length === 0) {
+          section.classList.add('hidden');
+          return;
+        }
+
+        section.classList.remove('hidden');
+        list.innerHTML = servers.map(s => {
+          const ago = timeAgo(s.time);
+          return `
+            <div class="recent-item" data-ip="${s.ip}" data-port="${s.port}">
+              <div>
+                <div class="recent-ip">${s.ip}:${s.port}</div>
+                <div class="recent-time">${ago}</div>
+              </div>
+              <button class="recent-delete" data-ip="${s.ip}" data-port="${s.port}">✕</button>
+            </div>`;
+        }).join('');
+
+        list.querySelectorAll('.recent-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            if (e.target.classList.contains('recent-delete')) {
+              e.stopPropagation();
+              removeServer(e.target.dataset.ip, e.target.dataset.port);
+              return;
+            }
+            document.getElementById('server-ip').value = item.dataset.ip;
+            document.getElementById('server-port').value = item.dataset.port;
+            attemptConnect();
+          });
+        });
+      }
+
+      function timeAgo(ts) {
+        const diff = Date.now() - ts;
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+        return `${Math.floor(diff / 86400000)} days ago`;
+      }
+
+      // Connect
+      const statusEl = document.getElementById('connect-status');
+
+      function setStatus(msg, type) {
+        statusEl.className = 'connect-status ' + type;
+        statusEl.innerHTML = msg;
+      }
+
+      async function attemptConnect() {
+        const ip = document.getElementById('server-ip').value.trim();
+        const port = document.getElementById('server-port').value.trim() || '3000';
+
+        if (!ip) {
+          setStatus('Please enter a server IP address', 'error');
+          return;
+        }
+
+        const btn = document.getElementById('connect-btn');
+        btn.disabled = true;
+        setStatus('<span class="spinner"></span>Connecting...', 'connecting');
+
+        const serverUrl = `http://${ip}:${port}`;
+
+        try {
+          // Test connection
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+
+          const resp = await fetch(`${serverUrl}/api/info`, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (!resp.ok) throw new Error('Server responded with error');
+
+          setStatus('Connected! Loading controller...', 'success');
+          saveServer(ip, port);
+
+          // Redirect to controller page on the server
+          setTimeout(() => {
+            window.location.href = `${serverUrl}/controller`;
+          }, 500);
+
+        } catch (e) {
+          if (e.name === 'AbortError') {
+            setStatus('Connection timed out. Check IP and make sure server is running.', 'error');
+          } else {
+            setStatus(`Cannot reach server at ${serverUrl}. Check IP and network.`, 'error');
+          }
+          btn.disabled = false;
+        }
+      }
+
+      document.getElementById('connect-btn').addEventListener('click', attemptConnect);
+
+      // Enter key to connect
+      document.querySelectorAll('.server-input').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') attemptConnect();
+        });
+      });
+
+      // Auto-fill last used server
+      const servers = getRecentServers();
+      if (servers.length > 0) {
+        document.getElementById('server-ip').value = servers[0].ip;
+        document.getElementById('server-port').value = servers[0].port;
+      }
+
+      renderRecent();
+
+      // PWA install
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#06060c">
+  <title>PhantomPad Controller</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/controller.css">
+</head>
+<body>
+  <!-- Settings Panel -->
+  <div id="settings-overlay" class="settings-overlay hidden">
+    <div class="settings-panel">
+      <div class="settings-header">
+        <h2>⚙️ Settings</h2>
+        <button id="close-settings" class="icon-btn">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-group"><label>Vibration</label>
+          <label class="toggle"><input type="checkbox" id="haptic-toggle" checked><span class="slider"></span></label>
+        </div>
+        <div class="setting-group"><label>Deadzone</label>
+          <input type="range" id="deadzone-slider" min="0" max="50" value="15" class="range-slider">
+          <span id="deadzone-value">0.15</span>
+        </div>
+        <div class="setting-group"><label>Stick Size</label>
+          <input type="range" id="stick-size-slider" min="30" max="80" value="50" class="range-slider">
+        </div>
+        <div class="setting-group"><label>Theme</label>
+          <div class="theme-options">
+            <button class="theme-btn active" data-theme="phantom">Phantom</button>
+            <button class="theme-btn" data-theme="neon">Neon</button>
+            <button class="theme-btn" data-theme="crimson">Crimson</button>
+            <button class="theme-btn" data-theme="emerald">Emerald</button>
+          </div>
+        </div>
+        <div class="setting-group"><label>Button Layout</label>
+          <select id="layout-select" class="select-input">
+            <option value="xbox">Xbox (Default)</option>
+            <option value="playstation">PlayStation Consoles</option>
+            <option value="nintendo">Nintendo Switch</option>
+          </select>
+        </div>
+        <div class="setting-group"><label>Opacity</label>
+          <input type="range" id="opacity-slider" min="30" max="100" value="85" class="range-slider">
+        </div>
+        <div class="settings-divider"></div>
+        <div class="setting-group"><label>Motion Controls</label>
+          <select id="motion-select" class="select-input">
+            <option value="off">Off</option>
+            <option value="right">→ Right Stick</option>
+            <option value="left">→ Left Stick</option>
+          </select>
+        </div>
+        <div class="setting-group"><label>Motion Sensitivity</label>
+          <input type="range" id="motion-sens-slider" min="20" max="200" value="100" class="range-slider">
+          <span id="motion-sens-value">1.0x</span>
+        </div>
+        <div class="setting-group"><label>Trackpad Sensitivity</label>
+          <input type="range" id="trackpad-sens-slider" min="50" max="300" value="150" class="range-slider">
+          <span id="trackpad-sens-value">1.5x</span>
+        </div>
+        <div class="setting-group">
+          <button id="calibrate-btn" class="action-btn">📐 Calibrate Motion</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trackpad Overlay -->
+  <div id="trackpad-overlay" class="trackpad-overlay hidden">
+    <div class="trackpad-surface" id="trackpad-surface">
+      <div class="trackpad-hint">Swipe to move cursor · Tap = Click · 2-finger tap = Right Click</div>
+      <div class="trackpad-cursor-icon" id="trackpad-cursor">🖱️</div>
+    </div>
+    <div class="trackpad-bottom-bar">
+      <button class="trackpad-click-btn" id="trackpad-left-click">Left Click</button>
+      <button class="trackpad-click-btn" id="trackpad-right-click">Right Click</button>
+      <button class="mode-switch-btn" id="trackpad-to-controller">🎮 Controller</button>
+    </div>
+  </div>
+
+  <!-- Main Controller -->
+  <div id="controller" class="controller theme-phantom">
+    <!-- Player Badge -->
+    <div class="player-badge" id="player-badge" style="display:none">
+      <span class="player-num" id="player-num">P1</span>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="bumper-trigger-group left">
+        <button class="trigger-btn" id="lt" data-btn="lt">LT</button>
+        <button class="bumper-btn" id="lb" data-btn="lb">LB</button>
+      </div>
+      <div class="status-bar">
+        <div id="connection-indicator" class="conn-dot disconnected"></div>
+        <span id="connection-text" class="conn-text">Disconnected</span>
+        <span id="latency-display" class="latency-text hidden">—</span>
+        <span id="motion-indicator" class="motion-ind hidden">📐</span>
+        <button id="mode-switch-btn" class="icon-btn" title="Trackpad Mode">🖱️</button>
+        <button id="settings-btn" class="icon-btn" title="Settings">⚙</button>
+        <button id="fullscreen-btn" class="icon-btn" title="Fullscreen">⛶</button>
+      </div>
+      <div class="bumper-trigger-group right">
+        <button class="bumper-btn" id="rb" data-btn="rb">RB</button>
+        <button class="trigger-btn" id="rt" data-btn="rt">RT</button>
+      </div>
+    </div>
+
+    <!-- Main Play Area -->
+    <div class="play-area">
+      <div class="zone left-zone">
+        <div class="joystick-container" id="left-stick-zone">
+          <div class="joystick-base" id="left-stick-base">
+            <div class="joystick-ring"></div>
+            <div class="joystick-thumb" id="left-stick-thumb"></div>
+          </div>
+          <button class="stick-click-btn" data-btn="ls">L3</button>
+        </div>
+        <div class="dpad" id="dpad">
+          <button class="dpad-btn up" data-btn="dpadUp"><span>▲</span></button>
+          <button class="dpad-btn right" data-btn="dpadRight"><span>►</span></button>
+          <button class="dpad-btn down" data-btn="dpadDown"><span>▼</span></button>
+          <button class="dpad-btn left" data-btn="dpadLeft"><span>◄</span></button>
+          <div class="dpad-center"></div>
+        </div>
+      </div>
+      <div class="zone center-zone">
+        <button class="center-btn" id="back" data-btn="back">BACK</button>
+        <button class="center-btn home-btn" id="home" data-btn="home">⬡</button>
+        <button class="center-btn" id="start" data-btn="start">START</button>
+      </div>
+      <div class="zone right-zone">
+        <div class="face-buttons">
+          <button class="face-btn y-btn" data-btn="Y">Y</button>
+          <button class="face-btn x-btn" data-btn="X">X</button>
+          <button class="face-btn b-btn" data-btn="B">B</button>
+          <button class="face-btn a-btn" data-btn="A">A</button>
+        </div>
+        <div class="joystick-container" id="right-stick-zone">
+          <div class="joystick-base" id="right-stick-base">
+            <div class="joystick-ring"></div>
+            <div class="joystick-thumb" id="right-stick-thumb"></div>
+          </div>
+          <button class="stick-click-btn" data-btn="rs">R3</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/controller.js"></script>
+</body>
+</html>

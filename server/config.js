@@ -1,0 +1,95 @@
+// PhantomPad - Configuration
+// Windows Virtual Key Codes & Default Mappings
+
+const VK = {
+  BACKSPACE: 0x08, TAB: 0x09, ENTER: 0x0D, SHIFT: 0x10,
+  CTRL: 0x11, ALT: 0x12, ESCAPE: 0x1B, SPACE: 0x20,
+  LEFT: 0x25, UP: 0x26, RIGHT: 0x27, DOWN: 0x28,
+  KEY_0: 0x30, KEY_1: 0x31, KEY_2: 0x32, KEY_3: 0x33,
+  KEY_4: 0x34, KEY_5: 0x35, KEY_6: 0x36, KEY_7: 0x37,
+  KEY_8: 0x38, KEY_9: 0x39,
+  A: 0x41, B: 0x42, C: 0x43, D: 0x44, E: 0x45, F: 0x46,
+  G: 0x47, H: 0x48, I: 0x49, J: 0x4A, K: 0x4B, L: 0x4C,
+  M: 0x4D, N: 0x4E, O: 0x4F, P: 0x50, Q: 0x51, R: 0x52,
+  S: 0x53, T: 0x54, U: 0x55, V: 0x56, W: 0x57, X: 0x58,
+  Y: 0x59, Z: 0x5A,
+  F1: 0x70, F2: 0x71, F3: 0x72, F4: 0x73, F5: 0x74, F6: 0x75,
+  F7: 0x76, F8: 0x77, F9: 0x78, F10: 0x79, F11: 0x7A, F12: 0x7B,
+  SEMICOLON: 0xBA, EQUAL: 0xBB, COMMA: 0xBC, MINUS: 0xBD,
+  PERIOD: 0xBE, SLASH: 0xBF, GRAVE: 0xC0,
+  LBRACKET: 0xDB, BACKSLASH: 0xDC, RBRACKET: 0xDD, QUOTE: 0xDE
+};
+
+// Human-readable key names for the UI
+const VK_NAMES = {};
+for (const [name, code] of Object.entries(VK)) {
+  VK_NAMES[code] = name;
+}
+
+const keyMappings = {
+  default: {
+    A: VK.SPACE, B: VK.E, X: VK.Q, Y: VK.R,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.TAB, rb: VK.F, lt: VK.CTRL, rt: VK.SHIFT,
+    start: VK.ENTER, back: VK.ESCAPE, home: VK.TAB,
+    ls: VK.C, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+  fps: {
+    A: VK.SPACE, B: VK.C, X: VK.R, Y: VK.F,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.Q, rb: VK.E, lt: VK.CTRL, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.TAB, home: VK.M,
+    ls: VK.CTRL, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+  racing: {
+    A: VK.SPACE, B: VK.B, X: VK.X, Y: VK.Y,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.E, lt: VK.S, rt: VK.W,
+    start: VK.ENTER, back: VK.ESCAPE, home: VK.TAB,
+    ls: VK.C, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+  platformer: {
+    A: VK.SPACE, B: VK.X, X: VK.Z, Y: VK.C,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.E, lt: VK.A, rt: VK.S,
+    start: VK.ENTER, back: VK.ESCAPE, home: VK.TAB,
+    ls: VK.SHIFT, rs: VK.CTRL,
+    axisLeftUp: VK.UP, axisLeftDown: VK.DOWN, axisLeftLeft: VK.LEFT, axisLeftRight: VK.RIGHT,
+    axisRightUp: VK.W, axisRightDown: VK.S, axisRightLeft: VK.A, axisRightRight: VK.D
+  },
+  ryujinx: {
+    A: VK.X, B: VK.Z, X: VK.V, Y: VK.C,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.E, lt: VK.SHIFT, rt: VK.SPACE,
+    start: VK.EQUAL, back: VK.MINUS, home: VK.ESCAPE,
+    ls: VK.F, rs: VK.G,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.I, axisRightDown: VK.K, axisRightLeft: VK.J, axisRightRight: VK.L
+  },
+  retroarch: {
+    A: VK.X, B: VK.Z, X: VK.S, Y: VK.A,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.W, lt: VK.E, rt: VK.R,
+    start: VK.ENTER, back: VK.SHIFT, home: VK.ESCAPE,
+    ls: VK.F, rs: VK.G,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.I, axisRightDown: VK.K, axisRightLeft: VK.J, axisRightRight: VK.L
+  }
+};
+
+module.exports = {
+  port: 3000,
+  defaultMode: 'keyboard',
+  defaultPreset: 'default',
+  axisThreshold: 0.5,
+  triggerThreshold: 0.3,
+  VK,
+  VK_NAMES,
+  keyMappings
+};

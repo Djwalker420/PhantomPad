@@ -1,0 +1,23 @@
+node_modules/
+dist/
+data/
+*.log
+.DS_Store
+Thumbs.db
+*.zip
+
+# Mobile App builds (Ionic/Capacitor)
+mobile-app/android/
+mobile-app/node_modules/
+
+# Android Studio Native builds
+android-app/.gradle/
+android-app/build/
+android-app/*/build/
+android-app/local.properties
+android-app/.idea/
+
+# Editor configs
+.vscode/
+
+custom-mappings.json

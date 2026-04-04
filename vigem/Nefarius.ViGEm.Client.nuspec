@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Nefarius.ViGEm.Client</id>
+    <version>1.17.178</version>
+    <authors>Benjamin Höglinger-Stelzer</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>ViGEm_Icon.png</icon>
+    <projectUrl>https://github.com/ViGEm/ViGEm.NET</projectUrl>
+    <description>Managed ViGEmClient library for interaction with the ViGEm Bus Driver.</description>
+    <copyright>Copyright © Nefarius Software Solutions e.U. 2017-2019</copyright>
+    <tags>driver bus-driver windows-driver gamepad joypad joystick emulation framework xinput xusb xbone dualshock4 kmdf</tags>
+    <repository url="https://github.com/ViGEm/ViGEm.NET" />
+    <dependencies>
+      <group targetFramework=".NETFramework4.5.2" />
+      <group targetFramework=".NETCoreApp2.2" />
+    </dependencies>
+  </metadata>
+</package>
