@@ -479,6 +479,42 @@
       });
     }
 
+    // Game Preset Selector
+    const presetEl = document.getElementById('preset-select');
+    if (presetEl) {
+      presetEl.value = settings.preset || 'default';
+      presetEl.addEventListener('change', (e) => {
+        settings.preset = e.target.value;
+        state.socket.emit('set-preset', settings.preset);
+        saveSettings();
+        haptic(25);
+        showMobileToast(`Equipped: ${e.target.options[e.target.selectedIndex].text}`);
+      });
+    }
+
+    // Simple mobile toast notification
+    function showMobileToast(msg) {
+      let toast = document.getElementById('mobile-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'mobile-toast';
+        toast.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:#00e5ff; padding:8px 16px; border-radius:20px; font-size:12px; font-weight:600; z-index:9999; pointer-events:none; opacity:0; transition:opacity 0.3s; border:1px solid rgba(0,229,255,0.4); box-shadow:0 0 10px rgba(0,229,255,0.2)';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      if (toast.timeout) clearTimeout(toast.timeout);
+      toast.timeout = setTimeout(() => toast.style.opacity = '0', 2500);
+    }
+
+    // Sync when dashboard changes preset
+    state.socket.on('preset-changed', (preset) => {
+      settings.preset = preset;
+      const el = document.getElementById('preset-select');
+      if (el) el.value = preset;
+      saveSettings();
+    });
+
     const motInd = document.getElementById('motion-indicator');
     document.getElementById('motion-select').addEventListener('change', (e) => {
       settings.motionMode = e.target.value;

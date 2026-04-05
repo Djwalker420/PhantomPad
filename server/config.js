@@ -15,6 +15,7 @@ const VK = {
   Y: 0x59, Z: 0x5A,
   F1: 0x70, F2: 0x71, F3: 0x72, F4: 0x73, F5: 0x74, F6: 0x75,
   F7: 0x76, F8: 0x77, F9: 0x78, F10: 0x79, F11: 0x7A, F12: 0x7B,
+  CAPSLOCK: 0x14,
   SEMICOLON: 0xBA, EQUAL: 0xBB, COMMA: 0xBC, MINUS: 0xBD,
   PERIOD: 0xBE, SLASH: 0xBF, GRAVE: 0xC0,
   LBRACKET: 0xDB, BACKSLASH: 0xDC, RBRACKET: 0xDD, QUOTE: 0xDE
@@ -80,6 +81,120 @@ const keyMappings = {
     ls: VK.F, rs: VK.G,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.I, axisRightDown: VK.K, axisRightLeft: VK.J, axisRightRight: VK.L
+  },
+
+  // === AAA Game Presets ===
+
+  // GTA V — On-foot controls
+  gtav: {
+    A: VK.SHIFT, B: VK.R, X: VK.SPACE, Y: VK.F,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.TAB, rb: VK.Q, lt: VK.C, rt: VK.CTRL,
+    start: VK.ESCAPE, back: VK.M, home: VK.P,
+    ls: VK.CTRL, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Elden Ring / Dark Souls style
+  eldenring: {
+    A: VK.F, B: VK.SPACE, X: VK.R, Y: VK.E,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.C, lt: VK.SHIFT, rt: VK.CTRL,
+    start: VK.ESCAPE, back: VK.G, home: VK.ESCAPE,
+    ls: VK.X, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Minecraft — Survival/Creative
+  minecraft: {
+    A: VK.SPACE, B: VK.Q, X: VK.SHIFT, Y: VK.E,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.TAB, rb: VK.F, lt: VK.CTRL, rt: VK.C,
+    start: VK.ESCAPE, back: VK.TAB, home: VK.F5,
+    ls: VK.CTRL, rs: VK.SHIFT,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Fortnite — Combat / Building
+  fortnite: {
+    A: VK.SPACE, B: VK.Q, X: VK.R, Y: VK.F,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.C, rb: VK.G, lt: VK.SHIFT, rt: VK.CTRL,
+    start: VK.ESCAPE, back: VK.M, home: VK.TAB,
+    ls: VK.CTRL, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Red Dead Redemption 2 — On-foot controls
+  rdr2: {
+    A: VK.SHIFT, B: VK.R, X: VK.SPACE, Y: VK.E,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_5, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.Q, lt: VK.B, rt: VK.F,
+    start: VK.ESCAPE, back: VK.M, home: VK.P,
+    ls: VK.CTRL, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // The Witcher 3 — Combat / Exploration
+  witcher3: {
+    A: VK.SPACE, B: VK.ALT, X: VK.C, Y: VK.R,
+    dpadUp: VK.KEY_2, dpadDown: VK.KEY_4, dpadLeft: VK.KEY_3, dpadRight: VK.KEY_5,
+    lb: VK.TAB, rb: VK.Q, lt: VK.CTRL, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.J, home: VK.M,
+    ls: VK.X, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // === Gacha / Action-RPG Presets ===
+
+  // Genshin Impact — Exploration & Combat
+  genshin: {
+    A: VK.SPACE, B: VK.F, X: VK.E, Y: VK.Q,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.R, lt: VK.CTRL, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.B, home: VK.M,
+    ls: VK.X, rs: VK.Z,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Honkai: Star Rail — Exploration & Turn-based Combat
+  starrail: {
+    A: VK.SPACE, B: VK.F, X: VK.E, Y: VK.Q,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.Z, rb: VK.X, lt: VK.V, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.B, home: VK.M,
+    ls: VK.C, rs: VK.TAB,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Wuthering Waves — Action Combat
+  wuwa: {
+    A: VK.SPACE, B: VK.F, X: VK.E, Y: VK.R,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.Q, lt: VK.CTRL, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.B, home: VK.M,
+    ls: VK.X, rs: VK.G,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Tower of Fantasy — Open World Action
+  tof: {
+    A: VK.SPACE, B: VK.E, X: VK.Q, Y: VK.R,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.F, lt: VK.CTRL, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.B, home: VK.M,
+    ls: VK.X, rs: VK.C,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   }
 };
 

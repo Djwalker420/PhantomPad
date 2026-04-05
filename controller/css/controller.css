@@ -657,8 +657,22 @@ html, body {
   border-radius: 6px;
   font-size: 12px;
   cursor: pointer;
+  max-width: 160px;
 }
 .select-input option { background: #0c0c16; }
+.select-input optgroup { color: var(--primary); font-weight: 700; font-size: 11px; }
+
+/* Preset Section */
+.preset-section .select-input {
+  border-color: rgba(0,229,255,0.25);
+  background: linear-gradient(135deg, var(--surface), rgba(0,229,255,0.06));
+  max-width: 170px;
+}
+.preset-section .select-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 12px var(--primary-glow);
+  outline: none;
+}
 
 /* Action Button */
 .action-btn {
