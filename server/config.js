@@ -195,7 +195,55 @@ const keyMappings = {
     ls: VK.X, rs: VK.C,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // === Additional AAA Presets ===
+  
+  cyberpunk: {
+    A: VK.F, B: VK.C, X: VK.R, Y: VK.ALT,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.E, lt: VK.C, rt: VK.CTRL,
+    start: VK.ESCAPE, back: VK.M, home: VK.I,
+    ls: VK.SHIFT, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  forza: {
+    A: VK.SPACE, B: VK.E, X: VK.SHIFT, Y: VK.R,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_2, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.TAB, rb: VK.ESCAPE, lt: VK.S, rt: VK.W,
+    start: VK.ESCAPE, back: VK.M, home: VK.TAB,
+    ls: VK.C, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  starfield: {
+    A: VK.SPACE, B: VK.CTRL, X: VK.R, Y: VK.E,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.G, lt: VK.MOUSE_RIGHT, rt: VK.MOUSE_LEFT,
+    start: VK.ESCAPE, back: VK.M, home: VK.P,
+    ls: VK.SHIFT, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   }
+};
+
+// Automatic game detection mappings (Process Name -> Preset Name)
+const processMappings = {
+  'GTA5': 'gtav',
+  'EldenRing': 'eldenring',
+  'Minecraft': 'minecraft',
+  'Fortnite': 'fortnite',
+  'RDR2': 'rdr2',
+  'witcher3': 'witcher3',
+  'GenshinImpact': 'genshin',
+  'StarRail': 'starrail',
+  'WuWa': 'wuwa',
+  'Cyberpunk2077': 'cyberpunk',
+  'ForzaHorizon5': 'forza',
+  'Starfield': 'starfield'
 };
 
 module.exports = {
@@ -206,5 +254,6 @@ module.exports = {
   triggerThreshold: 0.3,
   VK,
   VK_NAMES,
-  keyMappings
+  keyMappings,
+  processMappings
 };

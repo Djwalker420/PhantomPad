@@ -100,6 +100,16 @@
       state.latency = Date.now() - sentTime;
       updateLatencyUI();
     });
+
+    // Active Game Auto-Detection
+    state.socket.on('active-game-update', (data) => {
+      if (data.name) {
+        showMobileToast(`Detected: ${data.name}`);
+        // Optionally update a persistent text element if it exists
+        const el = document.getElementById('current-game-name');
+        if (el) el.textContent = data.name;
+      }
+    });
   }
 
   function updateConnUI(connected) {
@@ -249,6 +259,15 @@
         state.motionBase.beta = e.beta;
         state.motionBase.gamma = e.gamma;
         state.motionBase.set = true;
+      }
+
+      if (settings.motionMode === 'steering') {
+        // Steering mode uses roll (gamma) for X-axis steering
+        let tiltX = e.gamma - state.motionBase.gamma;
+        let nx = Math.max(-1, Math.min(1, (tiltX / 45) * settings.motionSens));
+        if (Math.abs(nx) < settings.deadzone) nx = 0;
+        state.axes.leftX = Math.round(nx * 1000) / 1000;
+        return;
       }
 
       let tiltX = e.gamma - state.motionBase.gamma;

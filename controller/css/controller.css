@@ -204,6 +204,22 @@ html, body {
   font-weight: 500;
 }
 
+.current-game-text {
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(0, 229, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .latency-text {
   font-family: 'SF Mono', 'Cascadia Code', monospace;
   font-size: 10px;

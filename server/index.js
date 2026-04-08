@@ -8,6 +8,7 @@ const fs = require('fs');
 const QRCode = require('qrcode');
 const { InputHandler } = require('./input-handler');
 const { MacroHandler } = require('./macro-handler');
+const { GameMonitor } = require('./game-monitor');
 const config = require('./config');
 
 const app = express();
@@ -22,6 +23,7 @@ const io = new Server(httpServer, {
 const PORT = config.port;
 const inputHandler = new InputHandler(config);
 const macroHandler = new MacroHandler(inputHandler);
+const gameMonitor = new GameMonitor({ interval: 3000 });
 
 // --- Persistent Storage ---
 let DATA_DIR = path.join(__dirname, '..', 'data');
@@ -37,6 +39,26 @@ const MACROS_FILE = path.join(DATA_DIR, 'macros.json');
 
 let customMappings = {};
 let profiles = {};
+let activeGame = null;
+
+gameMonitor.on('game-changed', (processName) => {
+  activeGame = processName;
+  console.log(`  🎮 Game Detected: ${processName}`);
+  
+  const presetKey = config.processMappings[processName];
+  if (presetKey) {
+    const mapping = config.keyMappings[presetKey] || customMappings[presetKey];
+    if (mapping) {
+      inputHandler.setGlobalMapping(mapping);
+      io.emit('preset-changed', presetKey);
+      io.emit('active-game-update', { name: processName, preset: presetKey });
+      console.log(`  ✓ Auto-switched to preset: ${presetKey}`);
+    }
+  } else {
+    io.emit('active-game-update', { name: processName, preset: 'manual' });
+  }
+});
+gameMonitor.start();
 
 function loadData() {
   try { customMappings = JSON.parse(fs.readFileSync(MAPPINGS_FILE, 'utf8')); } catch (e) { }
@@ -122,6 +144,7 @@ io.on('connection', (socket) => {
     if (!player) { socket.emit('error-msg', 'Max 4 players'); return; }
     console.log(`  ✓ P${player.number} connected: ${socket.id}`);
     socket.emit('player-assigned', { number: player.number, color: player.color });
+    if (activeGame) socket.emit('active-game-update', { name: activeGame, preset: config.processMappings[activeGame] || 'manual' });
     io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
   });
 
