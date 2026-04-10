@@ -62,3 +62,5 @@ Plans:
 | 1-3. Foundation | v1.0 | 3/3 | Complete | 2026-04-08 |
 | 4. GSD Init | v1.1 | 1/1 | Complete | 2026-04-08 |
 | 5. Gaming Opt | v1.1 | 2/2 | Complete | 2026-04-08 |
+| 6. Testing | v1.1 | 3/3 | Complete | 2026-04-08 |
+| 7. Deployment | v1.1 | 2/2 | Complete | 2026-04-08 |

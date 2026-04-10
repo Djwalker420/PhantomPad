@@ -59,12 +59,13 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowFileAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setAllowContentAccess(true);
 
         // Hardware-accelerated rendering
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -105,7 +106,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                android.util.Log.d("PhantomPad", consoleMessage.message() 
+                    + " -- From line " + consoleMessage.lineNumber() 
+                    + " of " + consoleMessage.sourceId());
+                return super.onConsoleMessage(consoleMessage);
+            }
+        });
 
         // Disable scrolling
         webView.setVerticalScrollBarEnabled(false);
@@ -127,6 +136,8 @@ public class MainActivity extends AppCompatActivity {
         // Load the controller URL
         String serverUrl = getIntent().getStringExtra("server_url");
         if (serverUrl != null && !serverUrl.isEmpty()) {
+            // Clear any stale cache before loading
+            webView.clearCache(true);
             webView.loadUrl(serverUrl);
         } else {
             // No URL provided, go back to connect

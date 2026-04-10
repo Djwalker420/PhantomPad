@@ -1,12 +1,13 @@
 {
   "name": "phantompad",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Turn your phone into a wireless game controller for PC",
   "main": "electron/main.js",
   "scripts": {
     "start": "node server/index.js",
     "start:pc": "electron .",
     "dev": "node --watch server/index.js",
+    "test": "jest",
     "build:pc": "electron-builder --win",
     "cap:init": "cd mobile-app && npx cap init PhantomPad com.phantompad.controller --web-dir www",
     "cap:android": "cd mobile-app && npx cap add android",
@@ -41,7 +42,8 @@
   },
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "jest": "^30.3.0"
   },
   "keywords": [
     "gamepad",

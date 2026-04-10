@@ -84,8 +84,9 @@ const keyMappings = {
   },
 
   // === AAA Game Presets ===
+  // Xbox Controller Button → Game Action → Keyboard Key
 
-  // GTA V — On-foot controls
+  // GTA V — Xbox: A=Sprint, B=Reload, X=Jump, Y=Enter Vehicle
   gtav: {
     A: VK.SHIFT, B: VK.R, X: VK.SPACE, Y: VK.F,
     dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
@@ -96,40 +97,40 @@ const keyMappings = {
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Elden Ring / Dark Souls style
+  // Elden Ring — Xbox: A=Interact, B=Dodge, X=Use Item, Y=Event Action
   eldenring: {
-    A: VK.F, B: VK.SPACE, X: VK.R, Y: VK.E,
+    A: VK.E, B: VK.SPACE, X: VK.R, Y: VK.F,
     dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
-    lb: VK.Q, rb: VK.C, lt: VK.SHIFT, rt: VK.CTRL,
+    lb: VK.SHIFT, rb: VK.CTRL, lt: VK.Q, rt: VK.C,
     start: VK.ESCAPE, back: VK.G, home: VK.ESCAPE,
     ls: VK.X, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Minecraft — Survival/Creative
+  // Minecraft — Xbox: A=Jump, B=Drop, X=Sneak, Y=Inventory
   minecraft: {
     A: VK.SPACE, B: VK.Q, X: VK.SHIFT, Y: VK.E,
-    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
-    lb: VK.TAB, rb: VK.F, lt: VK.CTRL, rt: VK.C,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_5, dpadRight: VK.KEY_2,
+    lb: VK.KEY_7, rb: VK.KEY_8, lt: VK.CTRL, rt: VK.F,
     start: VK.ESCAPE, back: VK.TAB, home: VK.F5,
     ls: VK.CTRL, rs: VK.SHIFT,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Fortnite — Combat / Building
+  // Fortnite — Xbox: A=Jump, B=Crouch, X=Reload, Y=Interact
   fortnite: {
-    A: VK.SPACE, B: VK.Q, X: VK.R, Y: VK.F,
+    A: VK.SPACE, B: VK.CTRL, X: VK.R, Y: VK.E,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.C, rb: VK.G, lt: VK.SHIFT, rt: VK.CTRL,
+    lb: VK.Q, rb: VK.G, lt: VK.SHIFT, rt: VK.F,
     start: VK.ESCAPE, back: VK.M, home: VK.TAB,
     ls: VK.CTRL, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Red Dead Redemption 2 — On-foot controls
+  // Red Dead Redemption 2 — Xbox: A=Sprint, B=Reload, X=Jump, Y=Mount/Interact
   rdr2: {
     A: VK.SHIFT, B: VK.R, X: VK.SPACE, Y: VK.E,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_5, dpadRight: VK.KEY_2,
@@ -140,11 +141,11 @@ const keyMappings = {
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // The Witcher 3 — Combat / Exploration
+  // The Witcher 3 — Xbox: A=Roll/Jump, B=Dodge, X=Sign Cast, Y=Heavy Attack
   witcher3: {
-    A: VK.SPACE, B: VK.ALT, X: VK.C, Y: VK.R,
-    dpadUp: VK.KEY_2, dpadDown: VK.KEY_4, dpadLeft: VK.KEY_3, dpadRight: VK.KEY_5,
-    lb: VK.TAB, rb: VK.Q, lt: VK.CTRL, rt: VK.SHIFT,
+    A: VK.SPACE, B: VK.ALT, X: VK.Q, Y: VK.SHIFT,
+    dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_5, dpadRight: VK.KEY_2,
+    lb: VK.TAB, rb: VK.R, lt: VK.CTRL, rt: VK.C,
     start: VK.ESCAPE, back: VK.J, home: VK.M,
     ls: VK.X, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
@@ -153,44 +154,44 @@ const keyMappings = {
 
   // === Gacha / Action-RPG Presets ===
 
-  // Genshin Impact — Exploration & Combat
+  // Genshin Impact — Xbox: A=Jump, B=Sprint, X=(Attack), Y=Burst, RB=Skill, LT=Aim, RT=Sprint
   genshin: {
-    A: VK.SPACE, B: VK.F, X: VK.E, Y: VK.Q,
+    A: VK.SPACE, B: VK.SHIFT, X: VK.F, Y: VK.Q,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.TAB, rb: VK.R, lt: VK.CTRL, rt: VK.SHIFT,
+    lb: VK.Z, rb: VK.E, lt: VK.R, rt: VK.SHIFT,
     start: VK.ESCAPE, back: VK.B, home: VK.M,
-    ls: VK.X, rs: VK.Z,
+    ls: VK.X, rs: VK.C,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Honkai: Star Rail — Exploration & Turn-based Combat
+  // Honkai: Star Rail — Xbox: A=Interact, B=Sprint, RB=Attack, X=Skill, Y=Ultimate
   starrail: {
-    A: VK.SPACE, B: VK.F, X: VK.E, Y: VK.Q,
+    A: VK.F, B: VK.SHIFT, X: VK.E, Y: VK.Q,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.Z, rb: VK.X, lt: VK.V, rt: VK.SHIFT,
+    lb: VK.Z, rb: VK.X, lt: VK.V, rt: VK.TAB,
     start: VK.ESCAPE, back: VK.B, home: VK.M,
-    ls: VK.C, rs: VK.TAB,
+    ls: VK.C, rs: VK.CTRL,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Wuthering Waves — Action Combat
+  // Wuthering Waves — Xbox: A=Jump, B=Dodge, RB=Skill, Y=Liberation
   wuwa: {
-    A: VK.SPACE, B: VK.F, X: VK.E, Y: VK.R,
+    A: VK.SPACE, B: VK.SHIFT, X: VK.F, Y: VK.R,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.TAB, rb: VK.Q, lt: VK.CTRL, rt: VK.SHIFT,
+    lb: VK.TAB, rb: VK.E, lt: VK.Q, rt: VK.CTRL,
     start: VK.ESCAPE, back: VK.B, home: VK.M,
     ls: VK.X, rs: VK.G,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
-  // Tower of Fantasy — Open World Action
+  // Tower of Fantasy — Xbox: A=Jump, B=Dodge, X=Interact, Y=Weapon Skill
   tof: {
-    A: VK.SPACE, B: VK.E, X: VK.Q, Y: VK.R,
+    A: VK.SPACE, B: VK.SHIFT, X: VK.E, Y: VK.R,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.TAB, rb: VK.F, lt: VK.CTRL, rt: VK.SHIFT,
+    lb: VK.TAB, rb: VK.Q, lt: VK.CTRL, rt: VK.F,
     start: VK.ESCAPE, back: VK.B, home: VK.M,
     ls: VK.X, rs: VK.C,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
@@ -198,31 +199,34 @@ const keyMappings = {
   },
 
   // === Additional AAA Presets ===
-  
+
+  // Cyberpunk 2077 — Xbox: A=Interact, B=Crouch, X=Reload, Y=Weapon Wheel
   cyberpunk: {
     A: VK.F, B: VK.C, X: VK.R, Y: VK.ALT,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.TAB, rb: VK.E, lt: VK.C, rt: VK.CTRL,
+    lb: VK.TAB, rb: VK.E, lt: VK.Q, rt: VK.CTRL,
     start: VK.ESCAPE, back: VK.M, home: VK.I,
     ls: VK.SHIFT, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
+  // Forza Horizon — Xbox: A=Handbrake, B=Nitro, LT=Brake, RT=Accelerate
   forza: {
     A: VK.SPACE, B: VK.E, X: VK.SHIFT, Y: VK.R,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_2, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
-    lb: VK.TAB, rb: VK.ESCAPE, lt: VK.S, rt: VK.W,
+    lb: VK.TAB, rb: VK.Q, lt: VK.S, rt: VK.W,
     start: VK.ESCAPE, back: VK.M, home: VK.TAB,
     ls: VK.C, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   },
 
+  // Starfield — Xbox: A=Jump, B=Crouch, X=Reload, Y=Interact
   starfield: {
     A: VK.SPACE, B: VK.CTRL, X: VK.R, Y: VK.E,
     dpadUp: VK.KEY_1, dpadDown: VK.KEY_3, dpadLeft: VK.KEY_4, dpadRight: VK.KEY_2,
-    lb: VK.TAB, rb: VK.G, lt: VK.MOUSE_RIGHT, rt: VK.MOUSE_LEFT,
+    lb: VK.TAB, rb: VK.G, lt: VK.Q, rt: VK.SHIFT,
     start: VK.ESCAPE, back: VK.M, home: VK.P,
     ls: VK.SHIFT, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,

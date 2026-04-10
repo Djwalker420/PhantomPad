@@ -311,7 +311,7 @@ httpServer.on('listening', () => {
   module.exports.activePort = currentPort; // Update active port for Electron
   const ifaces = getAllInterfaces();
   console.log('  ╔═══════════════════════════════════════════════════╗');
-  console.log('  ║           ⚡ PhantomPad Server v1.1 ⚡            ║');
+  console.log('  ║           ⚡ PhantomPad Server v1.2 ⚡            ║');
   console.log('  ╠═══════════════════════════════════════════════════╣');
   console.log(`  ║  Dashboard:  http://localhost:${currentPort.toString().padEnd(20)}║`);
   console.log(`  ║  Mode:       ${inputHandler.getMode().padEnd(37)}║`);

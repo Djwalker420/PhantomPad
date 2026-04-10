@@ -264,24 +264,16 @@
       if (settings.motionMode === 'steering') {
         // Steering mode uses roll (gamma) for X-axis steering
         let tiltX = e.gamma - state.motionBase.gamma;
-        let nx = Math.max(-1, Math.min(1, (tiltX / 45) * settings.motionSens));
-        if (Math.abs(nx) < settings.deadzone) nx = 0;
-        state.axes.leftX = Math.round(nx * 1000) / 1000;
+        state.axes.leftX = Utils.normalizeSensor(tiltX, 45, settings.motionSens, settings.deadzone);
         return;
       }
 
       let tiltX = e.gamma - state.motionBase.gamma;
       let tiltY = e.beta - state.motionBase.beta;
 
-      let nx = Math.max(-1, Math.min(1, (tiltX / 30) * settings.motionSens));
-      let ny = Math.max(-1, Math.min(1, (tiltY / 30) * settings.motionSens));
-
-      if (Math.abs(nx) < settings.deadzone) nx = 0;
-      if (Math.abs(ny) < settings.deadzone) ny = 0;
-
       const target = settings.motionMode === 'left' ? 'left' : 'right';
-      state.axes[target + 'X'] = Math.round(nx * 1000) / 1000;
-      state.axes[target + 'Y'] = Math.round(ny * 1000) / 1000;
+      state.axes[target + 'X'] = Utils.normalizeSensor(tiltX, 30, settings.motionSens, settings.deadzone);
+      state.axes[target + 'Y'] = Utils.normalizeSensor(tiltY, 30, settings.motionSens, settings.deadzone);
     }, { passive: true });
   }
 

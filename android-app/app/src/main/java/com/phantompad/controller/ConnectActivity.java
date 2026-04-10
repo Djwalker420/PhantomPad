@@ -119,7 +119,7 @@ public class ConnectActivity extends AppCompatActivity {
 
                         // Launch controller activity
                         Intent intent = new Intent(ConnectActivity.this, MainActivity.class);
-                        intent.putExtra("server_url", serverUrl + "/controller");
+                        intent.putExtra("server_url", serverUrl + "/controller/");
                         startActivity(intent);
                         finish();
                     });
