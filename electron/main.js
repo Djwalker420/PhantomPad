@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -71,6 +71,16 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Register window IPC handlers
+  ipcMain.on('window-minimize', () => mainWindow?.minimize());
+  ipcMain.on('window-maximize', () => {
+    if (mainWindow) {
+      mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+    }
+  });
+  ipcMain.on('window-close', () => { app.isQuitting = true; app.quit(); });
+  ipcMain.handle('get-version', () => app.getVersion());
 }
 
 function createTray() {

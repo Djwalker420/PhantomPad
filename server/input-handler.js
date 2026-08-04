@@ -1,7 +1,50 @@
-// PhantomPad - Input Handler v2
-// Multi-player, Mouse Trackpad, Keyboard & Gamepad modes
+/**
+ * PhantomPad - Input Handler v2
+ * Multi-player, Mouse Trackpad, Keyboard & Gamepad modes
+ *
+ * ARCHITECTURE & CROSS-PLATFORM EXTENSION GUIDE:
+ * -----------------------------------------------------------------------------
+ * Currently, input simulation relies on Windows user32.dll via PowerShell and 
+ * ViGEmClient for virtual Xbox controller emulation.
+ *
+ * To extend PhantomPad input emulation for non-Windows operating systems:
+ *
+ * 1. Linux Support (via uinput / evdev):
+ *    - Virtual Gamepad: Use the Linux kernel `uinput` module (e.g., via node-uinput
+ *      or writing to `/dev/uinput`) to register input devices supporting EV_KEY,
+ *      EV_ABS (joystick axes), and EV_SYN.
+ *    - Virtual Keyboard/Mouse: Emit `uinput` events for mouse movement (EV_REL),
+ *      clicks, and keystrokes. Requires appropriate permission (uaccess rule or
+ *      input group access to `/dev/uinput`).
+ *
+ * 2. macOS Support (via CoreGraphics / CGEvent):
+ *    - Virtual Keyboard/Mouse: Use macOS CoreGraphics framework APIs via Node native 
+ *      addon or `robotjs` / `nut.js` bindings (`CGEventCreateKeyboardEvent`,
+ *      `CGEventCreateMouseEvent`, `CGEventPost`). Requires Accessibility permissions
+ *      granted to the host application in System Preferences.
+ *    - Virtual Gamepad: macOS does not natively provide a simple userspace virtual 
+ *      gamepad API like ViGEm, but virtual gamepads can be created using DriverKit 
+ *      or IOUSBHostDevice extensions, or by utilizing Foohid driver bindings.
+ *
+ * 3. Abstraction Pattern:
+ *    - Abstract platform-specific logic into an `InputDriver` interface:
+ *        interface InputDriver {
+ *          init(): Promise<void>;
+ *          sendKeyEvent(code, isDown): void;
+ *          sendMouseMove(dx, dy): void;
+ *          sendGamepadState(playerIndex, state): void;
+ *        }
+ *    - Detect `process.platform` ('win32', 'linux', 'darwin') in constructor/factory
+ *      to instantiate the appropriate driver backend.
+ * -----------------------------------------------------------------------------
+ */
 const { spawn } = require('child_process');
 const config = require('./config');
+
+const sanitizeNumber = (val, min, max) => {
+  const n = Number(val);
+  return (Number.isFinite(n)) ? Math.max(min, Math.min(max, n)) : 0;
+};
 
 class InputHandler {
   constructor(cfg) {
@@ -141,8 +184,8 @@ Write-Host "KB_READY"
   handleMouse(socketId, data) {
     if (!this.keyboardAvailable || !this.ps || !this.ps.stdin.writable) return;
     if (data.dx !== undefined || data.dy !== undefined) {
-      const dx = Math.round(data.dx || 0);
-      const dy = Math.round(data.dy || 0);
+      const dx = Math.round(sanitizeNumber(data.dx, -10000, 10000));
+      const dy = Math.round(sanitizeNumber(data.dy, -10000, 10000));
       this.ps.stdin.write(`$p=[KBSim+POINT]::new();[KBSim]::GetCursorPos([ref]$p);[KBSim]::SetCursorPos($p.X+${dx},$p.Y+${dy})\n`);
     }
     if (data.click === 'left') {
@@ -164,30 +207,30 @@ Write-Host "KB_READY"
     
     if (data.axes) {
       if (data.axes.leftX !== undefined) {
-         const val = Math.max(-32768, Math.min(32767, Math.round(data.axes.leftX * 32767)));
-         cmds += `$c.SetAxisValue($global:XA::LeftThumbX, [int16]${val}); `;
+         const val = sanitizeNumber(data.axes.leftX * 32767, -32768, 32767);
+         cmds += `$c.SetAxisValue($global:XA::LeftThumbX, [int16]${Math.round(val)}); `;
       }
       if (data.axes.leftY !== undefined) {
-         const val = Math.max(-32768, Math.min(32767, Math.round(-data.axes.leftY * 32767)));
-         cmds += `$c.SetAxisValue($global:XA::LeftThumbY, [int16]${val}); `;
+         const val = sanitizeNumber(-data.axes.leftY * 32767, -32768, 32767);
+         cmds += `$c.SetAxisValue($global:XA::LeftThumbY, [int16]${Math.round(val)}); `;
       }
       if (data.axes.rightX !== undefined) {
-         const val = Math.max(-32768, Math.min(32767, Math.round(data.axes.rightX * 32767)));
-         cmds += `$c.SetAxisValue($global:XA::RightThumbX, [int16]${val}); `;
+         const val = sanitizeNumber(data.axes.rightX * 32767, -32768, 32767);
+         cmds += `$c.SetAxisValue($global:XA::RightThumbX, [int16]${Math.round(val)}); `;
       }
       if (data.axes.rightY !== undefined) {
-         const val = Math.max(-32768, Math.min(32767, Math.round(-data.axes.rightY * 32767)));
-         cmds += `$c.SetAxisValue($global:XA::RightThumbY, [int16]${val}); `;
+         const val = sanitizeNumber(-data.axes.rightY * 32767, -32768, 32767);
+         cmds += `$c.SetAxisValue($global:XA::RightThumbY, [int16]${Math.round(val)}); `;
       }
     }
     if (data.triggers) {
       if (data.triggers.lt !== undefined) {
-          const val = Math.round(data.triggers.lt * 255);
-          cmds += `$c.SetSliderValue($global:XS::LeftTrigger, [byte]${val}); `;
+          const val = sanitizeNumber(data.triggers.lt * 255, 0, 255);
+          cmds += `$c.SetSliderValue($global:XS::LeftTrigger, [byte]${Math.round(val)}); `;
       }
       if (data.triggers.rt !== undefined) {
-          const val = Math.round(data.triggers.rt * 255);
-          cmds += `$c.SetSliderValue($global:XS::RightTrigger, [byte]${val}); `;
+          const val = sanitizeNumber(data.triggers.rt * 255, 0, 255);
+          cmds += `$c.SetSliderValue($global:XS::RightTrigger, [byte]${Math.round(val)}); `;
       }
     }
     if (data.buttons) {

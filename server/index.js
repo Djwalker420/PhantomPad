@@ -12,9 +12,19 @@ const { GameMonitor } = require('./game-monitor');
 const config = require('./config');
 
 const app = express();
+app.use(express.json()); // Body parser (B12)
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: '*' },
+  cors: {
+    origin: (origin, callback) => {
+      // Allow localhost and local network connections
+      if (!origin || origin.startsWith('http://192.168.') || origin.startsWith('http://10.') || origin.startsWith('http://172.') || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Blocked by CORS'));
+      }
+    }
+  },
   pingInterval: 2000,
   pingTimeout: 5000,
   transports: ['websocket', 'polling']
@@ -60,27 +70,59 @@ gameMonitor.on('game-changed', (processName) => {
 });
 gameMonitor.start();
 
-function loadData() {
-  try { customMappings = JSON.parse(fs.readFileSync(MAPPINGS_FILE, 'utf8')); } catch (e) { }
-  try { profiles = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8')); } catch (e) { }
+// --- Data I/O (async with error logging) (B4, B7) ---
+async function loadData() {
   try {
-    const macros = JSON.parse(fs.readFileSync(MACROS_FILE, 'utf8'));
+    const data = await fs.promises.readFile(MAPPINGS_FILE, 'utf8');
+    customMappings = JSON.parse(data);
+  } catch (e) {
+    if (e.code !== 'ENOENT') console.warn('Failed to load custom mappings:', e.message);
+  }
+  
+  try {
+    const data = await fs.promises.readFile(PROFILES_FILE, 'utf8');
+    profiles = JSON.parse(data);
+  } catch (e) {
+    if (e.code !== 'ENOENT') console.warn('Failed to load profiles:', e.message);
+  }
+  
+  try {
+    const data = await fs.promises.readFile(MACROS_FILE, 'utf8');
+    const macros = JSON.parse(data);
     for (const m of macros) macroHandler.importMacro(m);
-  } catch (e) { }
+  } catch (e) {
+    if (e.code !== 'ENOENT') console.warn('Failed to load macros:', e.message);
+  }
 }
 loadData();
 
+let saveMappingsTimer = null;
 function saveMappings() {
-  try { fs.writeFileSync(MAPPINGS_FILE, JSON.stringify(customMappings, null, 2)); } catch (e) { }
+  clearTimeout(saveMappingsTimer);
+  saveMappingsTimer = setTimeout(async () => {
+    try { await fs.promises.writeFile(MAPPINGS_FILE, JSON.stringify(customMappings, null, 2)); }
+    catch (e) { console.warn('Failed to save mappings:', e.message); }
+  }, 500);
 }
+
+let saveProfilesTimer = null;
 function saveProfiles() {
-  try { fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2)); } catch (e) { }
+  clearTimeout(saveProfilesTimer);
+  saveProfilesTimer = setTimeout(async () => {
+    try { await fs.promises.writeFile(PROFILES_FILE, JSON.stringify(profiles, null, 2)); }
+    catch (e) { console.warn('Failed to save profiles:', e.message); }
+  }, 500);
 }
+
+let saveMacrosTimer = null;
 function saveMacros() {
-  try {
-    const list = macroHandler.getMacrosList().map(m => macroHandler.exportMacro(m.name)).filter(Boolean);
-    fs.writeFileSync(MACROS_FILE, JSON.stringify(list, null, 2));
-  } catch (e) { }
+  clearTimeout(saveMacrosTimer);
+  saveMacrosTimer = setTimeout(async () => {
+    try {
+      const list = macroHandler.getMacrosList().map(m => macroHandler.exportMacro(m.name)).filter(Boolean);
+      await fs.promises.writeFile(MACROS_FILE, JSON.stringify(list, null, 2));
+    } catch (e) { console.warn('Failed to save macros:', e.message); }
+  }, 500);
 }
 
 // --- Network Interfaces ---
@@ -118,6 +160,13 @@ app.get('/api/qr', async (req, res) => {
   try {
     const ifaces = getAllInterfaces();
     const ip = req.query.ip || ifaces.find(i => i.type === 'wifi')?.ip || ifaces[0]?.ip || '127.0.0.1';
+
+    // Basic IP pattern validation (B9)
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ip !== 'localhost' && !ipPattern.test(ip)) {
+      return res.status(400).send('Invalid IP address');
+    }
+
     const url = `http://${ip}:${currentPort}/controller`;
     const qr = await QRCode.toDataURL(url, { width: 280, margin: 2, color: { dark: '#00e5ff', light: '#00000000' } });
     res.json({ qr, url, ip });
@@ -138,6 +187,10 @@ app.get('/api/macros', (req, res) => res.json(macroHandler.getMacrosList()));
 
 // --- Socket.IO ---
 io.on('connection', (socket) => {
+  let lastInputTime = 0;
+  let lastMouseTime = 0;
+  const RATE_LIMIT_MS = 8; // ~125Hz max (B6)
+
   // ---- Controller registration ----
   socket.on('register-controller', () => {
     const player = inputHandler.addPlayer(socket.id);
@@ -169,14 +222,29 @@ io.on('connection', (socket) => {
 
   // ---- Controller input ----
   socket.on('input', (data) => {
+    // Rate limit (B6)
+    const now = Date.now();
+    if (now - lastInputTime < RATE_LIMIT_MS) return;
+    lastInputTime = now;
+
+    // Validation (B5)
+    if (!data || typeof data !== 'object') return;
+
     inputHandler.handleInput(socket.id, data);
-    // Record macro if active
     if (macroHandler.recording) macroHandler.recordInput(data);
     io.to('dashboard').emit('input-visualize', { playerId: socket.id, ...data });
   });
 
   // ---- Mouse/trackpad ----
   socket.on('mouse', (data) => {
+    // Rate limit (B6)
+    const now = Date.now();
+    if (now - lastMouseTime < RATE_LIMIT_MS) return;
+    lastMouseTime = now;
+
+    // Validation (B5)
+    if (!data || typeof data !== 'object') return;
+
     inputHandler.handleMouse(socket.id, data);
   });
 
@@ -281,6 +349,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// --- Server Startup ---
 let currentPort = PORT;
 
 function tryListen() {
@@ -308,7 +377,7 @@ httpServer.on('error', (e) => {
 });
 
 httpServer.on('listening', () => {
-  module.exports.activePort = currentPort; // Update active port for Electron
+  module.exports.activePort = currentPort;
   const ifaces = getAllInterfaces();
   console.log('  ╔═══════════════════════════════════════════════════╗');
   console.log('  ║           ⚡ PhantomPad Server v1.2 ⚡            ║');
@@ -329,5 +398,11 @@ tryListen();
 // Export for Electron
 module.exports = { app, httpServer, io, PORT, activePort: currentPort };
 
-process.on('SIGINT', () => { inputHandler.cleanup(); process.exit(0); });
-process.on('SIGTERM', () => { inputHandler.cleanup(); process.exit(0); });
+// --- Cleanup (B8) ---
+['SIGINT', 'SIGTERM', 'SIGQUIT'].forEach(sig => {
+  process.on(sig, () => {
+    inputHandler.cleanup();
+    gameMonitor.cleanup();
+    process.exit(0);
+  });
+});

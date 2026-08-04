@@ -6,41 +6,60 @@
 :root {
   --bg: #06060c;
   --bg-grad: radial-gradient(ellipse at 50% 50%, #0c0c18 0%, #06060c 70%);
+  --bg-elevated: #0c0c16;
+  --bg-overlay: rgba(0,0,0,0.7);
   --surface: rgba(255,255,255,0.04);
   --surface-border: rgba(255,255,255,0.08);
   --primary: #00e5ff;
+  --primary-dim: rgba(0,229,255,0.1);
   --primary-glow: rgba(0,229,255,0.35);
   --secondary: #7c4dff;
+  --secondary-dim: rgba(124,77,255,0.1);
   --secondary-glow: rgba(124,77,255,0.3);
   --text: #e0e0e8;
   --text-dim: rgba(255,255,255,0.4);
+  --text-dark: #000000;
+  --text-light: #ffffff;
+  --success: #00e676;
+  --success-dim: rgba(0,230,118,0.1);
+  --success-glow: rgba(0,230,118,0.6);
+  --danger: #ff1744;
+  --danger-dim: rgba(255,23,68,0.1);
+  --danger-glow: rgba(255,23,68,0.6);
+  --warning: #ffab00;
+  --warning-dim: rgba(255,171,0,0.1);
+  --warning-glow: rgba(255,171,0,0.6);
   --btn-y: #ffd600;
-  --btn-b: #ff1744;
-  --btn-a: #00e676;
-  --btn-x: #2979ff;
+  --btn-y-dim: rgba(255,214,0,0.12);
   --btn-y-glow: rgba(255,214,0,0.4);
+  --btn-b: #ff1744;
+  --btn-b-dim: rgba(255,23,68,0.12);
   --btn-b-glow: rgba(255,23,68,0.4);
+  --btn-a: #00e676;
+  --btn-a-dim: rgba(0,230,118,0.12);
   --btn-a-glow: rgba(0,230,118,0.4);
+  --btn-x: #2979ff;
+  --btn-x-dim: rgba(41,121,255,0.12);
   --btn-x-glow: rgba(41,121,255,0.4);
   --radius: 12px;
   --radius-sm: 8px;
 }
 
 .theme-neon {
-  --primary: #ff00ff; --primary-glow: rgba(255,0,255,0.35);
-  --secondary: #00ffff; --secondary-glow: rgba(0,255,255,0.3);
+  --primary: #ff00ff; --primary-dim: rgba(255,0,255,0.1); --primary-glow: rgba(255,0,255,0.35);
+  --secondary: #00ffff; --secondary-dim: rgba(0,255,255,0.1); --secondary-glow: rgba(0,255,255,0.3);
   --bg: #04040a; --bg-grad: radial-gradient(ellipse at 50% 50%, #08081a 0%, #04040a 70%);
 }
 
 .theme-crimson {
-  --primary: #ff4444; --primary-glow: rgba(255,68,68,0.35);
-  --secondary: #ff8800; --secondary-glow: rgba(255,136,0,0.3);
+  --primary: #ff4444; --primary-dim: rgba(255,68,68,0.1); --primary-glow: rgba(255,68,68,0.35);
+  --secondary: #ff8800; --secondary-dim: rgba(255,136,0,0.1); --secondary-glow: rgba(255,136,0,0.3);
   --bg: #0a0404; --bg-grad: radial-gradient(ellipse at 50% 50%, #150606 0%, #0a0404 70%);
 }
 
 .theme-emerald {
-  --primary: #00ff88; --primary-glow: rgba(0,255,136,0.35);
-  --secondary: #00cc99; --secondary-glow: rgba(0,204,153,0.3);
+  --primary: #00ff88; --primary-dim: rgba(0,255,136,0.1); --primary-glow: rgba(0,255,136,0.35);
+  --secondary: #00cc99; --secondary-dim: rgba(0,204,153,0.1); --secondary-glow: rgba(0,204,153,0.3);
   --bg: #040a06; --bg-grad: radial-gradient(ellipse at 50% 50%, #08150e 0%, #040a06 70%);
 }
 
@@ -150,21 +169,21 @@ html, body {
 }
 
 .trigger-btn {
-  background: linear-gradient(135deg, var(--surface), rgba(124,77,255,0.1));
+  background: linear-gradient(135deg, var(--surface), var(--secondary-dim));
   border: 1px solid rgba(124,77,255,0.2);
   padding: 12px 22px;
 }
 
 .bumper-btn:active, .bumper-btn.pressed {
   background: var(--primary);
-  color: #000;
+  color: var(--text-dark);
   box-shadow: 0 0 20px var(--primary-glow), inset 0 0 10px rgba(255,255,255,0.2);
   transform: scale(0.92) translateZ(0);
 }
 
 .trigger-btn:active, .trigger-btn.pressed {
   background: var(--secondary);
-  color: #fff;
+  color: var(--text-light);
   box-shadow: 0 0 20px var(--secondary-glow), inset 0 0 10px rgba(255,255,255,0.2);
   transform: scale(0.92) translateZ(0);
 }
@@ -184,14 +203,14 @@ html, body {
 }
 
 .conn-dot.connected {
-  background: #00e676;
-  box-shadow: 0 0 8px rgba(0,230,118,0.6);
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success-glow);
   animation: pulse-green 2s infinite;
 }
 
 .conn-dot.disconnected {
-  background: #ff1744;
-  box-shadow: 0 0 8px rgba(255,23,68,0.6);
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger-glow);
   animation: pulse-red 1.5s infinite;
 }
 
@@ -210,7 +229,7 @@ html, body {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: rgba(0, 229, 255, 0.1);
+  background: var(--primary-dim);
   padding: 2px 8px;
   border-radius: 10px;
   border: 1px solid rgba(0, 229, 255, 0.2);
@@ -226,12 +245,12 @@ html, body {
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(0,230,118,0.1);
+  background: var(--success-dim);
 }
 
-.latency-text.good { color: #00e676; background: rgba(0,230,118,0.1); }
-.latency-text.ok { color: #ffab00; background: rgba(255,171,0,0.1); }
-.latency-text.bad { color: #ff1744; background: rgba(255,23,68,0.1); }
+.latency-text.good { color: var(--success); background: var(--success-dim); }
+.latency-text.ok { color: var(--warning); background: var(--warning-dim); }
+.latency-text.bad { color: var(--danger); background: var(--danger-dim); }
 
 .motion-ind { font-size: 14px; }
 
@@ -561,7 +580,7 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0,0,0,0.7);
+  background: var(--bg-overlay);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -643,7 +662,7 @@ html, body {
   content: ''; position: absolute;
   width: 18px; height: 18px;
   left: 3px; top: 3px;
-  background: #fff; border-radius: 50%;
+  background: var(--text-light); border-radius: 50%;
   transition: all 0.3s;
 }
 .toggle input:checked + .slider { background: var(--primary); box-shadow: 0 0 12px var(--primary-glow); }
@@ -675,7 +694,7 @@ html, body {
   cursor: pointer;
   max-width: 160px;
 }
-.select-input option { background: #0c0c16; }
+.select-input option { background: var(--bg-elevated); }
 .select-input optgroup { color: var(--primary); font-weight: 700; font-size: 11px; }
 
 /* Preset Section */
@@ -705,7 +724,7 @@ html, body {
 }
 .action-btn:active {
   background: var(--primary);
-  color: #000;
+  color: var(--text-dark);
   transform: scale(0.97);
 }
 
@@ -725,7 +744,7 @@ html, body {
 .theme-btn.active {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(0,229,255,0.08);
+  background: var(--primary-dim);
 }
 
 /* ===== Responsive ===== */

@@ -15,6 +15,10 @@ class MacroHandler {
 
   recordInput(data) {
     if (!this.recording) return;
+    if (this.recording.steps.length >= 5000) {
+      this.stopRecording();
+      return;
+    }
     this.recording.steps.push({
       timestamp: Date.now() - this.recording.startTime,
       data: JSON.parse(JSON.stringify(data))

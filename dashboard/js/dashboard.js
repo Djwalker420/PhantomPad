@@ -540,26 +540,10 @@
   // ============================================
   function showToast(message, type = 'info') {
     const toast = document.createElement('div');
-    toast.style.cssText = `
-      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-      padding: 14px 22px; border-radius: 12px; font-size: 13px; font-weight: 600;
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      animation: slideIn 0.3s ease; max-width: 360px;
-      font-family: 'Inter', sans-serif;
-    `;
-    const colors = {
-      success: { bg: 'rgba(0,230,118,0.15)', border: 'rgba(0,230,118,0.3)', color: '#00e676' },
-      danger: { bg: 'rgba(255,23,68,0.15)', border: 'rgba(255,23,68,0.3)', color: '#ff1744' },
-      warning: { bg: 'rgba(255,171,0,0.15)', border: 'rgba(255,171,0,0.3)', color: '#ffab00' },
-      info: { bg: 'rgba(0,229,255,0.15)', border: 'rgba(0,229,255,0.3)', color: '#00e5ff' }
-    };
-    const c = colors[type] || colors.info;
-    toast.style.background = c.bg;
-    toast.style.border = `1px solid ${c.border}`;
-    toast.style.color = c.color;
+    toast.className = `toast toast-${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; }, 2500);
+    setTimeout(() => { toast.classList.add('toast-hide'); }, 2500);
     setTimeout(() => toast.remove(), 2800);
   }
 

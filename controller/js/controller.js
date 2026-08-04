@@ -644,13 +644,9 @@
       screen.orientation.lock('landscape').catch(() => {});
     }
 
-    // Unregister any old service workers that cause caching issues
+    // Register Service Worker for PWA support
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-        }
-      }).catch(() => {});
+      navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
     // Wake lock to prevent screen dimming during play

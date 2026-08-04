@@ -965,13 +965,71 @@ body::before {
 .vis-b.active { background: var(--btn-b); border-color: var(--btn-b); color: #fff; box-shadow: 0 0 12px rgba(255,23,68,0.4); }
 .vis-a.active { background: var(--btn-a); border-color: var(--btn-a); color: #000; box-shadow: 0 0 12px rgba(0,230,118,0.4); }
 
+/* ===== Toast Notifications ===== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  padding: 14px 22px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: slideIn 0.3s ease;
+  max-width: 360px;
+  font-family: var(--font);
+  transition: opacity 0.3s ease;
+}
+
+.toast.toast-success {
+  background: var(--success-dim);
+  border: 1px solid rgba(0,230,118,0.3);
+  color: var(--success);
+}
+
+.toast.toast-danger {
+  background: var(--danger-dim);
+  border: 1px solid rgba(255,23,68,0.3);
+  color: var(--danger);
+}
+
+.toast.toast-warning {
+  background: var(--warning-dim);
+  border: 1px solid rgba(255,171,0,0.3);
+  color: var(--warning);
+}
+
+.toast.toast-info {
+  background: var(--primary-dim);
+  border: 1px solid rgba(0,229,255,0.3);
+  color: var(--primary);
+}
+
+.toast.toast-hide {
+  opacity: 0;
+}
+
 /* ===== Responsive ===== */
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
   .main-grid { grid-template-columns: 1fr; }
   .card-full { grid-column: 1; }
+}
+
+@media (max-width: 900px) {
   .connect-body { flex-direction: column; }
+  .app { padding: 20px; }
+  .mapping-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+
+@media (max-width: 768px) {
   .app { padding: 16px; }
-  .mapping-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .header { flex-direction: column; gap: 14px; align-items: flex-start; }
+  .header-status { width: 100%; flex-wrap: wrap; }
+  .connect-body { flex-direction: column; gap: 20px; }
+  .mapping-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .vis-controller { flex-direction: column; gap: 16px; }
 }
 
 @media (max-width: 500px) {
