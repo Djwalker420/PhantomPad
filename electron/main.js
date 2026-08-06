@@ -61,11 +61,9 @@ function createWindow() {
     // mainWindow.show() is omitted since show is true
   });
 
-  mainWindow.on('close', (e) => {
-    if (!app.isQuitting) {
-      e.preventDefault();
-      mainWindow.hide();
-    }
+  mainWindow.on('close', () => {
+    // Actually close the app (no tray hiding)
+    app.isQuitting = true;
   });
 
   mainWindow.on('closed', () => {
@@ -180,10 +178,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  // Don't quit on macOS (not needed since we focus Android, but good practice)
-  if (process.platform !== 'darwin') {
-    // Keep running in tray
-  }
+  app.quit();
 });
 
 app.on('activate', () => {
@@ -192,4 +187,14 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  logApp('App quitting — cleaning up subprocesses...');
+  // Kill the server's child processes (PowerShell, GameMonitor)
+  if (server && server.httpServer) {
+    try { server.httpServer.close(); } catch (e) {}
+  }
+  // Destroy tray icon
+  if (tray) {
+    try { tray.destroy(); } catch (e) {}
+    tray = null;
+  }
 });

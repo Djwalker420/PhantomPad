@@ -231,6 +231,46 @@ const keyMappings = {
     ls: VK.SHIFT, rs: VK.V,
     axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
     axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // === FromSoftware / Souls-like Presets ===
+  // Best played in GAMEPAD MODE (ViGEm) for full analog stick + trigger support.
+  // Keyboard fallback mappings provided below for non-ViGEm setups.
+
+  // Sekiro: Shadows Die Twice — Xbox: A=Jump, B=Dodge/Step, X=Use Item, Y=Interact
+  // RB=Attack, RT=Heavy/Charged, LB=Deflect/Block, LT=Grapple
+  sekiro: {
+    A: VK.SPACE, B: VK.SHIFT, X: VK.R, Y: VK.E,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.F, lt: VK.G, rt: VK.CTRL,
+    start: VK.ESCAPE, back: VK.TAB, home: VK.ESCAPE,
+    ls: VK.C, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Dark Souls III — Xbox: A=Roll/Sprint, B=Use Item, X=Two-hand, Y=Interact
+  // RB=Light Attack, RT=Heavy Attack, LB=Block/Parry, LT=Skill/Aim
+  darksouls3: {
+    A: VK.SPACE, B: VK.R, X: VK.F, Y: VK.E,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.CTRL, lt: VK.G, rt: VK.SHIFT,
+    start: VK.ESCAPE, back: VK.TAB, home: VK.ESCAPE,
+    ls: VK.C, rs: VK.V,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
+  },
+
+  // Armored Core VI: Fires of Rubicon — Xbox: A=Jump/Boost, B=Assault Boost, X=Weapon Bay Switch, Y=Purge
+  // RB/RT=Right Arm/Shoulder Weapon, LB/LT=Left Arm/Shoulder Weapon
+  armoredcore6: {
+    A: VK.SPACE, B: VK.SHIFT, X: VK.C, Y: VK.V,
+    dpadUp: VK.UP, dpadDown: VK.DOWN, dpadLeft: VK.LEFT, dpadRight: VK.RIGHT,
+    lb: VK.Q, rb: VK.F, lt: VK.E, rt: VK.CTRL,
+    start: VK.ESCAPE, back: VK.TAB, home: VK.ESCAPE,
+    ls: VK.X, rs: VK.G,
+    axisLeftUp: VK.W, axisLeftDown: VK.S, axisLeftLeft: VK.A, axisLeftRight: VK.D,
+    axisRightUp: VK.UP, axisRightDown: VK.DOWN, axisRightLeft: VK.LEFT, axisRightRight: VK.RIGHT
   }
 };
 
@@ -238,6 +278,11 @@ const keyMappings = {
 const processMappings = {
   'GTA5': 'gtav',
   'EldenRing': 'eldenring',
+  'eldenring': 'eldenring',
+  'start_protected_game': 'eldenring', // Elden Ring EAC launcher
+  'sekiro': 'sekiro',
+  'DarkSoulsIII': 'darksouls3',
+  'ArmoredCore6': 'armoredcore6',
   'Minecraft': 'minecraft',
   'Fortnite': 'fortnite',
   'RDR2': 'rdr2',
