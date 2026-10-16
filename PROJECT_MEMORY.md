@@ -32,8 +32,11 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 
 ## Verification
 - JavaScript syntax compilation checks passed for the changed source and test files.
-- GitHub Actions run: PASS — https://github.com/Djwalker420/PhantomPad/actions/runs/38929697195
-- Jest step completed successfully in CI.
+- GitHub Actions run 38929697195: Jest PASS — https://github.com/Djwalker420/PhantomPad/actions/runs/38929697195
+- GitHub Actions run 38930197380 (PR run): Jest PASS; Android debug APK build and upload PASS; Windows installer packaging step FAILED at electron-builder publishing because `GH_TOKEN` was not set. The Windows upload step was skipped.
+- Later run 38930205379 on the same PR head commit `b999fd1169a8b153e849a6d743334f6c7c703476`: Jest PASS, Android debug APK build/upload PASS, Windows installer build/upload PASS — https://github.com/Djwalker420/PhantomPad/actions/runs/38930205379
+- Uploaded artifacts from run 38930205379: `PhantomPad-Android-APK` (4,623,140 bytes; expires 2026-10-30) and `PhantomPad-Windows-Installer` (84,710,506 bytes; expires 2026-10-30). Both are available from the workflow run's Artifacts section.
+- No source-code fix was needed for the Windows issue: a later run succeeded on the same commit.
 - No local tests were run from this chat environment.
 - No physical two-device/Windows hardware test has been performed.
 - Main branch has not been modified; changes are in the draft PR above.
