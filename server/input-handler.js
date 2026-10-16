@@ -39,6 +39,7 @@
  * -----------------------------------------------------------------------------
  */
 const { spawn } = require('child_process');
+const path = require('path');
 const config = require('./config');
 
 const sanitizeNumber = (val, min, max) => {
@@ -64,6 +65,10 @@ class InputHandler {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
+      const packagedDllPath = process.versions.electron && require('electron').app?.isPackaged
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'server', 'lib', 'Nefarius.ViGEm.Client.dll')
+        : path.join(__dirname, 'lib', 'Nefarius.ViGEm.Client.dll');
+      const psDllPath = packagedDllPath.replace(/'/g, "''");
       const psScript = `
 Add-Type @"
 using System;
@@ -83,7 +88,7 @@ public class KBSim {
 "@
 
 try {
-    Add-Type -Path "$pwd\\server\\lib\\Nefarius.ViGEm.Client.dll"
+    Add-Type -Path '${psDllPath}'
     $global:vigemClient = New-Object Nefarius.ViGEm.Client.ViGEmClient
     $global:xctrls = @{}
     $global:XA = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Axis]
@@ -95,14 +100,32 @@ try {
 }
 Write-Host "KB_READY"
 `;
-      this.ps.stdin.write(psScript + '\n');
-      this.ps.stderr.on('data', () => {});
+      this.ps.stdout.on('data', (data) => {
+        const output = data.toString();
+        if (output.includes('VIGEM_READY')) {
+          this.gamepadAvailable = true;
+          console.log('  ✓ ViGEm virtual gamepad initialized');
+        }
+        const failure = output.match(/VIGEM_FAILED:\s*([^\r\n]+)/);
+        if (failure) {
+          this.gamepadAvailable = false;
+          console.error('  ✗ ViGEm initialization failed:', failure[1]);
+        }
+      });
+      this.ps.stderr.on('data', (data) => {
+        const message = data.toString().trim();
+        if (message) console.error('  ✗ PowerShell input bridge:', message);
+      });
+      this.ps.on('error', (error) => {
+        this.gamepadAvailable = false;
+        this.keyboardAvailable = false;
+        console.error('  ✗ PowerShell input bridge failed:', error.message);
+      });
+      this.ps.stdin.write(psScript + '\\n');
       
-      // We'll optimistically set both as true if PS spawned successfully. If ViGEm isn't installed
-      // the PowerShell try-block catches it, but we can safely send commands without crashing Node.
+      // Gamepad availability is set only after the ViGEm client assembly loads.
       this.keyboardAvailable = true;
-      this.gamepadAvailable = true;
-      console.log('  ✓ Input simulation bridge initialized (Keyboard + Virtual Controller)');
+      console.log('  ✓ Input simulation bridge initialized (Keyboard)');
     } catch (e) {
       this.keyboardAvailable = false;
       this.gamepadAvailable = false;
