@@ -356,7 +356,7 @@ if ($c) {
 
   setMode(mode) {
     if (mode === 'gamepad' && !this.gamepadAvailable) return false;
-    this.players.forEach(p => this._releasePlayer(p));
+    this.players.forEach(p => this._releasePlayerInput(p));
     this.mode = mode;
     return true;
   }
@@ -388,7 +388,7 @@ if ($c) {
 
   cleanup() {
     this.players.forEach(p => {
-      this._releasePlayer(p);
+      this._releasePlayerInput(p);
       if (p.hasController && this.ps && this.ps.stdin.writable) {
         this.ps.stdin.write(`
           try {
