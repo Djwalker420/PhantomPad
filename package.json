@@ -30,7 +30,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "asarUnpack": [
+      "server/lib/Nefarius.ViGEm.Client.dll"
+    ]
   },
   "dependencies": {
     "express": "^4.21.0",
