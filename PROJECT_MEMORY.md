@@ -37,6 +37,10 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Later run 38930205379 on the same PR head commit `b999fd1169a8b153e849a6d743334f6c7c703476`: Jest PASS, Android debug APK build/upload PASS, Windows installer build/upload PASS — https://github.com/Djwalker420/PhantomPad/actions/runs/38930205379
 - Uploaded artifacts from run 38930205379: `PhantomPad-Android-APK` (4,623,140 bytes; expires 2026-10-30) and `PhantomPad-Windows-Installer` (84,710,506 bytes; expires 2026-10-30). Both are available from the workflow run's Artifacts section.
 - No source-code fix was needed for the Windows issue: a later run succeeded on the same commit.
+- Follow-up report: user installed ViGEmBus, but Windows Game Controllers remained empty. Source inspection found the packaged app loaded the ViGEm client DLL from the current working directory, although electron-builder places app files inside ASAR by default. Fixed this by unpacking the DLL and loading it from `process.resourcesPath/app.asar.unpacked`; added PowerShell bridge status/error reporting and corrected the startup script newline.
+- GitHub Actions run 38945296006 on commit `646d70d6fcd77fa0b40dee09d983fcb9154c239d`: Jest PASS; Android APK build/upload PASS; Windows installer build/upload PASS — https://github.com/Djwalker420/PhantomPad/actions/runs/38945296006
+- Windows installer artifact `PhantomPad-Windows-Installer` (84,836,609 bytes) and Android APK artifact `PhantomPad-Android-APK` (4,623,137 bytes) uploaded; expire 2026-10-30.
+- This packaged-path fix is CI-verified, but it has not yet been tested on the user's Windows device; ask the user to install the new installer and recheck `joy.cpl`.
 - No local tests were run from this chat environment.
 - No physical two-device/Windows hardware test has been performed.
 - Main branch has not been modified; changes are in the draft PR above.
