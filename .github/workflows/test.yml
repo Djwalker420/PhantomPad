@@ -1,0 +1,26 @@
+name: PhantomPad tests
+
+on:
+  push:
+    branches:
+      - main
+      - fix/input-stale-state-watchdog
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  jest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Jest tests
+        run: npm test -- --runInBand
