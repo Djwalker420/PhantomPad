@@ -121,7 +121,7 @@ Write-Host "KB_READY"
         this.keyboardAvailable = false;
         console.error('  ✗ PowerShell input bridge failed:', error.message);
       });
-      this.ps.stdin.write(psScript + '\\n');
+      this.ps.stdin.write(psScript + '\n');
       
       // Gamepad availability is set only after the ViGEm client assembly loads.
       this.keyboardAvailable = true;
