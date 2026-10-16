@@ -112,6 +112,9 @@ Write-Host "KB_READY"
 
   // --- Player Management ---
   addPlayer(socketId) {
+    // A repeated registration from the same live socket must not allocate a second controller.
+    const existing = this.players.get(socketId);
+    if (existing) return existing;
     if (this.players.size >= this.maxPlayers) return null;
     const num = this._nextPlayerNum();
     const colors = ['#00e5ff', '#ff1744', '#00e676', '#ffd600'];
@@ -141,7 +144,7 @@ Write-Host "KB_READY"
   removePlayer(socketId) {
     const p = this.players.get(socketId);
     if (!p) return;
-    this._releasePlayer(p);
+    this._releasePlayerInput(p);
     
     if (p.hasController && this.ps && this.ps.stdin.writable) {
       this.ps.stdin.write(`
@@ -300,6 +303,48 @@ Write-Host "KB_READY"
     const code = parseInt(vk, 10);
     if (isNaN(code) || !this.ps?.stdin?.writable) return;
     this.ps.stdin.write(`[KBSim]::keybd_event(${code},0,2,[UIntPtr]::Zero)\n`); 
+  }
+
+  // Release state without removing the session. Used when a client pauses or its
+  // input stream goes stale, so held controls cannot remain latched on the host.
+  releasePlayerInput(socketId) {
+    const player = this.players.get(socketId);
+    if (!player) return false;
+    this._releasePlayerInput(player);
+    return true;
+  }
+
+  _releasePlayerInput(player) {
+    this._releasePlayer(player);
+    if (!player.hasController || !this.ps || !this.ps.stdin.writable) return;
+
+    const pid = player.number;
+    this.ps.stdin.write(`
+$c = $global:xctrls[${pid}]
+if ($c) {
+  $c.SetAxisValue($global:XA::LeftThumbX, [int16]0)
+  $c.SetAxisValue($global:XA::LeftThumbY, [int16]0)
+  $c.SetAxisValue($global:XA::RightThumbX, [int16]0)
+  $c.SetAxisValue($global:XA::RightThumbY, [int16]0)
+  $c.SetSliderValue($global:XS::LeftTrigger, [byte]0)
+  $c.SetSliderValue($global:XS::RightTrigger, [byte]0)
+  $c.SetButtonState($global:XB::A, $false)
+  $c.SetButtonState($global:XB::B, $false)
+  $c.SetButtonState($global:XB::X, $false)
+  $c.SetButtonState($global:XB::Y, $false)
+  $c.SetButtonState($global:XB::LeftShoulder, $false)
+  $c.SetButtonState($global:XB::RightShoulder, $false)
+  $c.SetButtonState($global:XB::Back, $false)
+  $c.SetButtonState($global:XB::Start, $false)
+  $c.SetButtonState($global:XB::Guide, $false)
+  $c.SetButtonState($global:XB::LeftThumb, $false)
+  $c.SetButtonState($global:XB::RightThumb, $false)
+  $c.SetButtonState($global:XB::Up, $false)
+  $c.SetButtonState($global:XB::Down, $false)
+  $c.SetButtonState($global:XB::Left, $false)
+  $c.SetButtonState($global:XB::Right, $false)
+}
+`);
   }
 
   _releasePlayer(player) {
