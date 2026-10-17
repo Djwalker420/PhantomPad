@@ -55,6 +55,7 @@ class InputHandler {
     this.ps = null;
     this.gamepadAvailable = false;
     this.gamepadError = 'Checking ViGEmBus availability';
+    this.onStatusChange = null;
     this.keyboardAvailable = false;
 
     this._initEmulation();
@@ -111,6 +112,7 @@ Write-Host "KB_READY"
           this.gamepadAvailable = true;
           this.gamepadError = null;
           console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
+          this.onStatusChange?.(this.getStatus());
         }
         const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
         if (playerFailure) {
@@ -124,6 +126,7 @@ Write-Host "KB_READY"
           this.gamepadAvailable = false;
           this.gamepadError = failure[1];
           console.error('  ✗ ViGEm initialization failed:', failure[1]);
+          this.onStatusChange?.(this.getStatus());
         }
       });
       this.ps.stderr.on('data', (data) => {
@@ -132,8 +135,10 @@ Write-Host "KB_READY"
       });
       this.ps.on('error', (error) => {
         this.gamepadAvailable = false;
+        this.gamepadError = error.message;
         this.keyboardAvailable = false;
         console.error('  ✗ PowerShell input bridge failed:', error.message);
+        this.onStatusChange?.(this.getStatus());
       });
       this.ps.stdin.write(psScript + '\n');
       
