@@ -54,6 +54,7 @@ class InputHandler {
     this.maxPlayers = 4;
     this.ps = null;
     this.gamepadAvailable = false;
+    this.gamepadError = 'Checking ViGEmBus availability';
     this.keyboardAvailable = false;
 
     this._initEmulation();
@@ -108,6 +109,7 @@ Write-Host "KB_READY"
         const output = data.toString();
         if (output.includes('VIGEM_READY')) {
           this.gamepadAvailable = true;
+          this.gamepadError = null;
           console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
         }
         const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
@@ -120,6 +122,7 @@ Write-Host "KB_READY"
         const failure = output.match(/VIGEM_FAILED:\s*([^\r\n]+)/);
         if (failure) {
           this.gamepadAvailable = false;
+          this.gamepadError = failure[1];
           console.error('  ✗ ViGEm initialization failed:', failure[1]);
         }
       });
@@ -421,7 +424,8 @@ if ($c) {
 
   getStatus() {
     return { mode: this.mode, gamepadAvailable: this.gamepadAvailable,
-      keyboardAvailable: this.keyboardAvailable, players: this.getPlayersInfo() };
+      gamepadError: this.gamepadError, keyboardAvailable: this.keyboardAvailable,
+      players: this.getPlayersInfo() };
   }
 
   cleanup() {
