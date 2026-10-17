@@ -33,6 +33,7 @@ const io = new Server(httpServer, {
 
 const PORT = config.port;
 const inputHandler = new InputHandler(config);
+inputHandler.onStatusChange = (status) => io.emit('status-update', status);
 const macroHandler = new MacroHandler(inputHandler);
 const gameMonitor = new GameMonitor({ interval: 3000 });
 
