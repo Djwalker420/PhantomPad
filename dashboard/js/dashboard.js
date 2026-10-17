@@ -135,14 +135,16 @@
   // ============================================
   //  Mode Toggle
   // ============================================
-  function updateModeUI(mode, gamepadAvailable) {
+  function updateModeUI(mode, gamepadAvailable, gamepadError) {
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('mode-' + mode);
     if (activeBtn) activeBtn.classList.add('active');
 
     const gpBtn = document.getElementById('mode-gamepad');
     const warning = document.getElementById('gamepad-warning');
+    const warningMessage = document.getElementById('gamepad-warning-message');
     if (!gamepadAvailable) {
+      if (warningMessage) warningMessage.textContent = gamepadError || 'ViGEmBus is unavailable. Install or repair it, then restart PhantomPad.';
       gpBtn.classList.add('disabled');
       warning.classList.remove('hidden');
     } else {
@@ -158,7 +160,7 @@
     });
   });
 
-  socket.on('status-update', (status) => updateModeUI(status.mode, status.gamepadAvailable));
+  socket.on('status-update', (status) => updateModeUI(status.mode, status.gamepadAvailable, status.gamepadError));
   socket.on('error-msg', (msg) => showToast(msg, 'danger'));
 
   // ============================================
