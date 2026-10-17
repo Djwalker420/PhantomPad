@@ -21,7 +21,7 @@
       const info = await fetch('/api/info').then(r => r.json());
       allInterfaces = info.interfaces || [];
       document.getElementById('port-display').textContent = info.port;
-      updateModeUI(info.mode, info.gamepadAvailable);
+      updateModeUI(info.mode, info.gamepadAvailable, info.gamepadError);
       buildConnectionTabs();
       if (allInterfaces.length > 0) selectTab(0);
     } catch (e) {
