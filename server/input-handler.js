@@ -94,6 +94,10 @@ try {
     $global:XA = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Axis]
     $global:XS = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Slider]
     $global:XB = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Button]
+    $probe = $global:vigemClient.CreateXbox360Controller()
+    $probe.Connect()
+    $probe.Disconnect()
+    $probe.Dispose()
     Write-Host "VIGEM_READY"
 } catch {
     Write-Host "VIGEM_FAILED: $_"
@@ -104,7 +108,14 @@ Write-Host "KB_READY"
         const output = data.toString();
         if (output.includes('VIGEM_READY')) {
           this.gamepadAvailable = true;
-          console.log('  ✓ ViGEm virtual gamepad initialized');
+          console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
+        }
+        const playerFailure = output.match(/VIGEM_PLAYER_FAILED\\[(\\d+)\\]:\\s*([^\\r\\n]+)/);
+        if (playerFailure) {
+          const failedNumber = Number(playerFailure[1]);
+          const player = [...this.players.values()].find((entry) => entry.number === failedNumber);
+          if (player) player.hasController = false;
+          console.error(`  ✗ ViGEm could not create player ${failedNumber}:`, playerFailure[2]);
         }
         const failure = output.match(/VIGEM_FAILED:\s*([^\r\n]+)/);
         if (failure) {
@@ -154,9 +165,12 @@ Write-Host "KB_READY"
       this.ps.stdin.write(`
         try {
           $c = $global:vigemClient.CreateXbox360Controller()
+          $c.AutoSubmitReport = $false
           $c.Connect()
           $global:xctrls[${num}] = $c
-        } catch { }
+        } catch {
+          Write-Host "VIGEM_PLAYER_FAILED[${num}]: $_"
+        }
       \n`);
     }
     
@@ -268,7 +282,7 @@ Write-Host "KB_READY"
       }
     }
     
-    cmds += `}\n`;
+    cmds += `$c.SubmitReport(); }\n`;
     this.ps.stdin.write(cmds);
   }
 
@@ -366,6 +380,7 @@ if ($c) {
   $c.SetButtonState($global:XB::Down, $false)
   $c.SetButtonState($global:XB::Left, $false)
   $c.SetButtonState($global:XB::Right, $false)
+  $c.SubmitReport()
 }
 `);
   }
