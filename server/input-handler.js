@@ -110,7 +110,7 @@ Write-Host "KB_READY"
           this.gamepadAvailable = true;
           console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
         }
-        const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\\d+)\\]:\\s*([^\\r\\n]+)/);
+        const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
         if (playerFailure) {
           const failedNumber = Number(playerFailure[1]);
           const player = [...this.players.values()].find((entry) => entry.number === failedNumber);
