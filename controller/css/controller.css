@@ -248,6 +248,7 @@ html, body {
   background: var(--success-dim);
 }
 
+.latency-text.neutral { color: var(--text-dim); background: var(--surface); }
 .latency-text.good { color: var(--success); background: var(--success-dim); }
 .latency-text.ok { color: var(--warning); background: var(--warning-dim); }
 .latency-text.bad { color: var(--danger); background: var(--danger-dim); }

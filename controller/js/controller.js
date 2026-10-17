@@ -28,7 +28,7 @@
     isGamepad: false,
     isTrackpadMode: false,
     motionBase: { beta: 0, gamma: 0, set: false },
-    latency: 0,
+    latency: null,
     lastInput: null
   };
 
@@ -36,6 +36,7 @@
   let lastSendTime = 0;
   const sendInterval = 1000 / settings.sendRate;
   let rafId = null;
+  const joysticks = [];
 
   function sendLoop(timestamp) {
     rafId = requestAnimationFrame(sendLoop);
@@ -58,6 +59,30 @@
   // ========================
   // Socket & Multi-player
   // ========================
+  function resetInputState(sendNeutral = false) {
+    // Preserve known button keys so the server receives explicit releases.
+    for (const key of Object.keys(state.buttons)) state.buttons[key] = false;
+    state.axes.leftX = state.axes.leftY = state.axes.rightX = state.axes.rightY = 0;
+    state.triggers.lt = state.triggers.rt = 0;
+
+    document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
+    joysticks.forEach(joystick => {
+      joystick.active = false;
+      joystick.touchId = null;
+      joystick.thumb.classList.remove('active');
+      joystick.thumb.style.transform = 'translate(-50%, -50%)';
+    });
+
+    // A neutral snapshot is state-critical; use a non-volatile emit when connected.
+    if (sendNeutral && state.connected && state.socket && state.socket.connected) {
+      state.socket.emit('input', {
+        buttons: { ...state.buttons },
+        axes: { ...state.axes },
+        triggers: { ...state.triggers }
+      });
+    }
+  }
+
   function initSocket() {
     state.socket = io({
       reconnection: true,
@@ -67,6 +92,7 @@
     });
 
     state.socket.on('connect', () => {
+      resetInputState(false);
       state.connected = true;
       state.socket.emit('register-controller');
       updateConnUI(true);
@@ -75,7 +101,10 @@
 
     state.socket.on('disconnect', () => {
       state.connected = false;
+      state.latency = null;
+      resetInputState(false);
       updateConnUI(false);
+      updateLatencyUI();
       stopLatencyPing();
     });
 
@@ -125,22 +154,27 @@
   let pingInterval = null;
 
   function startLatencyPing() {
-    pingInterval = setInterval(() => {
-      if (state.connected) {
+    stopLatencyPing();
+    const ping = () => {
+      if (state.connected && state.socket?.connected) {
         state.socket.emit('ping-check', Date.now());
       }
-    }, 3000);
+    };
+    ping();
+    pingInterval = setInterval(ping, 1000);
   }
 
   function stopLatencyPing() {
     if (pingInterval) clearInterval(pingInterval);
+    pingInterval = null;
   }
 
   function updateLatencyUI() {
     const el = document.getElementById('latency-display');
     if (el) {
-      el.textContent = `${state.latency}ms`;
-      el.className = 'latency-text ' + (state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad');
+      el.textContent = state.latency === null ? 'RTT: --' : `RTT: ${state.latency} ms`;
+      const quality = state.latency === null ? 'neutral' : state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad';
+      el.className = 'latency-text ' + quality;
     }
   }
 
@@ -304,6 +338,7 @@
     const surface = document.getElementById('trackpad-surface');
 
     document.getElementById('mode-switch-btn').addEventListener('click', () => {
+      resetInputState(true);
       state.isTrackpadMode = true;
       overlay.classList.remove('hidden');
     });
@@ -331,14 +366,14 @@
         const x = e.touches[0].clientX, y = e.touches[0].clientY;
         const dx = (x - lastX) * settings.trackpadSens;
         const dy = (y - lastY) * settings.trackpadSens;
-        state.socket.emit('mouse', { dx, dy });
+        state.socket.volatile.emit('mouse', { dx, dy });
         lastX = x;
         lastY = y;
       } else if (e.touches.length === 2) {
         const y = e.touches[0].clientY;
         const dy = y - lastY;
         if (Math.abs(dy) > 5) {
-          state.socket.emit('mouse', { scroll: dy > 0 ? -1 : 1 });
+          state.socket.volatile.emit('mouse', { scroll: dy > 0 ? -1 : 1 });
           lastY = y;
         }
       }
@@ -616,19 +651,19 @@
     initMotion();
     initTrackpad();
 
-    new VirtualJoystick(
+    joysticks.push(new VirtualJoystick(
       document.getElementById('left-stick-zone'),
       document.getElementById('left-stick-thumb'),
       document.getElementById('left-stick-base'),
       'leftX', 'leftY'
-    );
+    ));
 
-    new VirtualJoystick(
+    joysticks.push(new VirtualJoystick(
       document.getElementById('right-stick-zone'),
       document.getElementById('right-stick-thumb'),
       document.getElementById('right-stick-base'),
       'rightX', 'rightY'
-    );
+    ));
 
     initSettings();
 
@@ -638,6 +673,9 @@
     // Prevent all scrolling/bouncing on mobile
     document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) resetInputState(true);
+    });
 
     // Lock landscape
     if (screen.orientation && screen.orientation.lock) {

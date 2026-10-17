@@ -7,6 +7,7 @@ const os = require('os');
 const fs = require('fs');
 const QRCode = require('qrcode');
 const { InputHandler } = require('./input-handler');
+const { createInputWatchdog } = require('./input-watchdog');
 const { MacroHandler } = require('./macro-handler');
 const { GameMonitor } = require('./game-monitor');
 const config = require('./config');
@@ -32,6 +33,7 @@ const io = new Server(httpServer, {
 
 const PORT = config.port;
 const inputHandler = new InputHandler(config);
+inputHandler.onStatusChange = (status) => io.emit('status-update', status);
 const macroHandler = new MacroHandler(inputHandler);
 const gameMonitor = new GameMonitor({ interval: 3000 });
 
@@ -190,6 +192,7 @@ io.on('connection', (socket) => {
   let lastInputTime = 0;
   let lastMouseTime = 0;
   const RATE_LIMIT_MS = 8; // ~125Hz max (B6)
+  const inputWatchdog = createInputWatchdog(socket.id, inputHandler, 300);
 
   // ---- Controller registration ----
   socket.on('register-controller', () => {
@@ -231,6 +234,7 @@ io.on('connection', (socket) => {
     if (!data || typeof data !== 'object') return;
 
     inputHandler.handleInput(socket.id, data);
+    if (inputHandler.players.has(socket.id)) inputWatchdog.refresh();
     if (macroHandler.recording) macroHandler.recordInput(data);
     io.to('dashboard').emit('input-visualize', { playerId: socket.id, ...data });
   });
@@ -340,6 +344,7 @@ io.on('connection', (socket) => {
 
   // ---- Disconnect ----
   socket.on('disconnect', () => {
+    inputWatchdog.stop();
     const info = inputHandler.getPlayerInfo(socket.id);
     if (info) {
       inputHandler.removePlayer(socket.id);

@@ -39,6 +39,7 @@
  * -----------------------------------------------------------------------------
  */
 const { spawn } = require('child_process');
+const path = require('path');
 const config = require('./config');
 
 const sanitizeNumber = (val, min, max) => {
@@ -53,6 +54,8 @@ class InputHandler {
     this.maxPlayers = 4;
     this.ps = null;
     this.gamepadAvailable = false;
+    this.gamepadError = 'Checking ViGEmBus availability';
+    this.onStatusChange = null;
     this.keyboardAvailable = false;
 
     this._initEmulation();
@@ -64,6 +67,10 @@ class InputHandler {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
+      const packagedDllPath = process.versions.electron && require('electron').app?.isPackaged
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'server', 'lib', 'Nefarius.ViGEm.Client.dll')
+        : path.join(__dirname, 'lib', 'Nefarius.ViGEm.Client.dll');
+      const psDllPath = packagedDllPath.replace(/'/g, "''");
       const psScript = `
 Add-Type @"
 using System;
@@ -83,26 +90,61 @@ public class KBSim {
 "@
 
 try {
-    Add-Type -Path "$pwd\\server\\lib\\Nefarius.ViGEm.Client.dll"
+    Add-Type -Path '${psDllPath}'
     $global:vigemClient = New-Object Nefarius.ViGEm.Client.ViGEmClient
     $global:xctrls = @{}
     $global:XA = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Axis]
     $global:XS = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Slider]
     $global:XB = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Button]
+    $probe = $global:vigemClient.CreateXbox360Controller()
+    $probe.Connect()
+    $probe.Disconnect()
+    $probe.Dispose()
     Write-Host "VIGEM_READY"
 } catch {
     Write-Host "VIGEM_FAILED: $_"
 }
 Write-Host "KB_READY"
 `;
+      this.ps.stdout.on('data', (data) => {
+        const output = data.toString();
+        if (output.includes('VIGEM_READY')) {
+          this.gamepadAvailable = true;
+          this.gamepadError = null;
+          console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
+          this.onStatusChange?.(this.getStatus());
+        }
+        const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
+        if (playerFailure) {
+          const failedNumber = Number(playerFailure[1]);
+          const player = [...this.players.values()].find((entry) => entry.number === failedNumber);
+          if (player) player.hasController = false;
+          console.error(`  ✗ ViGEm could not create player ${failedNumber}:`, playerFailure[2]);
+        }
+        const failure = output.match(/VIGEM_FAILED:\s*([^\r\n]+)/);
+        if (failure) {
+          this.gamepadAvailable = false;
+          this.gamepadError = failure[1];
+          console.error('  ✗ ViGEm initialization failed:', failure[1]);
+          this.onStatusChange?.(this.getStatus());
+        }
+      });
+      this.ps.stderr.on('data', (data) => {
+        const message = data.toString().trim();
+        if (message) console.error('  ✗ PowerShell input bridge:', message);
+      });
+      this.ps.on('error', (error) => {
+        this.gamepadAvailable = false;
+        this.gamepadError = error.message;
+        this.keyboardAvailable = false;
+        console.error('  ✗ PowerShell input bridge failed:', error.message);
+        this.onStatusChange?.(this.getStatus());
+      });
       this.ps.stdin.write(psScript + '\n');
-      this.ps.stderr.on('data', () => {});
       
-      // We'll optimistically set both as true if PS spawned successfully. If ViGEm isn't installed
-      // the PowerShell try-block catches it, but we can safely send commands without crashing Node.
+      // Gamepad availability is set only after the ViGEm client assembly loads.
       this.keyboardAvailable = true;
-      this.gamepadAvailable = true;
-      console.log('  ✓ Input simulation bridge initialized (Keyboard + Virtual Controller)');
+      console.log('  ✓ Input simulation bridge initialized (Keyboard)');
     } catch (e) {
       this.keyboardAvailable = false;
       this.gamepadAvailable = false;
@@ -112,6 +154,9 @@ Write-Host "KB_READY"
 
   // --- Player Management ---
   addPlayer(socketId) {
+    // A repeated registration from the same live socket must not allocate a second controller.
+    const existing = this.players.get(socketId);
+    if (existing) return existing;
     if (this.players.size >= this.maxPlayers) return null;
     const num = this._nextPlayerNum();
     const colors = ['#00e5ff', '#ff1744', '#00e676', '#ffd600'];
@@ -128,9 +173,12 @@ Write-Host "KB_READY"
       this.ps.stdin.write(`
         try {
           $c = $global:vigemClient.CreateXbox360Controller()
+          $c.AutoSubmitReport = $false
           $c.Connect()
           $global:xctrls[${num}] = $c
-        } catch { }
+        } catch {
+          Write-Host "VIGEM_PLAYER_FAILED[${num}]: $_"
+        }
       \n`);
     }
     
@@ -141,7 +189,7 @@ Write-Host "KB_READY"
   removePlayer(socketId) {
     const p = this.players.get(socketId);
     if (!p) return;
-    this._releasePlayer(p);
+    this._releasePlayerInput(p);
     
     if (p.hasController && this.ps && this.ps.stdin.writable) {
       this.ps.stdin.write(`
@@ -242,7 +290,7 @@ Write-Host "KB_READY"
       }
     }
     
-    cmds += `}\n`;
+    cmds += `$c.SubmitReport(); }\n`;
     this.ps.stdin.write(cmds);
   }
 
@@ -302,6 +350,49 @@ Write-Host "KB_READY"
     this.ps.stdin.write(`[KBSim]::keybd_event(${code},0,2,[UIntPtr]::Zero)\n`); 
   }
 
+  // Release state without removing the session. Used when a client pauses or its
+  // input stream goes stale, so held controls cannot remain latched on the host.
+  releasePlayerInput(socketId) {
+    const player = this.players.get(socketId);
+    if (!player) return false;
+    this._releasePlayerInput(player);
+    return true;
+  }
+
+  _releasePlayerInput(player) {
+    this._releasePlayer(player);
+    if (!player.hasController || !this.ps || !this.ps.stdin.writable) return;
+
+    const pid = player.number;
+    this.ps.stdin.write(`
+$c = $global:xctrls[${pid}]
+if ($c) {
+  $c.SetAxisValue($global:XA::LeftThumbX, [int16]0)
+  $c.SetAxisValue($global:XA::LeftThumbY, [int16]0)
+  $c.SetAxisValue($global:XA::RightThumbX, [int16]0)
+  $c.SetAxisValue($global:XA::RightThumbY, [int16]0)
+  $c.SetSliderValue($global:XS::LeftTrigger, [byte]0)
+  $c.SetSliderValue($global:XS::RightTrigger, [byte]0)
+  $c.SetButtonState($global:XB::A, $false)
+  $c.SetButtonState($global:XB::B, $false)
+  $c.SetButtonState($global:XB::X, $false)
+  $c.SetButtonState($global:XB::Y, $false)
+  $c.SetButtonState($global:XB::LeftShoulder, $false)
+  $c.SetButtonState($global:XB::RightShoulder, $false)
+  $c.SetButtonState($global:XB::Back, $false)
+  $c.SetButtonState($global:XB::Start, $false)
+  $c.SetButtonState($global:XB::Guide, $false)
+  $c.SetButtonState($global:XB::LeftThumb, $false)
+  $c.SetButtonState($global:XB::RightThumb, $false)
+  $c.SetButtonState($global:XB::Up, $false)
+  $c.SetButtonState($global:XB::Down, $false)
+  $c.SetButtonState($global:XB::Left, $false)
+  $c.SetButtonState($global:XB::Right, $false)
+  $c.SubmitReport()
+}
+`);
+  }
+
   _releasePlayer(player) {
     for (const btn of player.pressedKeys) {
       const vk = player.keyMapping[btn]; if (vk !== undefined) this._keyUp(vk);
@@ -311,7 +402,7 @@ Write-Host "KB_READY"
 
   setMode(mode) {
     if (mode === 'gamepad' && !this.gamepadAvailable) return false;
-    this.players.forEach(p => this._releasePlayer(p));
+    this.players.forEach(p => this._releasePlayerInput(p));
     this.mode = mode;
     return true;
   }
@@ -338,12 +429,13 @@ Write-Host "KB_READY"
 
   getStatus() {
     return { mode: this.mode, gamepadAvailable: this.gamepadAvailable,
-      keyboardAvailable: this.keyboardAvailable, players: this.getPlayersInfo() };
+      gamepadError: this.gamepadError, keyboardAvailable: this.keyboardAvailable,
+      players: this.getPlayersInfo() };
   }
 
   cleanup() {
     this.players.forEach(p => {
-      this._releasePlayer(p);
+      this._releasePlayerInput(p);
       if (p.hasController && this.ps && this.ps.stdin.writable) {
         this.ps.stdin.write(`
           try {
