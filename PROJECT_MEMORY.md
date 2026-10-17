@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-10-17
-Desktop release: 1.2.1; Android release: 3.0.1 (versionCode 2; CI pending)
+Desktop release: 1.2.1; Android release: 3.0.1 (versionCode 2)
 Working branch: `fix/input-stale-state-watchdog`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -50,7 +50,8 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - No physical two-device/Windows hardware test has been performed.
 - GitHub Actions run 39006262243 on commit `81bd0ca1b863a42f50935f17a1ccb137868e5a05`: Jest PASS, Android APK build/upload PASS, Windows installer build/upload PASS. Artifacts: Android ID `12090699996` (4,623,140 bytes) and Windows ID `12091506212` (84,837,634 bytes); both expire 2026-10-31. This verifies the ViGEm probe/report batching and mobile RTT changes at that commit.
 - Desktop app version `1.2.1` is set in `package.json` and the root metadata in `package-lock.json`.
-- Android app version is now `3.0.1` (`versionCode 2`) so it can update an existing install; build artifacts are labeled with their desktop/mobile versions. CI for this versioned release is pending.
+- Android app version is now `3.0.1` (`versionCode 2`) so it can update an existing install; build artifacts are labeled with their desktop/mobile versions.
+- GitHub Actions run `39007198529` on commit `3a3c7725f11387f554bca5a7af585921d66fdd6a`: Jest PASS, Android APK build/upload PASS, Windows installer build/upload PASS. Android artifact `PhantomPad-Android-v3.0.1-APK` (4,623,132 bytes; ID `12091307274`) and Windows artifact `PhantomPad-Windows-v1.2.1-Installer` (84,837,625 bytes; ID `12090459672`) expire 2026-10-31.
 - Main branch has not been modified; changes are in the draft PR above.
 - The 300 ms watchdog is an initial safety value, not a measured optimum.
 
