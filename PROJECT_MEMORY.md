@@ -1,6 +1,6 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-10-16
+Last updated: 2026-10-17
 Working branch: `fix/input-stale-state-watchdog`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -27,6 +27,10 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Reset local mobile input state on connect/disconnect and when the document becomes hidden; send a non-volatile neutral snapshot when still connected.
 - Use volatile transport for trackpad movement/scroll to avoid replaying obsolete movement after network interruption. Click events remain non-volatile.
 - Clear/restart the latency ping interval safely on reconnect.
+- Probe actual ViGEmBus connectivity by connecting a temporary virtual Xbox 360 target; report the driver/client exception in the dashboard and `/api/info` when unavailable.
+- Log per-player virtual-controller creation failures instead of swallowing them.
+- Disable ViGEm auto-submit and submit one complete controller report per input snapshot and one after neutralization, reducing bus updates from one per field to one per snapshot.
+- Keep mobile latency visible as `RTT: --` before the first response, ping immediately after connect, and refresh the server round-trip measurement once per second.
 - Added Jest tests for watchdog timing, duplicate registration, player-isolated release, and repeated removal.
 - Added GitHub Actions workflow to run Jest on branch pushes and pull requests.
 
@@ -43,6 +47,7 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - This packaged-path fix is CI-verified, but it has not yet been tested on the user's Windows device; ask the user to install the new installer and recheck `joy.cpl`.
 - No local tests were run from this chat environment.
 - No physical two-device/Windows hardware test has been performed.
+- CI for the ViGEm probe/report batching and mobile RTT changes is pending; verify Jest, Android APK, Windows installer, and uploaded artifacts on the latest PR head before claiming these new changes are build-verified.
 - Main branch has not been modified; changes are in the draft PR above.
 - The 300 ms watchdog is an initial safety value, not a measured optimum.
 
