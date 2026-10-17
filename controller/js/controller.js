@@ -28,7 +28,7 @@
     isGamepad: false,
     isTrackpadMode: false,
     motionBase: { beta: 0, gamma: 0, set: false },
-    latency: 0,
+    latency: null,
     lastInput: null
   };
 
@@ -101,8 +101,10 @@
 
     state.socket.on('disconnect', () => {
       state.connected = false;
+      state.latency = null;
       resetInputState(false);
       updateConnUI(false);
+      updateLatencyUI();
       stopLatencyPing();
     });
 
@@ -153,11 +155,13 @@
 
   function startLatencyPing() {
     stopLatencyPing();
-    pingInterval = setInterval(() => {
-      if (state.connected) {
+    const ping = () => {
+      if (state.connected && state.socket?.connected) {
         state.socket.emit('ping-check', Date.now());
       }
-    }, 3000);
+    };
+    ping();
+    pingInterval = setInterval(ping, 1000);
   }
 
   function stopLatencyPing() {
@@ -168,8 +172,9 @@
   function updateLatencyUI() {
     const el = document.getElementById('latency-display');
     if (el) {
-      el.textContent = `${state.latency}ms`;
-      el.className = 'latency-text ' + (state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad');
+      el.textContent = state.latency === null ? 'RTT: --' : `RTT: ${state.latency} ms`;
+      const quality = state.latency === null ? 'neutral' : state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad';
+      el.className = 'latency-text ' + quality;
     }
   }
 
