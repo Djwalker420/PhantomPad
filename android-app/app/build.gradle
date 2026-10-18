@@ -10,8 +10,8 @@ android {
         applicationId "com.phantompad.controller"
         minSdk 24
         targetSdk 35
-        versionCode 1
-        versionName "3.0.0"
+        versionCode 4
+        versionName "1.6.0"
     }
 
     buildTypes {
