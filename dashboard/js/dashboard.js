@@ -102,8 +102,6 @@
   // ============================================
   //  Players List
   // ============================================
-  const playerLatencies = {};
-
   socket.on('players-update', (players) => {
     const list = document.getElementById('controllers-list');
     const count = document.getElementById('controller-count');
@@ -111,25 +109,41 @@
 
     if (players.length === 0) {
       list.innerHTML = '<div class="empty-state">No controllers connected</div>';
+      updatePlayerVisualizers(players);
       return;
     }
 
     list.innerHTML = players.map(p => {
-      const lat = playerLatencies[p.id];
-      const latClass = !lat ? '' : lat < 30 ? 'latency-good' : lat < 80 ? 'latency-ok' : 'latency-bad';
-      const latText = lat ? `${lat}ms` : '—';
+      const lat = Number.isFinite(p.latency) ? p.latency : null;
+      const latClass = lat === null ? '' : lat < 30 ? 'latency-good' : lat < 80 ? 'latency-ok' : 'latency-bad';
+      const latText = lat === null ? 'RTT —' : `RTT ${lat} ms`;
       return `
         <div class="player-card">
           <div class="player-info">
             <div class="player-avatar" style="background:${p.color}20;border:2px solid ${p.color};color:${p.color}">P${p.number}</div>
             <div class="player-details">
-              <div class="player-name">Player ${p.number}</div>
+              <div class="player-name-row">
+                <div class="player-name">Player ${p.number}</div>
+                <span class="player-latency ${latClass}">${latText}</span>
+              </div>
               <div class="player-id">${p.id.slice(0, 16)}...</div>
             </div>
           </div>
-          <span class="player-latency ${latClass}">${latText}</span>
+          <div class="player-actions">
+            <button class="disconnect-controller-btn" data-controller-id="${encodeURIComponent(p.id)}" title="Disconnect this phone">Disconnect</button>
+          </div>
         </div>`;
     }).join('');
+
+    list.querySelectorAll('.disconnect-controller-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const player = players.find(p => encodeURIComponent(p.id) === button.dataset.controllerId);
+        if (!player || !confirm(`Disconnect Player ${player.number}?`)) return;
+        socket.emit('disconnect-controller', player.id);
+      });
+    });
+
+    updatePlayerVisualizers(players);
   });
 
   // ============================================
@@ -508,30 +522,83 @@
   // ============================================
   //  Input Visualizer
   // ============================================
-  const visBtns = ['A', 'B', 'X', 'Y', 'lb', 'rb', 'lt', 'rt',
-    'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight', 'back', 'start', 'home', 'ls', 'rs'];
+  const inputVisualizers = document.getElementById('input-visualizers');
+  const visualizerButtons = ['A', 'B', 'X', 'Y', 'lb', 'rb', 'lt', 'rt',
+    'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight', 'back', 'home', 'start', 'ls', 'rs'];
+
+  function updatePlayerVisualizers(players) {
+    if (!inputVisualizers) return;
+    const playerIds = new Set(players.map(player => String(player.id)));
+    inputVisualizers.querySelectorAll('.player-visualizer').forEach((card) => {
+      if (!playerIds.has(card.dataset.playerId)) card.remove();
+    });
+
+    if (!players.length) {
+      inputVisualizers.innerHTML = '<div class="empty-state">Connect a controller to see its live input.</div>';
+      return;
+    }
+    inputVisualizers.querySelector('.empty-state')?.remove();
+
+    players.forEach((player) => {
+      let card = [...inputVisualizers.querySelectorAll('.player-visualizer')]
+        .find((item) => item.dataset.playerId === String(player.id));
+      if (card && card.dataset.playerNumber !== String(player.number)) {
+        card.remove();
+        card = null;
+      }
+      if (card) return;
+
+      card = document.createElement('article');
+      card.className = 'player-visualizer';
+      card.dataset.playerId = String(player.id);
+      card.dataset.playerNumber = String(player.number);
+      card.style.setProperty('--player-color', player.color || '#00e5ff');
+      card.innerHTML = `
+        <div class="player-visualizer-title"><span>Player ${player.number}</span><span class="visualizer-live">LIVE INPUT</span></div>
+        <div class="vis-controller">
+          <div class="vis-stick-box">
+            <div class="vis-stick"><div class="vis-crosshair"></div><div class="vis-stick-dot" data-vis-stick="left"></div></div>
+            <span class="vis-label">L Stick</span>
+          </div>
+          <div class="vis-buttons-grid">
+            <div class="vis-row">${[['lb','LB'],['lt','LT'],['rt','RT'],['rb','RB']].map(([key,label]) => `<span class="vis-btn" data-vis-key="${key}">${label}</span>`).join('')}</div>
+            <div class="vis-row">${[['dpadUp','▲'],['dpadLeft','◄'],['dpadRight','►'],['dpadDown','▼']].map(([key,label]) => `<span class="vis-btn" data-vis-key="${key}">${label}</span>`).join('')}</div>
+            <div class="vis-row">${['Y','X','B','A'].map(key => `<span class="vis-btn vis-${key.toLowerCase()}" data-vis-key="${key}">${key}</span>`).join('')}</div>
+            <div class="vis-row">${[['back','BK'],['home','HM'],['start','ST'],['ls','LS'],['rs','RS']].map(([key,label]) => `<span class="vis-btn small" data-vis-key="${key}">${label}</span>`).join('')}</div>
+          </div>
+          <div class="vis-stick-box">
+            <div class="vis-stick"><div class="vis-crosshair"></div><div class="vis-stick-dot" data-vis-stick="right"></div></div>
+            <span class="vis-label">R Stick</span>
+          </div>
+        </div>`;
+      inputVisualizers.appendChild(card);
+    });
+    applyDashboardLayout(layoutSelect?.value || 'xbox');
+  }
 
   socket.on('input-visualize', (data) => {
+    const card = [...(inputVisualizers?.querySelectorAll('.player-visualizer') || [])]
+      .find((item) => item.dataset.playerId === String(data.playerId));
+    if (!card) return;
     if (data.buttons) {
-      visBtns.forEach(key => {
-        const el = document.getElementById('vis-' + key);
+      visualizerButtons.forEach(key => {
+        const el = card.querySelector(`[data-vis-key="${key}"]`);
         if (el) el.classList.toggle('active', !!data.buttons[key]);
       });
     }
     if (data.triggers) {
-      const ltEl = document.getElementById('vis-lt');
-      const rtEl = document.getElementById('vis-rt');
+      const ltEl = card.querySelector('[data-vis-key="lt"]');
+      const rtEl = card.querySelector('[data-vis-key="rt"]');
       if (ltEl) ltEl.classList.toggle('active', data.triggers.lt > 0.3);
       if (rtEl) rtEl.classList.toggle('active', data.triggers.rt > 0.3);
     }
     if (data.axes) {
-      updateStickDot('vis-ls-dot', data.axes.leftX || 0, data.axes.leftY || 0);
-      updateStickDot('vis-rs-dot', data.axes.rightX || 0, data.axes.rightY || 0);
+      updateStickDot(card.querySelector('[data-vis-stick="left"]'), data.axes.leftX || 0, data.axes.leftY || 0);
+      updateStickDot(card.querySelector('[data-vis-stick="right"]'), data.axes.rightX || 0, data.axes.rightY || 0);
     }
   });
 
-  function updateStickDot(id, x, y) {
-    const dot = document.getElementById(id);
+  function updateStickDot(dot, x, y) {
     if (!dot) return;
     const px = x * 30, py = y * 30;
     dot.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
@@ -560,37 +627,25 @@
   function applyDashboardLayout(layout) {
     const labels = {
       xbox: {
-        'vis-Y': 'Y', 'vis-X': 'X', 'vis-B': 'B', 'vis-A': 'A',
-        'vis-lb': 'LB', 'vis-rb': 'RB', 'vis-lt': 'LT', 'vis-rt': 'RT',
-        'vis-back': 'BK', 'vis-start': 'ST', 'vis-home': 'HM',
-        'vis-ls': 'LS', 'vis-rs': 'RS'
+        Y: 'Y', X: 'X', B: 'B', A: 'A', lb: 'LB', rb: 'RB', lt: 'LT', rt: 'RT',
+        back: 'BK', start: 'ST', home: 'HM', ls: 'LS', rs: 'RS'
       },
       playstation: {
-        'vis-Y': '△', 'vis-X': '□', 'vis-B': '○', 'vis-A': '✕',
-        'vis-lb': 'L1', 'vis-rb': 'R1', 'vis-lt': 'L2', 'vis-rt': 'R2',
-        'vis-back': 'SH', 'vis-start': 'OP', 'vis-home': 'PS',
-        'vis-ls': 'L3', 'vis-rs': 'R3'
+        Y: '△', X: '□', B: '○', A: '✕', lb: 'L1', rb: 'R1', lt: 'L2', rt: 'R2',
+        back: 'SH', start: 'OP', home: 'PS', ls: 'L3', rs: 'R3'
       },
       nintendo: {
-        'vis-Y': 'X', 'vis-X': 'Y', 'vis-B': 'A', 'vis-A': 'B',
-        'vis-lb': 'L', 'vis-rb': 'R', 'vis-lt': 'ZL', 'vis-rt': 'ZR',
-        'vis-back': '-', 'vis-start': '+', 'vis-home': 'HM',
-        'vis-ls': 'LS', 'vis-rs': 'RS'
+        Y: 'X', X: 'Y', B: 'A', A: 'B', lb: 'L', rb: 'R', lt: 'ZL', rt: 'ZR',
+        back: '-', start: '+', home: 'HM', ls: 'LS', rs: 'RS'
       }
     };
 
     const map = labels[layout] || labels.xbox;
-    for (const [id, text] of Object.entries(map)) {
-      const el = document.getElementById(id);
-      if (el) {
-        el.textContent = text;
-        if (layout === 'playstation' && ['vis-Y','vis-X','vis-B','vis-A'].includes(id)) {
-          el.style.fontSize = '18px';
-        } else {
-          el.style.fontSize = '';
-        }
-      }
-    }
+    document.querySelectorAll('.vis-btn[data-vis-key]').forEach((el) => {
+      const key = el.dataset.visKey;
+      if (map[key]) el.textContent = map[key];
+      el.style.fontSize = layout === 'playstation' && ['Y', 'X', 'B', 'A'].includes(key) ? '18px' : '';
+    });
   }
 
 })();

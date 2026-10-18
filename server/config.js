@@ -297,7 +297,7 @@ const processMappings = {
 
 module.exports = {
   port: 3000,
-  defaultMode: 'keyboard',
+  defaultMode: 'gamepad',
   defaultPreset: 'default',
   axisThreshold: 0.5,
   triggerThreshold: 0.3,

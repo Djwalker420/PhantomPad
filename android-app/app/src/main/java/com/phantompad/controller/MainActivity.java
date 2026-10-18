@@ -81,20 +81,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                // Inject native haptic override for better vibration
-                view.evaluateJavascript(
-                    "if(navigator.vibrate){" +
-                    "  const _origVibrate = navigator.vibrate.bind(navigator);" +
-                    "  navigator.vibrate = function(ms) {" +
-                    "    try { PhantomPadNative.vibrate(typeof ms === 'number' ? ms : 25); } catch(e) {}" +
-                    "    return _origVibrate(ms);" +
-                    "  };" +
-                    "}", null);
-            }
-
-            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 // Show error and go back to connect screen if main frame fails
                 if (request.isForMainFrame()) {

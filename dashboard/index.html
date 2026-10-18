@@ -18,7 +18,6 @@
       </div>
       <div class="header-status">
         <span class="status-pill" id="server-status">● Server Running</span>
-        <span class="status-pill offline-pill">🔒 Fully Offline</span>
       </div>
     </header>
 
@@ -93,7 +92,7 @@
         </div>
         <div class="card-body">
           <div class="mode-toggle">
-            <button class="mode-btn active" id="mode-keyboard" data-mode="keyboard">
+            <button class="mode-btn" id="mode-keyboard" data-mode="keyboard">
               <span class="mode-icon">⌨️</span>
               <span class="mode-label">Keyboard</span>
               <span class="mode-desc">Map buttons to keys</span>
@@ -130,53 +129,13 @@
       </section>
 
       <!-- Input Visualizer -->
-      <section class="card visualizer-card">
+      <section class="card card-full visualizer-card">
         <div class="card-header">
           <h2>📊 Input Visualizer</h2>
         </div>
         <div class="card-body vis-body">
-          <div class="vis-controller">
-            <div class="vis-stick-box">
-              <div class="vis-stick" id="vis-left-stick">
-                <div class="vis-crosshair"></div>
-                <div class="vis-stick-dot" id="vis-ls-dot"></div>
-              </div>
-              <span class="vis-label">L Stick</span>
-            </div>
-            <div class="vis-buttons-grid">
-              <div class="vis-row">
-                <span class="vis-btn" id="vis-lb">LB</span>
-                <span class="vis-btn" id="vis-lt">LT</span>
-                <span class="vis-btn" id="vis-rt">RT</span>
-                <span class="vis-btn" id="vis-rb">RB</span>
-              </div>
-              <div class="vis-row">
-                <span class="vis-btn" id="vis-dpadUp">▲</span>
-                <span class="vis-btn" id="vis-dpadLeft">◄</span>
-                <span class="vis-btn" id="vis-dpadRight">►</span>
-                <span class="vis-btn" id="vis-dpadDown">▼</span>
-              </div>
-              <div class="vis-row">
-                <span class="vis-btn vis-y" id="vis-Y">Y</span>
-                <span class="vis-btn vis-x" id="vis-X">X</span>
-                <span class="vis-btn vis-b" id="vis-B">B</span>
-                <span class="vis-btn vis-a" id="vis-A">A</span>
-              </div>
-              <div class="vis-row">
-                <span class="vis-btn small" id="vis-back">BK</span>
-                <span class="vis-btn small" id="vis-home">HM</span>
-                <span class="vis-btn small" id="vis-start">ST</span>
-                <span class="vis-btn small" id="vis-ls">LS</span>
-                <span class="vis-btn small" id="vis-rs">RS</span>
-              </div>
-            </div>
-            <div class="vis-stick-box">
-              <div class="vis-stick" id="vis-right-stick">
-                <div class="vis-crosshair"></div>
-                <div class="vis-stick-dot" id="vis-rs-dot"></div>
-              </div>
-              <span class="vis-label">R Stick</span>
-            </div>
+          <div id="input-visualizers" class="input-visualizers">
+            <div class="empty-state">Connect a controller to see its live input.</div>
           </div>
         </div>
       </section>

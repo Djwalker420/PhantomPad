@@ -127,12 +127,6 @@ body::before {
   gap: 6px;
 }
 
-.offline-pill {
-  background: var(--primary-dim);
-  color: var(--primary);
-  border: 1px solid rgba(0,229,255,0.2);
-}
-
 /* ===== Cards ===== */
 .main-grid {
   display: grid;
@@ -449,6 +443,7 @@ body::before {
   font-family: var(--mono);
 }
 
+.player-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .player-details .player-name { font-weight: 700; font-size: 14px; }
 .player-details .player-id {
   font-size: 11px;
@@ -459,11 +454,24 @@ body::before {
 
 .player-latency {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 8px;
+  padding: 3px 7px;
+  border-radius: 6px;
 }
+
+.player-actions { display: flex; align-items: center; gap: 8px; }
+
+.disconnect-controller-btn {
+  border: 1px solid rgba(255,23,68,0.35);
+  border-radius: 7px;
+  background: var(--danger-dim);
+  color: var(--danger);
+  padding: 6px 9px;
+  font: 600 11px var(--mono);
+  cursor: pointer;
+}
+.disconnect-controller-btn:hover { background: rgba(255,23,68,0.18); }
 
 .latency-good { color: var(--success); background: var(--success-dim); }
 .latency-ok { color: var(--warning); background: var(--warning-dim); }
@@ -870,11 +878,41 @@ body::before {
 /* ===== Input Visualizer ===== */
 .vis-body { padding: 18px; }
 
+.input-visualizers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 14px;
+}
+
+.player-visualizer {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--player-color, var(--primary)) 34%, transparent);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.018);
+}
+
+.player-visualizer-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--player-color, var(--primary));
+}
+
+.visualizer-live {
+  color: var(--text-dim);
+  font: 700 9px var(--mono);
+  letter-spacing: 1px;
+}
+
 .vis-controller {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 12px;
 }
 
 .vis-stick-box {

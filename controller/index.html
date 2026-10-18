@@ -42,6 +42,12 @@
             <option value="compact">Compact</option>
           </select>
         </div>
+        <div class="setting-group setting-actions">
+          <button id="customize-controls-btn" class="action-btn">↔ Customize control positions</button>
+        </div>
+        <div class="setting-group setting-actions">
+          <button id="reset-control-positions-btn" class="action-btn secondary-action">Reset control positions</button>
+        </div>
         <div class="setting-group"><label>Theme</label>
           <div class="theme-options">
             <button class="theme-btn active" data-theme="phantom">Phantom</button>
@@ -106,27 +112,10 @@
           <input type="range" id="motion-sens-slider" min="20" max="200" value="100" class="range-slider">
           <span id="motion-sens-value">1.0x</span>
         </div>
-        <div class="setting-group"><label>Trackpad Sensitivity</label>
-          <input type="range" id="trackpad-sens-slider" min="50" max="300" value="150" class="range-slider">
-          <span id="trackpad-sens-value">1.5x</span>
-        </div>
         <div class="setting-group">
           <button id="calibrate-btn" class="action-btn">📐 Calibrate Motion</button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Trackpad Overlay -->
-  <div id="trackpad-overlay" class="trackpad-overlay hidden">
-    <div class="trackpad-surface" id="trackpad-surface">
-      <div class="trackpad-hint">Swipe to move cursor · Tap = Click · 2-finger tap = Right Click</div>
-      <div class="trackpad-cursor-icon" id="trackpad-cursor">🖱️</div>
-    </div>
-    <div class="trackpad-bottom-bar">
-      <button class="trackpad-click-btn" id="trackpad-left-click">Left Click</button>
-      <button class="trackpad-click-btn" id="trackpad-right-click">Right Click</button>
-      <button class="mode-switch-btn" id="trackpad-to-controller">🎮 Controller</button>
     </div>
   </div>
 
@@ -136,8 +125,8 @@
     <!-- Top Bar -->
     <div class="top-bar">
       <div class="bumper-trigger-group left">
-        <button class="trigger-btn" id="lt" data-btn="lt">LT</button>
-        <button class="bumper-btn" id="lb" data-btn="lb">LB</button>
+        <button class="trigger-btn" id="lt" data-btn="lt" data-layout-id="lt">LT</button>
+        <button class="bumper-btn" id="lb" data-btn="lb" data-layout-id="lb">LB</button>
       </div>
       <div class="status-bar">
         <div id="connection-indicator" class="conn-dot disconnected"></div>
@@ -146,54 +135,57 @@
         <span class="player-badge" id="player-badge" style="display:none"><span class="player-num" id="player-num">P1</span></span>
         <span id="latency-display" class="latency-text neutral" aria-label="Controller to server round-trip time">RTT: --</span>
         <span id="motion-indicator" class="motion-ind hidden">📐</span>
-        <button id="mode-switch-btn" class="icon-btn" title="Trackpad Mode">🖱️</button>
         <button id="settings-btn" class="icon-btn" title="Settings">⚙</button>
         <button id="fullscreen-btn" class="icon-btn" title="Fullscreen">⛶</button>
       </div>
       <div class="bumper-trigger-group right">
-        <button class="bumper-btn" id="rb" data-btn="rb">RB</button>
-        <button class="trigger-btn" id="rt" data-btn="rt">RT</button>
+        <button class="bumper-btn" id="rb" data-btn="rb" data-layout-id="rb">RB</button>
+        <button class="trigger-btn" id="rt" data-btn="rt" data-layout-id="rt">RT</button>
       </div>
     </div>
 
     <!-- Main Play Area -->
     <div class="play-area">
       <div class="zone left-zone">
-        <div class="joystick-container" id="left-stick-zone">
+        <div class="joystick-container" id="left-stick-zone" data-layout-id="leftStick">
           <div class="joystick-base" id="left-stick-base">
             <div class="joystick-ring"></div>
             <div class="joystick-thumb" id="left-stick-thumb"></div>
           </div>
-          <button class="stick-click-btn" data-btn="ls">L3</button>
+          <button class="stick-click-btn" data-btn="ls" data-layout-id="leftStickClick">L3</button>
         </div>
-        <div class="dpad" id="dpad">
-          <button class="dpad-btn up" data-btn="dpadUp"><span>▲</span></button>
-          <button class="dpad-btn right" data-btn="dpadRight"><span>►</span></button>
-          <button class="dpad-btn down" data-btn="dpadDown"><span>▼</span></button>
-          <button class="dpad-btn left" data-btn="dpadLeft"><span>◄</span></button>
+        <div class="dpad" id="dpad" data-layout-id="dpad">
+          <button class="dpad-btn up" data-btn="dpadUp" data-layout-id="dpadUp"><span>▲</span></button>
+          <button class="dpad-btn right" data-btn="dpadRight" data-layout-id="dpadRight"><span>►</span></button>
+          <button class="dpad-btn down" data-btn="dpadDown" data-layout-id="dpadDown"><span>▼</span></button>
+          <button class="dpad-btn left" data-btn="dpadLeft" data-layout-id="dpadLeft"><span>◄</span></button>
           <div class="dpad-center"></div>
         </div>
       </div>
       <div class="zone center-zone">
-        <button class="center-btn" id="back" data-btn="back">BACK</button>
-        <button class="center-btn home-btn" id="home" data-btn="home">⬡</button>
-        <button class="center-btn" id="start" data-btn="start">START</button>
+        <button class="center-btn" id="back" data-btn="back" data-layout-id="back">BACK</button>
+        <button class="center-btn home-btn" id="home" data-btn="home" data-layout-id="home">⬡</button>
+        <button class="center-btn" id="start" data-btn="start" data-layout-id="start">START</button>
       </div>
       <div class="zone right-zone">
-        <div class="face-buttons">
-          <button class="face-btn y-btn" data-btn="Y">Y</button>
-          <button class="face-btn x-btn" data-btn="X">X</button>
-          <button class="face-btn b-btn" data-btn="B">B</button>
-          <button class="face-btn a-btn" data-btn="A">A</button>
+        <div class="face-buttons" data-layout-id="faceButtons">
+          <button class="face-btn y-btn" data-btn="Y" data-layout-id="faceY">Y</button>
+          <button class="face-btn x-btn" data-btn="X" data-layout-id="faceX">X</button>
+          <button class="face-btn b-btn" data-btn="B" data-layout-id="faceB">B</button>
+          <button class="face-btn a-btn" data-btn="A" data-layout-id="faceA">A</button>
         </div>
-        <div class="joystick-container" id="right-stick-zone">
+        <div class="joystick-container" id="right-stick-zone" data-layout-id="rightStick">
           <div class="joystick-base" id="right-stick-base">
             <div class="joystick-ring"></div>
             <div class="joystick-thumb" id="right-stick-thumb"></div>
           </div>
-          <button class="stick-click-btn" data-btn="rs">R3</button>
+          <button class="stick-click-btn" data-btn="rs" data-layout-id="rightStickClick">R3</button>
         </div>
       </div>
+    </div>
+    <div id="layout-edit-toolbar" class="layout-edit-toolbar hidden">
+      <span>Drag controls to reposition</span>
+      <button id="finish-layout-edit" class="action-btn">Done</button>
     </div>
   </div>
 

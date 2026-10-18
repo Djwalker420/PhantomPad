@@ -26,7 +26,7 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Use full input release during player removal, mode change, and shutdown.
 - Added a 300 ms per-socket input inactivity watchdog. Accepted controller snapshots refresh it; stale input is neutralized. The watchdog stops on disconnect.
 - Reset local mobile input state on connect/disconnect and when the document becomes hidden; send a non-volatile neutral snapshot when still connected.
-- Use volatile transport for trackpad movement/scroll to avoid replaying obsolete movement after network interruption. Click events remain non-volatile.
+- Legacy trackpad movement used volatile transport; the trackpad and mouse input path is removed in the current UI update.
 - Clear/restart the latency ping interval safely on reconnect.
 - Probe actual ViGEmBus connectivity by connecting a temporary virtual Xbox 360 target; report the driver/client exception in the dashboard and `/api/info` when unavailable.
 - Log per-player virtual-controller creation failures instead of swallowing them.
@@ -85,3 +85,12 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - A publish attempt failed before authentication because this Windows environment could not start Git Credential Manager (`NtCreateDirectoryObject` access denied); GitHub did not receive the commit, so no build workflow or new installer artifact has been produced.
 - The Windows installer is not available locally because the ViGEm native dependency requires Visual Studio C++ build tools absent from this environment. Connect the GitHub integration or restore Git credential-helper access, then publish `main` and verify the Actions build/artifact before sharing an installer link.
 - No Jest, Android APK, or Windows installer build was run for this 1.6.0 update; no physical-device testing has been performed.
+
+## Controller and dashboard update (2026-10-18, local working copy)
+- Made the phone settings panel scrollable with a visible scrollbar and sticky header.
+- Added a layout-edit mode that lets users drag individual buttons and control groups to positions saved locally on each phone; added a reset action.
+- Removed the mobile mouse/trackpad UI and its server and Windows mouse-input handlers.
+- Updated the Windows dashboard to create a live input visualizer per connected player, show each controller's reported RTT beside its name, and disconnect a selected controller.
+- Set Gamepad as the default server mode.
+- Routed haptics directly through the Android native vibration bridge when the Android app is used, with the browser vibration API as fallback. This is a code-path improvement; it has not yet been confirmed on the CMF phone.
+- These changes are local and have not been built, tested, committed, or pushed. No new APK or Windows installer is available yet.

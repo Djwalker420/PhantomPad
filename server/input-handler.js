@@ -1,6 +1,6 @@
 /**
  * PhantomPad - Input Handler v2
- * Multi-player, Mouse Trackpad, Keyboard & Gamepad modes
+ * Multi-player Keyboard & Gamepad modes
  *
  * ARCHITECTURE & CROSS-PLATFORM EXTENSION GUIDE:
  * -----------------------------------------------------------------------------
@@ -13,15 +13,12 @@
  *    - Virtual Gamepad: Use the Linux kernel `uinput` module (e.g., via node-uinput
  *      or writing to `/dev/uinput`) to register input devices supporting EV_KEY,
  *      EV_ABS (joystick axes), and EV_SYN.
- *    - Virtual Keyboard/Mouse: Emit `uinput` events for mouse movement (EV_REL),
- *      clicks, and keystrokes. Requires appropriate permission (uaccess rule or
- *      input group access to `/dev/uinput`).
+ *    - Virtual Keyboard: Emit `uinput` key events. Requires appropriate
+ *      permission (uaccess rule or input group access to `/dev/uinput`).
  *
  * 2. macOS Support (via CoreGraphics / CGEvent):
- *    - Virtual Keyboard/Mouse: Use macOS CoreGraphics framework APIs via Node native 
- *      addon or `robotjs` / `nut.js` bindings (`CGEventCreateKeyboardEvent`,
- *      `CGEventCreateMouseEvent`, `CGEventPost`). Requires Accessibility permissions
- *      granted to the host application in System Preferences.
+ *    - Virtual Keyboard: Use macOS CoreGraphics keyboard events through a native
+ *      addon or supported automation library. Requires Accessibility permission.
  *    - Virtual Gamepad: macOS does not natively provide a simple userspace virtual 
  *      gamepad API like ViGEm, but virtual gamepads can be created using DriverKit 
  *      or IOUSBHostDevice extensions, or by utilizing Foohid driver bindings.
@@ -31,7 +28,6 @@
  *        interface InputDriver {
  *          init(): Promise<void>;
  *          sendKeyEvent(code, isDown): void;
- *          sendMouseMove(dx, dy): void;
  *          sendGamepadState(playerIndex, state): void;
  *        }
  *    - Detect `process.platform` ('win32', 'linux', 'darwin') in constructor/factory
@@ -79,13 +75,6 @@ public class KBSim {
     [DllImport("user32.dll")]
     public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
     [DllImport("user32.dll")]
-    public static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
-    [DllImport("user32.dll")]
-    public static extern bool GetCursorPos(out POINT lpPoint);
-    [DllImport("user32.dll")]
-    public static extern bool SetCursorPos(int X, int Y);
-    [StructLayout(LayoutKind.Sequential)]
-    public struct POINT { public int X; public int Y; }
 }
 "@
 
@@ -163,6 +152,7 @@ Write-Host "KB_READY"
     const player = {
       id: socketId, number: num,
       color: colors[num - 1] || colors[0],
+      latency: null,
       pressedKeys: new Set(),
       keyMapping: { ...config.keyMappings[config.defaultPreset || 'default'] },
       hasController: false
@@ -215,7 +205,9 @@ Write-Host "KB_READY"
   }
 
   getPlayersInfo() {
-    return [...this.players.values()].map(p => ({ id: p.id, number: p.number, color: p.color }));
+    return [...this.players.values()].map(p => ({
+      id: p.id, number: p.number, color: p.color, latency: p.latency
+    }));
   }
 
   // --- Input Handling ---
@@ -226,25 +218,6 @@ Write-Host "KB_READY"
       this._handleGamepadInput(player, data);
     } else if (this.keyboardAvailable) {
       this._handleKeyboardInput(player, data);
-    }
-  }
-
-  handleMouse(socketId, data) {
-    if (!this.keyboardAvailable || !this.ps || !this.ps.stdin.writable) return;
-    if (data.dx !== undefined || data.dy !== undefined) {
-      const dx = Math.round(sanitizeNumber(data.dx, -10000, 10000));
-      const dy = Math.round(sanitizeNumber(data.dy, -10000, 10000));
-      this.ps.stdin.write(`$p=[KBSim+POINT]::new();[KBSim]::GetCursorPos([ref]$p);[KBSim]::SetCursorPos($p.X+${dx},$p.Y+${dy})\n`);
-    }
-    if (data.click === 'left') {
-      this.ps.stdin.write(`[KBSim]::mouse_event(2,0,0,0,[UIntPtr]::Zero);[KBSim]::mouse_event(4,0,0,0,[UIntPtr]::Zero)\n`);
-    }
-    if (data.click === 'right') {
-      this.ps.stdin.write(`[KBSim]::mouse_event(8,0,0,0,[UIntPtr]::Zero);[KBSim]::mouse_event(16,0,0,0,[UIntPtr]::Zero)\n`);
-    }
-    if (data.scroll) {
-      const amount = data.scroll > 0 ? 120 : -120;
-      this.ps.stdin.write(`[KBSim]::mouse_event(0x0800,0,0,${amount},[UIntPtr]::Zero)\n`);
     }
   }
 

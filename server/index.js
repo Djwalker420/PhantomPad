@@ -190,7 +190,6 @@ app.get('/api/macros', (req, res) => res.json(macroHandler.getMacrosList()));
 // --- Socket.IO ---
 io.on('connection', (socket) => {
   let lastInputTime = 0;
-  let lastMouseTime = 0;
   const RATE_LIMIT_MS = 8; // ~125Hz max (B6)
   const inputWatchdog = createInputWatchdog(socket.id, inputHandler, 300);
 
@@ -223,6 +222,20 @@ io.on('connection', (socket) => {
     socket.emit('pong-check', ts);
   });
 
+  socket.on('latency-report', (latency) => {
+    const player = inputHandler.players.get(socket.id);
+    if (!player || !Number.isFinite(latency)) return;
+    player.latency = Math.max(0, Math.min(60000, Math.round(latency)));
+    io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
+  });
+
+  socket.on('disconnect-controller', (controllerId) => {
+    if (!socket.rooms.has('dashboard') || typeof controllerId !== 'string') return;
+    const target = io.sockets.sockets.get(controllerId);
+    if (!target || !inputHandler.players.has(controllerId)) return;
+    target.disconnect(true);
+  });
+
   // ---- Controller input ----
   socket.on('input', (data) => {
     // Rate limit (B6)
@@ -237,19 +250,6 @@ io.on('connection', (socket) => {
     if (inputHandler.players.has(socket.id)) inputWatchdog.refresh();
     if (macroHandler.recording) macroHandler.recordInput(data);
     io.to('dashboard').emit('input-visualize', { playerId: socket.id, ...data });
-  });
-
-  // ---- Mouse/trackpad ----
-  socket.on('mouse', (data) => {
-    // Rate limit (B6)
-    const now = Date.now();
-    if (now - lastMouseTime < RATE_LIMIT_MS) return;
-    lastMouseTime = now;
-
-    // Validation (B5)
-    if (!data || typeof data !== 'object') return;
-
-    inputHandler.handleMouse(socket.id, data);
   });
 
   // ---- Mode switching ----

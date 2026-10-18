@@ -1,5 +1,5 @@
 // PhantomPad Controller v3 — Optimized for Android
-// Multi-player, Trackpad, Motion, Latency, Performance
+// Multi-player, Motion, Latency, Performance
 (function () {
   'use strict';
 
@@ -8,9 +8,9 @@
     theme: 'phantom', layout: 'xbox', sendRate: 60,
     motionMode: 'off',
     motionSens: 1.0,
-    trackpadSens: 1.5,
     controllerScale: 100,
-    controllerLayout: 'standard'
+    controllerLayout: 'standard',
+    controllerPositions: {}
   };
 
   // Load saved settings
@@ -18,6 +18,9 @@
     const saved = JSON.parse(localStorage.getItem('phantompad_settings'));
     if (saved) Object.assign(settings, saved);
   } catch (e) {}
+  if (!settings.controllerPositions || typeof settings.controllerPositions !== 'object' || Array.isArray(settings.controllerPositions)) {
+    settings.controllerPositions = {};
+  }
 
   function saveSettings() {
     try { localStorage.setItem('phantompad_settings', JSON.stringify(settings)); } catch (e) {}
@@ -28,7 +31,6 @@
     socket: null, connected: false,
     buttons: {}, axes: { leftX: 0, leftY: 0, rightX: 0, rightY: 0 }, triggers: { lt: 0, rt: 0 },
     isGamepad: false,
-    isTrackpadMode: false,
     motionBase: { beta: 0, gamma: 0, set: false },
     latency: null,
     lastInput: null
@@ -65,7 +67,7 @@
 
   function sendLoop(timestamp) {
     rafId = requestAnimationFrame(sendLoop);
-    if (!state.connected || state.isTrackpadMode) return;
+    if (!state.connected) return;
 
     if (timestamp - lastSendTime >= sendInterval) {
       lastSendTime = timestamp;
@@ -134,13 +136,16 @@
       startLatencyPing();
     });
 
-    state.socket.on('disconnect', () => {
+    state.socket.on('disconnect', (reason) => {
       state.connected = false;
       state.latency = null;
       lastSentInput = null;
       lastPacketTime = 0;
       resetInputState(false);
       updateConnUI(false);
+      if (reason === 'io server disconnect') {
+        document.getElementById('connection-text').textContent = 'Disconnected by PC';
+      }
       updateLatencyUI();
       stopLatencyPing();
     });
@@ -148,7 +153,7 @@
     state.socket.on('reconnecting', () => updateConnUI(false));
 
     state.socket.on('vibrate', (d) => {
-      if (settings.haptic && navigator.vibrate) navigator.vibrate(d.duration || 50);
+      haptic(d.duration || 50);
     });
 
     state.socket.on('player-assigned', (info) => {
@@ -164,6 +169,7 @@
     // Latency response
     state.socket.on('pong-check', (sentTime) => {
       state.latency = Date.now() - sentTime;
+      state.socket.emit('latency-report', state.latency);
       updateLatencyUI();
     });
 
@@ -206,6 +212,94 @@
     pingInterval = null;
   }
 
+  function initCustomLayout() {
+    const controller = document.getElementById('controller');
+    const toolbar = document.getElementById('layout-edit-toolbar');
+    const customizeButton = document.getElementById('customize-controls-btn');
+    const finishButton = document.getElementById('finish-layout-edit');
+    const resetButton = document.getElementById('reset-control-positions-btn');
+    let editing = false;
+    let drag = null;
+
+    const applyPositions = () => {
+      document.querySelectorAll('[data-layout-id]').forEach((element) => {
+        const position = settings.controllerPositions?.[element.dataset.layoutId];
+        element.style.translate = position && Number.isFinite(position.x) && Number.isFinite(position.y)
+          ? `${position.x}vw ${position.y}vh`
+          : '';
+      });
+    };
+
+    const finishEditing = () => {
+      editing = false;
+      drag = null;
+      controller.classList.remove('editing-layout');
+      toolbar.classList.add('hidden');
+      saveSettings();
+    };
+
+    customizeButton.addEventListener('click', () => {
+      document.getElementById('settings-overlay').classList.add('hidden');
+      editing = true;
+      controller.classList.add('editing-layout');
+      toolbar.classList.remove('hidden');
+    });
+    finishButton.addEventListener('click', finishEditing);
+    resetButton.addEventListener('click', () => {
+      settings.controllerPositions = {};
+      applyPositions();
+      saveSettings();
+    });
+
+    controller.addEventListener('pointerdown', (event) => {
+      if (!editing) return;
+      const element = event.target.closest('[data-layout-id]');
+      if (!element) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const bounds = controller.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
+      const id = element.dataset.layoutId;
+      const position = settings.controllerPositions?.[id] || { x: 0, y: 0 };
+      drag = {
+        element,
+        id,
+        startX: event.clientX,
+        startY: event.clientY,
+        bounds,
+        rect,
+        originX: position.x,
+        originY: position.y
+      };
+      controller.setPointerCapture(event.pointerId);
+    }, true);
+
+    controller.addEventListener('pointermove', (event) => {
+      if (!editing || !drag) return;
+      event.preventDefault();
+      const minX = drag.bounds.left + 6 - drag.rect.left;
+      const maxX = drag.bounds.right - 6 - drag.rect.right;
+      const minY = drag.bounds.top + 6 - drag.rect.top;
+      const maxY = drag.bounds.bottom - 6 - drag.rect.bottom;
+      const dx = Math.max(minX, Math.min(maxX, event.clientX - drag.startX));
+      const dy = Math.max(minY, Math.min(maxY, event.clientY - drag.startY));
+      const x = drag.originX + dx / window.innerWidth * 100;
+      const y = drag.originY + dy / window.innerHeight * 100;
+      drag.element.style.translate = `${x}vw ${y}vh`;
+      settings.controllerPositions[drag.id] = { x, y };
+    }, true);
+
+    const endDrag = (event) => {
+      if (!drag) return;
+      event.preventDefault();
+      drag = null;
+      saveSettings();
+    };
+    controller.addEventListener('pointerup', endDrag, true);
+    controller.addEventListener('pointercancel', endDrag, true);
+    applyPositions();
+  }
+
   function updateLatencyUI() {
     const el = document.getElementById('latency-display');
     if (el) {
@@ -216,7 +310,17 @@
   }
 
   function haptic(ms) {
-    if (settings.haptic && navigator.vibrate) navigator.vibrate(ms || settings.hapticMs);
+    if (!settings.haptic) return;
+    const duration = Math.max(1, Math.min(1000, Number(ms) || settings.hapticMs));
+    try {
+      if (window.PhantomPadNative?.vibrate) {
+        window.PhantomPadNative.vibrate(duration);
+      } else if (navigator.vibrate) {
+        navigator.vibrate(duration);
+      }
+    } catch (error) {
+      console.debug('Haptic feedback unavailable:', error);
+    }
   }
 
   // ========================
@@ -356,83 +460,6 @@
     } else {
       calibrateMotion();
     }
-  }
-
-  // ========================
-  // Mouse Trackpad Mode
-  // ========================
-  function initTrackpad() {
-    const overlay = document.getElementById('trackpad-overlay');
-    const surface = document.getElementById('trackpad-surface');
-
-    document.getElementById('mode-switch-btn').addEventListener('click', () => {
-      resetInputState(true);
-      state.isTrackpadMode = true;
-      overlay.classList.remove('hidden');
-    });
-
-    document.getElementById('trackpad-to-controller').addEventListener('click', () => {
-      state.isTrackpadMode = false;
-      overlay.classList.add('hidden');
-    });
-
-    let lastX = 0, lastY = 0;
-
-    surface.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (e.touches.length === 1) {
-        lastX = e.touches[0].clientX;
-        lastY = e.touches[0].clientY;
-      }
-    }, { passive: false });
-
-    surface.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (!state.connected) return;
-
-      if (e.touches.length === 1) {
-        const x = e.touches[0].clientX, y = e.touches[0].clientY;
-        const dx = (x - lastX) * settings.trackpadSens;
-        const dy = (y - lastY) * settings.trackpadSens;
-        state.socket.volatile.emit('mouse', { dx, dy });
-        lastX = x;
-        lastY = y;
-      } else if (e.touches.length === 2) {
-        const y = e.touches[0].clientY;
-        const dy = y - lastY;
-        if (Math.abs(dy) > 5) {
-          state.socket.volatile.emit('mouse', { scroll: dy > 0 ? -1 : 1 });
-          lastY = y;
-        }
-      }
-    }, { passive: false });
-
-    surface.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      if (e.changedTouches.length === 1) {
-        const touch = e.changedTouches[0];
-        const dist = Math.abs(touch.clientX - lastX) + Math.abs(touch.clientY - lastY);
-        if (dist < 10) {
-          if (e.touches.length === 0) {
-            state.socket.emit('mouse', { click: 'left' });
-            haptic(15);
-          }
-        }
-      }
-    }, { passive: false });
-
-    // Explicit click buttons
-    document.getElementById('trackpad-left-click').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      state.socket.emit('mouse', { click: 'left' });
-      haptic(20);
-    }, { passive: false });
-
-    document.getElementById('trackpad-right-click').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      state.socket.emit('mouse', { click: 'right' });
-      haptic(20);
-    }, { passive: false });
   }
 
   // ========================
@@ -614,14 +641,6 @@
       document.getElementById('motion-sens-value').textContent = settings.motionSens.toFixed(1) + 'x';
     });
 
-    const tpSensSlider = document.getElementById('trackpad-sens-slider');
-    tpSensSlider.value = settings.trackpadSens * 100;
-    document.getElementById('trackpad-sens-value').textContent = settings.trackpadSens.toFixed(1) + 'x';
-    tpSensSlider.addEventListener('input', (e) => {
-      settings.trackpadSens = parseInt(e.target.value) / 100;
-      document.getElementById('trackpad-sens-value').textContent = settings.trackpadSens.toFixed(1) + 'x';
-    });
-
     document.getElementById('calibrate-btn').addEventListener('click', calibrateMotion);
 
     document.getElementById('fullscreen-btn').addEventListener('click', () => {
@@ -683,7 +702,6 @@
     initSocket();
     initButtons();
     initMotion();
-    initTrackpad();
 
     joysticks.push(new VirtualJoystick(
       document.getElementById('left-stick-zone'),
@@ -700,12 +718,11 @@
     ));
 
     initSettings();
+    initCustomLayout();
 
     // Start RAF-based send loop
     rafId = requestAnimationFrame(sendLoop);
 
-    // Prevent all scrolling/bouncing on mobile
-    document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) resetInputState(true);

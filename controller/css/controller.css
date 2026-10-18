@@ -69,7 +69,6 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, sans-serif;
-  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -88,6 +87,7 @@ html, body {
   background: var(--bg-grad);
   position: relative;
   overflow: hidden;
+  touch-action: none;
   /* GPU layer for smoother rendering */
   will-change: contents;
 }
@@ -500,85 +500,6 @@ html, body {
   transform: scale(0.9);
 }
 
-/* ===== Trackpad Overlay ===== */
-.trackpad-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-}
-
-.trackpad-surface {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 20px;
-  background: radial-gradient(ellipse at 50% 50%, rgba(0,229,255,0.03), transparent 60%);
-  touch-action: none;
-}
-
-.trackpad-hint {
-  color: var(--text-dim);
-  font-size: 13px;
-  text-align: center;
-  pointer-events: none;
-}
-
-.trackpad-cursor-icon {
-  font-size: 48px;
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-.trackpad-bottom-bar {
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(0,0,0,0.5);
-  border-top: 1px solid var(--surface-border);
-}
-
-.trackpad-click-btn {
-  flex: 1;
-  padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  color: var(--text);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-
-.trackpad-click-btn:active {
-  background: var(--primary);
-  color: #000;
-  transform: scale(0.95);
-}
-
-.mode-switch-btn {
-  padding: 14px 20px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
-  color: var(--text);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.1s;
-  white-space: nowrap;
-}
-
-.mode-switch-btn:active {
-  background: var(--primary);
-  color: #000;
-}
-
 /* ===== Settings Overlay ===== */
 .settings-overlay {
   position: fixed;
@@ -605,10 +526,25 @@ html, body {
   border-radius: 16px;
   width: 90%;
   max-width: 360px;
-  max-height: 80vh;
+  max-height: min(90vh, 90dvh);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) rgba(255,255,255,0.08);
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.settings-panel::-webkit-scrollbar { width: 6px; }
+.settings-panel::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); }
+.settings-panel::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 8px; }
+
+.settings-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(12,12,22,0.98);
 }
 
 .settings-header {
@@ -731,6 +667,37 @@ html, body {
   color: var(--text-dark);
   transform: scale(0.97);
 }
+
+.secondary-action { border-color: var(--surface-border); color: var(--text-dim); }
+.setting-actions { justify-content: stretch; }
+.setting-actions .action-btn { width: 100%; }
+
+.layout-edit-toolbar {
+  position: absolute;
+  z-index: 120;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  background: rgba(5,8,16,0.96);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.layout-edit-toolbar.hidden { display: none; }
+.layout-edit-toolbar .action-btn { width: auto; padding: 8px 14px; }
+.editing-layout [data-layout-id] {
+  outline: 1px dashed var(--primary);
+  outline-offset: 3px;
+  touch-action: none;
+}
+.editing-layout [data-layout-id]::after { pointer-events: none; }
 
 /* Theme Buttons */
 .theme-options { display: flex; gap: 6px; flex-wrap: wrap; }
