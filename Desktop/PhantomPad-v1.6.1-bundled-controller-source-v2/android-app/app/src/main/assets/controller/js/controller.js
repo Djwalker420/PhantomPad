@@ -123,7 +123,9 @@
       reconnection: true,
       reconnectionDelay: 500,
       reconnectionAttempts: Infinity,
-      transports: ['websocket', 'polling']
+      // Start with polling and upgrade to WebSocket. This keeps clients
+      // connected when a hotspot or firewall blocks the initial WebSocket.
+      transports: ['polling', 'websocket']
     };
     const serverUrl = new URLSearchParams(window.location.search).get('serverUrl');
     state.socket = serverUrl ? io(serverUrl, socketOptions) : io(socketOptions);
@@ -136,6 +138,13 @@
       state.socket.emit('register-controller');
       updateConnUI(true);
       startLatencyPing();
+    });
+
+    state.socket.on('connect_error', (error) => {
+      state.connected = false;
+      updateConnUI(false);
+      document.getElementById('connection-text').textContent = 'Retrying connection';
+      console.warn('Socket.IO connection failed:', error?.message || error);
     });
 
     state.socket.on('disconnect', (reason) => {

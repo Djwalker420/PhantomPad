@@ -93,11 +93,18 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Updated the Windows dashboard to create a live input visualizer per connected player, show each controller's reported RTT beside its name, and disconnect a selected controller.
 - Set Gamepad as the default server mode.
 - Routed haptics directly through the Android native vibration bridge when the Android app is used, with the browser vibration API as fallback. This is a code-path improvement; it has not yet been confirmed on the CMF phone.
-- These changes are local and have not been built, tested, committed, or pushed. No new APK or Windows installer is available yet.
+- These source changes have not been built into a new APK or Windows installer, and physical-device behavior remains unverified.
 
 ## Bundled Android controller UI (2026-10-18, local working copy)
 - Android now loads the controller page from APK assets via `WebViewAssetLoader`; the connect screen passes the Windows server address as the Socket.IO target instead of loading `/controller/` from Windows.
 - The Android Gradle build syncs the shared root `controller/` source into APK assets, so Android and desktop-browser controller screens share the same HTML/CSS/behavior source. Per-device layout settings remain in that phone's WebView storage and are not transferred.
 - Bundled pages use the vendored Socket.IO 4.8.3 browser client. The Windows app continues serving the same controller page and client JS to browser users. Server CORS allows the Android app-assets origin for its Socket.IO connection.
 - The Android screen no longer depends on Windows to serve its UI, but both still need the Windows server for input delivery and the existing connection, latency, player assignment, and vibration events. This changes interface delivery, not the input transport or expected latency.
-- Android and desktop package metadata are set to 1.6.1 (Android versionCode 5). These source changes are local only; no build, CI run, hardware test, commit, or push has been performed.
+- Android and desktop package metadata are set to 1.6.1 (Android versionCode 5). No local build or physical-device test has been performed for this source update; CI results still need to be checked.
+
+## Android connection repair (2026-10-19)
+- User reports the Android controller UI opens but remains disconnected and sends no input, while the Android connect screen reaches the Windows app.
+- Changed the shared controller Socket.IO client to start with HTTP long-polling and upgrade to WebSocket. The previous WebSocket-first ordering did not automatically fall back when the initial WebSocket attempt failed. Socket.IO's official client options document recommends polling-first by default and describes `tryAllTransports` for WebSocket-first fallback.
+- Added a visible retrying status and console diagnostic for Socket.IO connection errors; bumped the browser service-worker cache to v6.
+- Bumped Windows package metadata and Android package metadata to v1.6.2; Android `versionCode` is 6. Updated CI artifact labels to v1.6.2.
+- This is a code-based repair hypothesis supported by the reported two-stage connection behavior and the documented transport fallback behavior. It has not been built or tested on the user's phone/hotspot. Rebuild and reinstall the Android APK; the Windows app does not need reinstalling for this client-side change.
