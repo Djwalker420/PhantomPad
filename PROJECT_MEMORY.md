@@ -108,3 +108,10 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Added a visible retrying status and console diagnostic for Socket.IO connection errors; bumped the browser service-worker cache to v6.
 - Bumped Windows package metadata and Android package metadata to v1.6.2; Android `versionCode` is 6. Updated CI artifact labels to v1.6.2.
 - This is a code-based repair hypothesis supported by the reported two-stage connection behavior and the documented transport fallback behavior. It has not been built or tested on the user's phone/hotspot. Rebuild and reinstall the Android APK; the Windows app does not need reinstalling for this client-side change.
+
+## L3/R3 stuck input repair (2026-10-19)
+- User reports the PhantomPad live visualizer receives input, but L3/R3 remain active after pressing them. This confirms the phone-to-server input path is working; the stuck state is in the controller page's pointer handling.
+- Root cause: L3/R3 buttons are nested inside joystick zones. Their `pointerdown` bubbled to the parent joystick, which captured the pointer. Then `pointerup` targeted the joystick zone and skipped the button's release handler, leaving the L3/R3 state held.
+- Stop propagation at the button's `pointerdown`, so the button keeps pointer capture and receives its release. Bumped the controller service-worker cache to v7 so browser clients refresh the corrected JS.
+- Bumped desktop and Android package metadata to 1.6.3; Android `versionCode` is 7. Gradle syncs the shared controller source into APK assets.
+- This source fix has not yet been built, run through CI, or tested on the user's phone/Windows device. Verify that pressing and releasing L3/R3 causes both the PhantomPad visualizer and `joy.cpl` buttons to turn off immediately.

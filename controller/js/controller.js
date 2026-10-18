@@ -486,6 +486,10 @@
       const trigger = key === 'lt' || key === 'rt';
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        // Stick-click buttons are nested inside the joystick zones. Stop the
+        // event here so the parent joystick cannot capture this pointer;
+        // otherwise pointerup is delivered to the zone and L3/R3 stay held.
+        e.stopPropagation();
         btn.setPointerCapture(e.pointerId);
         pointers.add(e.pointerId);
         state.buttons[key] = true;
