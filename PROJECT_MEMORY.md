@@ -101,3 +101,10 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Bundled pages use the vendored Socket.IO 4.8.3 browser client. The Windows app continues serving the same controller page and client JS to browser users. Server CORS allows the Android app-assets origin for its Socket.IO connection.
 - The Android screen no longer depends on Windows to serve its UI, but both still need the Windows server for input delivery and the existing connection, latency, player assignment, and vibration events. This changes interface delivery, not the input transport or expected latency.
 - Android and desktop package metadata are set to 1.6.1 (Android versionCode 5). No local build or physical-device test has been performed for this source update; CI results still need to be checked.
+
+## Android connection repair (2026-10-19)
+- User reports the Android controller UI opens but remains disconnected and sends no input, while the Android connect screen reaches the Windows app.
+- Changed the shared controller Socket.IO client to start with HTTP long-polling and upgrade to WebSocket. The previous WebSocket-first ordering did not automatically fall back when the initial WebSocket attempt failed. Socket.IO's official client options document recommends polling-first by default and describes `tryAllTransports` for WebSocket-first fallback.
+- Added a visible retrying status and console diagnostic for Socket.IO connection errors; bumped the browser service-worker cache to v6.
+- Bumped Windows package metadata and Android package metadata to v1.6.2; Android `versionCode` is 6. Updated CI artifact labels to v1.6.2.
+- This is a code-based repair hypothesis supported by the reported two-stage connection behavior and the documented transport fallback behavior. It has not been built or tested on the user's phone/hotspot. Rebuild and reinstall the Android APK; the Windows app does not need reinstalling for this client-side change.
