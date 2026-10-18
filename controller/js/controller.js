@@ -119,12 +119,14 @@
   }
 
   function initSocket() {
-    state.socket = io({
+    const socketOptions = {
       reconnection: true,
       reconnectionDelay: 500,
       reconnectionAttempts: Infinity,
       transports: ['websocket', 'polling']
-    });
+    };
+    const serverUrl = new URLSearchParams(window.location.search).get('serverUrl');
+    state.socket = serverUrl ? io(serverUrl, socketOptions) : io(socketOptions);
 
     state.socket.on('connect', () => {
       resetInputState(false);
@@ -734,7 +736,7 @@
     }
 
     // Register Service Worker for PWA support
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && location.hostname !== 'appassets.androidplatform.net') {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 

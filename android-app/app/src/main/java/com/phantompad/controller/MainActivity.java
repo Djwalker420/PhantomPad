@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
+import android.net.Uri;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -18,15 +19,18 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceResponse;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private Vibrator vibrator;
+    private WebViewAssetLoader assetLoader;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -50,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         webView = findViewById(R.id.webview);
+        assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
 
         // Configure WebView for maximum performance
         WebSettings settings = webView.getSettings();
@@ -74,6 +81,16 @@ public class MainActivity extends AppCompatActivity {
         webView.addJavascriptInterface(new WebAppInterface(), "PhantomPadNative");
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+                return assetLoader.shouldInterceptRequest(Uri.parse(url));
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 // Load all URLs in the WebView
@@ -119,12 +136,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Load the controller URL
+        // Load the controller UI from this APK; only controller traffic goes to Windows.
         String serverUrl = getIntent().getStringExtra("server_url");
         if (serverUrl != null && !serverUrl.isEmpty()) {
-            // Clear any stale cache before loading
-            webView.clearCache(true);
-            webView.loadUrl(serverUrl);
+            String localControllerUrl = "https://appassets.androidplatform.net/assets/controller/index.html?serverUrl="
+                    + Uri.encode(serverUrl);
+            webView.loadUrl(localControllerUrl);
         } else {
             // No URL provided, go back to connect
             goBackToConnect();

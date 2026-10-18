@@ -93,4 +93,11 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Updated the Windows dashboard to create a live input visualizer per connected player, show each controller's reported RTT beside its name, and disconnect a selected controller.
 - Set Gamepad as the default server mode.
 - Routed haptics directly through the Android native vibration bridge when the Android app is used, with the browser vibration API as fallback. This is a code-path improvement; it has not yet been confirmed on the CMF phone.
-- These changes are local and have not been built, tested, committed, or pushed. No new APK or Windows installer is available yet.
+- These source changes have not been built into a new APK or Windows installer, and physical-device behavior remains unverified.
+
+## Bundled Android controller UI (2026-10-18, local working copy)
+- Android now loads the controller page from APK assets via `WebViewAssetLoader`; the connect screen passes the Windows server address as the Socket.IO target instead of loading `/controller/` from Windows.
+- The Android Gradle build syncs the shared root `controller/` source into APK assets, so Android and desktop-browser controller screens share the same HTML/CSS/behavior source. Per-device layout settings remain in that phone's WebView storage and are not transferred.
+- Bundled pages use the vendored Socket.IO 4.8.3 browser client. The Windows app continues serving the same controller page and client JS to browser users. Server CORS allows the Android app-assets origin for its Socket.IO connection.
+- The Android screen no longer depends on Windows to serve its UI, but both still need the Windows server for input delivery and the existing connection, latency, player assignment, and vibration events. This changes interface delivery, not the input transport or expected latency.
+- Android and desktop package metadata are set to 1.6.1 (Android versionCode 5). No local build or physical-device test has been performed for this source update; CI results still need to be checked.
