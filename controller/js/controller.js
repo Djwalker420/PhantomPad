@@ -36,9 +36,32 @@
 
   // --- Performance: Use RAF-based send loop instead of setInterval ---
   let lastSendTime = 0;
+  let lastPacketTime = 0;
+  let lastSentInput = null;
   const sendInterval = 1000 / settings.sendRate;
+  const activeInputHeartbeat = 100;
   let rafId = null;
   const joysticks = [];
+
+  function hasActiveInput(input) {
+    return Object.values(input.buttons).some(Boolean) ||
+      Object.values(input.axes).some(value => Math.abs(value) > 0.001) ||
+      Object.values(input.triggers).some(value => value > 0.001);
+  }
+
+  function inputMatches(a, b) {
+    if (!a || !b) return false;
+    for (const group of ['buttons', 'axes', 'triggers']) {
+      const aValues = a[group];
+      const bValues = b[group];
+      const keys = Object.keys(aValues);
+      if (keys.length !== Object.keys(bValues).length) return false;
+      for (const key of keys) {
+        if (aValues[key] !== bValues[key]) return false;
+      }
+    }
+    return true;
+  }
 
   function sendLoop(timestamp) {
     rafId = requestAnimationFrame(sendLoop);
@@ -47,14 +70,22 @@
     if (timestamp - lastSendTime >= sendInterval) {
       lastSendTime = timestamp;
 
-      // Only send if there's actual input (optimization for battery)
       const input = {
-        buttons: state.buttons,
-        axes: state.axes,
-        triggers: state.triggers
+        buttons: { ...state.buttons },
+        axes: { ...state.axes },
+        triggers: { ...state.triggers }
       };
+      const active = hasActiveInput(input);
+      const changed = !inputMatches(input, lastSentInput);
+      const heartbeatDue = active && timestamp - lastPacketTime >= activeInputHeartbeat;
 
-      state.socket.volatile.emit('input', input);
+      // Neutral state needs one release snapshot, not 60 identical packets/sec.
+      // Held controls keep a 100 ms heartbeat so the server watchdog stays fresh.
+      if (changed || heartbeatDue) {
+        state.socket.volatile.emit('input', input);
+        lastSentInput = input;
+        lastPacketTime = timestamp;
+      }
     }
   }
 
@@ -95,6 +126,8 @@
 
     state.socket.on('connect', () => {
       resetInputState(false);
+      lastSentInput = null;
+      lastPacketTime = 0;
       state.connected = true;
       state.socket.emit('register-controller');
       updateConnUI(true);
@@ -104,6 +137,8 @@
     state.socket.on('disconnect', () => {
       state.connected = false;
       state.latency = null;
+      lastSentInput = null;
+      lastPacketTime = 0;
       resetInputState(false);
       updateConnUI(false);
       updateLatencyUI();
