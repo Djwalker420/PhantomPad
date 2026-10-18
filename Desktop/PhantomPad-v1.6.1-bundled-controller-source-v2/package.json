@@ -1,0 +1,60 @@
+{
+  "name": "phantompad",
+  "version": "1.6.1",
+  "description": "Turn your phone into a wireless game controller for PC",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "start:pc": "electron .",
+    "dev": "node --watch server/index.js",
+    "test": "jest",
+    "build:pc": "electron-builder --win --publish never",
+    "cap:init": "npx cap init PhantomPad com.phantompad.controller --web-dir controller",
+    "cap:android": "npx cap add android",
+    "cap:build": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "build": {
+    "appId": "com.phantompad.app",
+    "productName": "PhantomPad",
+    "directories": {
+      "output": "dist/electron"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "asarUnpack": [
+      "server/lib/Nefarius.ViGEm.Client.dll"
+    ]
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.0"
+  },
+  "optionalDependencies": {
+    "vigemclient": "^1.1.1"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.1.8",
+    "jest": "^30.3.0"
+  },
+  "keywords": [
+    "gamepad",
+    "controller",
+    "mobile",
+    "emulation",
+    "wireless",
+    "phantompad"
+  ],
+  "license": "MIT"
+}
