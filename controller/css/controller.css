@@ -106,11 +106,10 @@ html, body {
 
 /* ===== Player Badge ===== */
 .player-badge {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
+  position: static;
+  display: inline-flex;
+  flex: 0 0 auto;
+  z-index: 2;
 }
 
 .player-num {
@@ -191,8 +190,10 @@ html, body {
 .status-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .conn-dot {
@@ -242,12 +243,15 @@ html, body {
 .latency-text {
   font-family: 'SF Mono', 'Cascadia Code', monospace;
   font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  flex: 0 0 auto;
   background: var(--success-dim);
 }
 
+.latency-text.neutral { color: var(--text-dim); background: var(--surface); }
 .latency-text.good { color: var(--success); background: var(--success-dim); }
 .latency-text.ok { color: var(--warning); background: var(--warning-dim); }
 .latency-text.bad { color: var(--danger); background: var(--danger-dim); }
@@ -766,7 +770,9 @@ html, body {
   .play-area { gap: 2px; padding: 4px; }
   .center-zone { gap: 6px; }
   .center-btn { font-size: 8px; padding: 4px 8px; }
-  .conn-text { display: none; }
+  .conn-text, .current-game-text { display: none; }
+  .status-bar { gap: 4px; }
+  .latency-text { font-size: 9px; padding: 3px 4px; }
 }
 
 @media (max-height: 320px) {
@@ -783,3 +789,14 @@ html, body {
 
 /* ===== Utility ===== */
 .hidden { display: none !important; }
+
+/* User-selected control size and layouts */
+#controller .play-area { transform: scale(var(--controller-scale, 1)); transform-origin: center center; }
+#controller.layout-left-handed .left-zone { grid-column: 3; grid-row: 1; }
+#controller.layout-left-handed .center-zone { grid-column: 2; grid-row: 1; }
+#controller.layout-left-handed .right-zone { grid-column: 1; grid-row: 1; }
+#controller.layout-compact .play-area { gap: 0; padding: 2px; }
+#controller.layout-compact .zone { gap: 5px; }
+#controller.layout-compact .center-zone { gap: 3px; }
+#controller.layout-compact .dpad { width: 94px; height: 94px; }
+#controller.layout-compact .joystick-container { width: 100px; height: 100px; }

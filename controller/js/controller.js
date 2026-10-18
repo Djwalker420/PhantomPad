@@ -8,7 +8,9 @@
     theme: 'phantom', layout: 'xbox', sendRate: 60,
     motionMode: 'off',
     motionSens: 1.0,
-    trackpadSens: 1.5
+    trackpadSens: 1.5,
+    controllerScale: 100,
+    controllerLayout: 'standard'
   };
 
   // Load saved settings
@@ -28,7 +30,7 @@
     isGamepad: false,
     isTrackpadMode: false,
     motionBase: { beta: 0, gamma: 0, set: false },
-    latency: 0,
+    latency: null,
     lastInput: null
   };
 
@@ -36,6 +38,7 @@
   let lastSendTime = 0;
   const sendInterval = 1000 / settings.sendRate;
   let rafId = null;
+  const joysticks = [];
 
   function sendLoop(timestamp) {
     rafId = requestAnimationFrame(sendLoop);
@@ -58,6 +61,30 @@
   // ========================
   // Socket & Multi-player
   // ========================
+  function resetInputState(sendNeutral = false) {
+    // Preserve known button keys so the server receives explicit releases.
+    for (const key of Object.keys(state.buttons)) state.buttons[key] = false;
+    state.axes.leftX = state.axes.leftY = state.axes.rightX = state.axes.rightY = 0;
+    state.triggers.lt = state.triggers.rt = 0;
+
+    document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
+    joysticks.forEach(joystick => {
+      joystick.active = false;
+      joystick.touchId = null;
+      joystick.thumb.classList.remove('active');
+      joystick.thumb.style.transform = 'translate(-50%, -50%)';
+    });
+
+    // A neutral snapshot is state-critical; use a non-volatile emit when connected.
+    if (sendNeutral && state.connected && state.socket && state.socket.connected) {
+      state.socket.emit('input', {
+        buttons: { ...state.buttons },
+        axes: { ...state.axes },
+        triggers: { ...state.triggers }
+      });
+    }
+  }
+
   function initSocket() {
     state.socket = io({
       reconnection: true,
@@ -67,6 +94,7 @@
     });
 
     state.socket.on('connect', () => {
+      resetInputState(false);
       state.connected = true;
       state.socket.emit('register-controller');
       updateConnUI(true);
@@ -75,7 +103,10 @@
 
     state.socket.on('disconnect', () => {
       state.connected = false;
+      state.latency = null;
+      resetInputState(false);
       updateConnUI(false);
+      updateLatencyUI();
       stopLatencyPing();
     });
 
@@ -125,22 +156,27 @@
   let pingInterval = null;
 
   function startLatencyPing() {
-    pingInterval = setInterval(() => {
-      if (state.connected) {
+    stopLatencyPing();
+    const ping = () => {
+      if (state.connected && state.socket?.connected) {
         state.socket.emit('ping-check', Date.now());
       }
-    }, 3000);
+    };
+    ping();
+    pingInterval = setInterval(ping, 1000);
   }
 
   function stopLatencyPing() {
     if (pingInterval) clearInterval(pingInterval);
+    pingInterval = null;
   }
 
   function updateLatencyUI() {
     const el = document.getElementById('latency-display');
     if (el) {
-      el.textContent = `${state.latency}ms`;
-      el.className = 'latency-text ' + (state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad');
+      el.textContent = state.latency === null ? 'RTT: --' : `RTT: ${state.latency} ms`;
+      const quality = state.latency === null ? 'neutral' : state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad';
+      el.className = 'latency-text ' + quality;
     }
   }
 
@@ -169,10 +205,10 @@
       this._boundMove = this._onMove.bind(this);
       this._boundEnd = this._onEnd.bind(this);
 
-      this.zone.addEventListener('touchstart', this._boundStart, { passive: false });
-      this.zone.addEventListener('touchmove', this._boundMove, { passive: false });
-      this.zone.addEventListener('touchend', this._boundEnd, { passive: false });
-      this.zone.addEventListener('touchcancel', this._boundEnd, { passive: false });
+      this.zone.addEventListener('pointerdown', this._boundStart, { passive: false });
+      this.zone.addEventListener('pointermove', this._boundMove, { passive: false });
+      this.zone.addEventListener('pointerup', this._boundEnd, { passive: false });
+      this.zone.addEventListener('pointercancel', this._boundEnd, { passive: false });
     }
 
     _onStart(e) {
@@ -181,8 +217,9 @@
           (settings.motionMode === 'right' && this.axisX === 'rightX')) return;
       if (this.active) return;
 
-      const t = e.changedTouches[0];
-      this.touchId = t.identifier;
+      const t = e;
+      this.touchId = e.pointerId;
+      this.zone.setPointerCapture(e.pointerId);
       this.active = true;
 
       const rect = this.base.getBoundingClientRect();
@@ -198,29 +235,19 @@
     _onMove(e) {
       e.preventDefault();
       if (!this.active) return;
-      const touches = e.changedTouches;
-      for (let i = 0; i < touches.length; i++) {
-        if (touches[i].identifier === this.touchId) {
-          this._update(touches[i].clientX, touches[i].clientY);
-          break;
-        }
-      }
+      if (e.pointerId === this.touchId) this._update(e.clientX, e.clientY);
+
     }
 
     _onEnd(e) {
       e.preventDefault();
-      const touches = e.changedTouches;
-      for (let i = 0; i < touches.length; i++) {
-        if (touches[i].identifier === this.touchId) {
-          this.active = false;
-          this.touchId = null;
-          this.thumb.classList.remove('active');
-          this.thumb.style.transform = 'translate(-50%, -50%)';
-          state.axes[this.axisX] = 0;
-          state.axes[this.axisY] = 0;
-          break;
-        }
-      }
+      if (e.pointerId !== this.touchId) return;
+      this.active = false;
+      this.touchId = null;
+      this.thumb.classList.remove('active');
+      this.thumb.style.transform = 'translate(-50%, -50%)';
+      state.axes[this.axisX] = 0;
+      state.axes[this.axisY] = 0;
     }
 
     _update(cx, cy) {
@@ -304,6 +331,7 @@
     const surface = document.getElementById('trackpad-surface');
 
     document.getElementById('mode-switch-btn').addEventListener('click', () => {
+      resetInputState(true);
       state.isTrackpadMode = true;
       overlay.classList.remove('hidden');
     });
@@ -331,14 +359,14 @@
         const x = e.touches[0].clientX, y = e.touches[0].clientY;
         const dx = (x - lastX) * settings.trackpadSens;
         const dy = (y - lastY) * settings.trackpadSens;
-        state.socket.emit('mouse', { dx, dy });
+        state.socket.volatile.emit('mouse', { dx, dy });
         lastX = x;
         lastY = y;
       } else if (e.touches.length === 2) {
         const y = e.touches[0].clientY;
         const dy = y - lastY;
         if (Math.abs(dy) > 5) {
-          state.socket.emit('mouse', { scroll: dy > 0 ? -1 : 1 });
+          state.socket.volatile.emit('mouse', { scroll: dy > 0 ? -1 : 1 });
           lastY = y;
         }
       }
@@ -376,61 +404,36 @@
   // Button Handlers (Optimized)
   // ========================
   function initButtons() {
+    const activePointers = new Map();
     const allBtns = document.querySelectorAll('[data-btn]');
-
     allBtns.forEach(btn => {
       const key = btn.dataset.btn;
-
-      // Skip triggers - handled separately
-      if (key === 'lt' || key === 'rt') return;
-
-      btn.addEventListener('touchstart', (e) => {
+      if (!activePointers.has(key)) activePointers.set(key, new Set());
+      const pointers = activePointers.get(key);
+      const trigger = key === 'lt' || key === 'rt';
+      btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        btn.setPointerCapture(e.pointerId);
+        pointers.add(e.pointerId);
         state.buttons[key] = true;
+        if (trigger) state.triggers[key] = 1;
         btn.classList.add('pressed');
         haptic();
-      }, { passive: false });
-
-      btn.addEventListener('touchend', (e) => {
+      });
+      const release = (e) => {
+        if (!pointers.has(e.pointerId)) return;
         e.preventDefault();
-        state.buttons[key] = false;
-        btn.classList.remove('pressed');
-      }, { passive: false });
-
-      btn.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        state.buttons[key] = false;
-        btn.classList.remove('pressed');
-      }, { passive: false });
-    });
-
-    // Triggers with analog behavior
-    ['lt', 'rt'].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        state.triggers[id] = 1.0;
-        state.buttons[id] = true;
-        el.classList.add('pressed');
-        haptic();
-      }, { passive: false });
-
-      el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        state.triggers[id] = 0;
-        state.buttons[id] = false;
-        el.classList.remove('pressed');
-      }, { passive: false });
-
-      el.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
-        state.triggers[id] = 0;
-        state.buttons[id] = false;
-        el.classList.remove('pressed');
-      }, { passive: false });
+        pointers.delete(e.pointerId);
+        const pressed = pointers.size > 0;
+        state.buttons[key] = pressed;
+        if (trigger) state.triggers[key] = pressed ? 1 : 0;
+        btn.classList.toggle('pressed', pressed);
+      };
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointercancel', release);
+      btn.addEventListener('lostpointercapture', release);
     });
   }
-
   // ========================
   // Settings UI
   // ========================
@@ -441,7 +444,7 @@
     overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.classList.add('hidden'); saveSettings(); } });
 
     document.getElementById('haptic-toggle').checked = settings.haptic;
-    document.getElementById('haptic-toggle').addEventListener('change', (e) => { settings.haptic = e.target.checked; });
+    document.getElementById('haptic-toggle').addEventListener('change', (e) => { settings.haptic = e.target.checked; saveSettings(); });
 
     const dzSlider = document.getElementById('deadzone-slider');
     dzSlider.value = settings.deadzone * 100;
@@ -451,30 +454,60 @@
       document.getElementById('deadzone-value').textContent = settings.deadzone.toFixed(2);
     });
 
-    document.getElementById('stick-size-slider').addEventListener('input', (e) => {
-      const s = parseInt(e.target.value);
+    const stickSlider = document.getElementById('stick-size-slider');
+    stickSlider.value = settings.stickSize;
+    const applyStickSize = () => {
+      const size = parseInt(stickSlider.value, 10);
       document.querySelectorAll('.joystick-container').forEach(el => {
-        el.style.width = s * 2.4 + 'px';
-        el.style.height = s * 2.4 + 'px';
+        el.style.width = size * 2.4 + 'px';
+        el.style.height = size * 2.4 + 'px';
       });
-    });
+    };
+    stickSlider.addEventListener('input', () => { settings.stickSize = parseInt(stickSlider.value, 10); applyStickSize(); saveSettings(); });
+    applyStickSize();
 
-    document.getElementById('opacity-slider').addEventListener('input', (e) => {
-      const o = parseInt(e.target.value) / 100;
-      document.querySelectorAll('.face-btn, .dpad-btn, .bumper-btn, .trigger-btn, .center-btn').forEach(el => {
-        el.style.opacity = o;
-      });
-    });
+    const opacitySlider = document.getElementById('opacity-slider');
+    opacitySlider.value = settings.opacity * 100;
+    const applyOpacity = () => {
+      const opacity = parseInt(opacitySlider.value, 10) / 100;
+      document.querySelectorAll('.face-btn, .dpad-btn, .bumper-btn, .trigger-btn, .center-btn, .joystick-base, .joystick-thumb').forEach(el => { el.style.opacity = opacity; });
+    };
+    opacitySlider.addEventListener('input', () => { settings.opacity = parseInt(opacitySlider.value, 10) / 100; applyOpacity(); saveSettings(); });
+    applyOpacity();
 
-    // Apply saved theme
-    document.getElementById('controller').className = 'controller theme-' + settings.theme;
+    const scaleSlider = document.getElementById('controller-scale-slider');
+    const scaleValue = document.getElementById('controller-scale-value');
+    scaleSlider.value = settings.controllerScale || 100;
+    const applyControllerScale = () => {
+      const scale = parseInt(scaleSlider.value, 10);
+      document.getElementById('controller').style.setProperty('--controller-scale', scale / 100);
+      scaleValue.textContent = scale + '%';
+    };
+    scaleSlider.addEventListener('input', () => { settings.controllerScale = parseInt(scaleSlider.value, 10); applyControllerScale(); saveSettings(); });
+    applyControllerScale();
+
+    const controllerLayout = document.getElementById('controller-layout-select');
+    controllerLayout.value = settings.controllerLayout || 'standard';
+    const applyControllerLayout = () => {
+      const controller = document.getElementById('controller');
+      controller.classList.remove('layout-left-handed', 'layout-compact');
+      if (controllerLayout.value === 'left-handed') controller.classList.add('layout-left-handed');
+      if (controllerLayout.value === 'compact') controller.classList.add('layout-compact');
+    };
+    controllerLayout.addEventListener('change', () => { settings.controllerLayout = controllerLayout.value; applyControllerLayout(); saveSettings(); });
+    applyControllerLayout();
+
+    // Apply saved theme without removing the user's selected layout class.
+    document.getElementById('controller').classList.add('theme-' + settings.theme);
     document.querySelectorAll('.theme-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.theme === settings.theme);
       btn.addEventListener('click', () => {
         document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById('controller').className = 'controller theme-' + btn.dataset.theme;
+        document.getElementById('controller').classList.remove('theme-phantom', 'theme-neon', 'theme-crimson', 'theme-emerald');
+        document.getElementById('controller').classList.add('theme-' + btn.dataset.theme);
         settings.theme = btn.dataset.theme;
+        saveSettings();
       });
     });
 
@@ -487,6 +520,7 @@
       layoutEl.addEventListener('change', (e) => {
         settings.layout = e.target.value;
         applyLayout(settings.layout);
+        saveSettings();
       });
     }
 
@@ -616,19 +650,19 @@
     initMotion();
     initTrackpad();
 
-    new VirtualJoystick(
+    joysticks.push(new VirtualJoystick(
       document.getElementById('left-stick-zone'),
       document.getElementById('left-stick-thumb'),
       document.getElementById('left-stick-base'),
       'leftX', 'leftY'
-    );
+    ));
 
-    new VirtualJoystick(
+    joysticks.push(new VirtualJoystick(
       document.getElementById('right-stick-zone'),
       document.getElementById('right-stick-thumb'),
       document.getElementById('right-stick-base'),
       'rightX', 'rightY'
-    );
+    ));
 
     initSettings();
 
@@ -638,6 +672,9 @@
     // Prevent all scrolling/bouncing on mobile
     document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) resetInputState(true);
+    });
 
     // Lock landscape
     if (screen.orientation && screen.orientation.lock) {
