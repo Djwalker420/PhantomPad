@@ -8,7 +8,7 @@
     "start:pc": "electron .",
     "dev": "node --watch server/index.js",
     "test": "jest",
-    "build:pc": "electron-builder --win",
+    "build:pc": "electron-builder --win --publish never",
     "cap:init": "npx cap init PhantomPad com.phantompad.controller --web-dir controller",
     "cap:android": "npx cap add android",
     "cap:build": "npx cap sync android",
