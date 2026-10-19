@@ -61,6 +61,15 @@ class InputHandler {
     this._initEmulation();
   }
 
+  _writePowerShell(script, callback) {
+    if (!this.ps?.stdin?.writable) return false;
+    // PowerShell can leave a complete multi-line block buffered when stdin is
+    // kept open for the lifetime of the app. A blank line commits that block
+    // so controller setup markers are emitted immediately.
+    const command = `${String(script).replace(/\s*$/, '')}\n\n`;
+    return this.ps.stdin.write(command, callback);
+  }
+
   _initEmulation() {
     try {
       this.ps = spawn('powershell', ['-NoProfile', '-NoLogo', '-NoExit', '-Command', '-'], {
@@ -230,7 +239,7 @@ Write-PhantomPadMarker "KB_READY"
         this._failPendingControllers(this.gamepadError);
         this.onStatusChange?.(this.getStatus());
       });
-      this.ps.stdin.write(psScript + '\n');
+      this._writePowerShell(psScript);
       
       // Gamepad availability is set only after the ViGEm client assembly loads.
       this.keyboardAvailable = true;
@@ -274,7 +283,7 @@ Write-PhantomPadMarker "KB_READY"
     this._releasePlayerInput(p);
     
     if (p.controllerRequested && this.ps && this.ps.stdin.writable) {
-      this.ps.stdin.write(`
+      this._writePowerShell(`
         try {
           $c = $global:xctrls[${p.number}]
           if ($c) { $c.Disconnect(); $global:xctrls.Remove(${p.number}) }
@@ -348,7 +357,7 @@ Write-PhantomPadMarker "KB_READY"
     player.controllerError = null;
     const number = player.number;
     this._logBridge(`Sending controller creation request for player ${number} to PowerShell.`);
-    this.ps.stdin.write(`
+      this._writePowerShell(`
 try {
   Write-PhantomPadMarker "VIGEM_PLAYER_START[${number}]"
   $global:inputAck.Remove(${number})
@@ -436,7 +445,7 @@ try {
     }
     
     cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
-    this.ps.stdin.write(cmds);
+      this._writePowerShell(cmds);
   }
 
   _handleKeyboardInput(player, data) {
@@ -486,13 +495,13 @@ try {
   _keyDown(vk) { 
     const code = parseInt(vk, 10);
     if (isNaN(code) || !this.ps?.stdin?.writable) return;
-    this.ps.stdin.write(`[KBSim]::keybd_event(${code},0,0,[UIntPtr]::Zero)\n`); 
+    this._writePowerShell(`[KBSim]::keybd_event(${code},0,0,[UIntPtr]::Zero)`);
   }
   
   _keyUp(vk) { 
     const code = parseInt(vk, 10);
     if (isNaN(code) || !this.ps?.stdin?.writable) return;
-    this.ps.stdin.write(`[KBSim]::keybd_event(${code},0,2,[UIntPtr]::Zero)\n`); 
+    this._writePowerShell(`[KBSim]::keybd_event(${code},0,2,[UIntPtr]::Zero)`);
   }
 
   // Release state without removing the session. Used when a client pauses or its
@@ -509,7 +518,7 @@ try {
     if (!player.hasController || !this.ps || !this.ps.stdin.writable) return;
 
     const pid = player.number;
-    this.ps.stdin.write(`
+    this._writePowerShell(`
 $c = $global:xctrls[${pid}]
 if ($c) {
   $c.SetAxisValue($global:XA::LeftThumbX, [int16]0)
@@ -583,7 +592,7 @@ if ($c) {
     this.players.forEach(p => {
       this._releasePlayerInput(p);
       if (p.controllerRequested && this.ps && this.ps.stdin.writable) {
-        this.ps.stdin.write(`
+        this._writePowerShell(`
           try {
             $c = $global:xctrls[${p.number}]
             if ($c) { $c.Disconnect(); $global:xctrls.Remove(${p.number}) }
