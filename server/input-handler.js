@@ -53,6 +53,7 @@ class InputHandler {
     this.gamepadError = 'Checking ViGEmBus availability';
     this.onStatusChange = null;
     this.keyboardAvailable = false;
+    this.psOutputBuffer = '';
 
     this._initEmulation();
   }
@@ -98,13 +99,44 @@ try {
 Write-Host "KB_READY"
 `;
       this.ps.stdout.on('data', (data) => {
-        const output = data.toString();
+        const bufferedOutput = this.psOutputBuffer + data.toString();
+        const completeOutputLength = bufferedOutput.lastIndexOf('\n') + 1;
+        if (completeOutputLength === 0) {
+          this.psOutputBuffer = bufferedOutput;
+          return;
+        }
+        const output = bufferedOutput.slice(0, completeOutputLength);
+        this.psOutputBuffer = bufferedOutput.slice(completeOutputLength);
         if (output.includes('VIGEM_READY')) {
           this.gamepadAvailable = true;
           this.gamepadError = null;
           console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
           for (const player of this.players.values()) this._createPlayerController(player);
           this.onStatusChange?.(this.getStatus());
+        }
+        const playerStarted = output.match(/VIGEM_PLAYER_START\[(\d+)\]/);
+        if (playerStarted) {
+          const player = [...this.players.values()].find((entry) => entry.number === Number(playerStarted[1]));
+          if (player) {
+            player.controllerStage = 'PowerShell received the request';
+            this._notifyStatusChange();
+          }
+        }
+        const playerAllocated = output.match(/VIGEM_PLAYER_ALLOCATED\[(\d+)\]/);
+        if (playerAllocated) {
+          const player = [...this.players.values()].find((entry) => entry.number === Number(playerAllocated[1]));
+          if (player) {
+            player.controllerStage = 'Virtual pad allocated; waiting for ViGEm';
+            this._notifyStatusChange();
+          }
+        }
+        const playerConnecting = output.match(/VIGEM_PLAYER_CONNECTING\[(\d+)\]/);
+        if (playerConnecting) {
+          const player = [...this.players.values()].find((entry) => entry.number === Number(playerConnecting[1]));
+          if (player) {
+            player.controllerStage = 'Connecting virtual pad to ViGEm';
+            this._notifyStatusChange();
+          }
         }
         const playerReady = output.match(/VIGEM_PLAYER_READY\[(\d+)\]/);
         if (playerReady) {
@@ -113,6 +145,7 @@ Write-Host "KB_READY"
             clearTimeout(player.controllerTimeout);
             player.hasController = true;
             player.controllerStatus = 'ready';
+            player.controllerStage = null;
             player.controllerError = null;
             console.log(`  ✓ ViGEm controller ready for player ${player.number}`);
             this._notifyStatusChange();
@@ -126,6 +159,7 @@ Write-Host "KB_READY"
             clearTimeout(player.controllerTimeout);
             player.hasController = false;
             player.controllerStatus = 'error';
+            player.controllerStage = null;
             player.controllerError = playerFailure[2];
             this._notifyStatusChange();
           }
@@ -199,6 +233,7 @@ Write-Host "KB_READY"
       hasController: false,
       controllerRequested: false,
       controllerStatus: this.gamepadAvailable ? 'connecting' : 'waiting',
+      controllerStage: null,
       controllerError: null
     };
     this.players.set(socketId, player);
@@ -238,7 +273,8 @@ Write-Host "KB_READY"
   getPlayersInfo() {
     return [...this.players.values()].map(p => ({
       id: p.id, number: p.number, color: p.color, latency: p.latency,
-      controllerStatus: p.controllerStatus, controllerError: p.controllerError
+      controllerStatus: p.controllerStatus, controllerStage: p.controllerStage,
+      controllerError: p.controllerError
     }));
   }
 
@@ -260,14 +296,18 @@ Write-Host "KB_READY"
     }
     player.controllerRequested = true;
     player.controllerStatus = 'connecting';
+    player.controllerStage = 'Waiting for Windows input bridge';
     player.controllerError = null;
     const number = player.number;
     this.ps.stdin.write(`
 try {
+  Write-Host "VIGEM_PLAYER_START[${number}]"
   $global:inputAck.Remove(${number})
   $global:inputFailureReported.Remove(${number})
   $c = $global:vigemClient.CreateXbox360Controller()
+  Write-Host "VIGEM_PLAYER_ALLOCATED[${number}]"
   $c.AutoSubmitReport = $false
+  Write-Host "VIGEM_PLAYER_CONNECTING[${number}]"
   $c.Connect()
   $global:xctrls[${number}] = $c
   Write-Host "VIGEM_PLAYER_READY[${number}]"
@@ -278,7 +318,8 @@ try {
     player.controllerTimeout = setTimeout(() => {
       if (player.controllerStatus !== 'connecting') return;
       player.controllerStatus = 'error';
-      player.controllerError = 'Timed out waiting for ViGEm to create the player controller.';
+      player.controllerError = `Timed out during setup: ${player.controllerStage || 'waiting for PowerShell response'}.`;
+      player.controllerStage = null;
       console.error(`  ✗ ViGEm controller creation timed out for player ${number}`);
       this._notifyStatusChange();
     }, 5000);

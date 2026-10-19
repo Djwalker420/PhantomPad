@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-10-19
-Desktop source: 1.6.4; Android source: 1.6.3 (versionCode 7)
+Desktop source: 1.6.5; Android source: 1.6.3 (versionCode 7)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -123,3 +123,4 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Player controller creation now times out visibly after five seconds. Dashboard player rows update latency/status in place; routine RTT refreshes no longer rebuild the full player list.
 - Bumped Windows source version to 1.6.4 and CI installer label. Android remains 1.6.3; no Android behavior changed for this backend diagnostics update.
 - This change is a diagnostic and race-safety improvement, not yet a verified repair of Windows game input. No Windows installer build, CI run, or user-hardware test has completed. After building/installing v1.6.4, read the per-player status in the dashboard and use any reported error to target the remaining issue.
+- Follow-up after the user reports a player-controller creation timeout and no device in joy.cpl: added progress markers for PowerShell command start, target allocation, and ViGEm connection; buffered stdout until complete lines so split marker chunks are not missed; the timeout includes the last confirmed stage. Windows source version is 1.6.5 so the diagnostic build is distinct. Still requires a new Windows build and user-device verification; no hardware outcome is asserted.

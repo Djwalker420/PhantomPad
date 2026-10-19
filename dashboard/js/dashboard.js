@@ -106,7 +106,7 @@
     const error = String(player.controllerError || 'details unavailable').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
     return {
       waiting: ['Waiting for driver', 'controller-waiting'],
-      connecting: ['Creating virtual pad', 'controller-connecting'],
+      connecting: [player.controllerStage || 'Creating virtual pad', 'controller-connecting'],
       ready: ['Virtual pad connected', 'controller-ready'],
       active: ['Input report sent', 'controller-active'],
       error: [`Virtual pad error: ${error}`, 'controller-error']
