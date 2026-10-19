@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Background -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M0,0h48v48h-48z" />
+    <!-- Gamepad body -->
+    <path
+        android:fillColor="#FF00E5FF"
+        android:pathData="M24,10 C18,10 13,14 12,19 L11,24 C10,28 13,32 17,32 L19,32 C21,32 22,31 23,29 L25,29 C26,31 27,32 29,32 L31,32 C35,32 38,28 37,24 L36,19 C35,14 30,10 24,10Z" />
+    <!-- Left stick -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M19,18 A3,3 0 1,1 19,24 A3,3 0 1,1 19,18Z" />
+    <!-- Right buttons -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M29,15 A1.5,1.5 0 1,1 29,18 A1.5,1.5 0 1,1 29,15Z" />
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M25,18 A1.5,1.5 0 1,1 25,21 A1.5,1.5 0 1,1 25,18Z" />
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M31,18 A1.5,1.5 0 1,1 31,21 A1.5,1.5 0 1,1 31,18Z" />
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M29,21 A1.5,1.5 0 1,1 29,24 A1.5,1.5 0 1,1 29,21Z" />
+</vector>

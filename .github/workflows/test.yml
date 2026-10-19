@@ -76,7 +76,7 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: PhantomPad-Windows-v1.6.3-Installer
+          name: PhantomPad-Windows-v1.6.4-Installer
           path: dist/electron/*.exe
           if-no-files-found: error
           retention-days: 14

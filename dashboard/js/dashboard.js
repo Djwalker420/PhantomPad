@@ -117,6 +117,13 @@
       const lat = Number.isFinite(p.latency) ? p.latency : null;
       const latClass = lat === null ? '' : lat < 30 ? 'latency-good' : lat < 80 ? 'latency-ok' : 'latency-bad';
       const latText = lat === null ? 'RTT —' : `RTT ${lat} ms`;
+      const controllerStatus = {
+        waiting: ['Waiting for driver', 'controller-waiting'],
+        connecting: ['Creating virtual pad', 'controller-connecting'],
+        ready: ['Virtual pad connected', 'controller-ready'],
+        active: ['Input report sent', 'controller-active'],
+        error: [`Virtual pad error: ${String(p.controllerError || 'details unavailable').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])}`, 'controller-error']
+      }[p.controllerStatus] || ['Virtual pad status unknown', 'controller-waiting'];
       return `
         <div class="player-card">
           <div class="player-info">
@@ -126,6 +133,7 @@
                 <div class="player-name">Player ${p.number}</div>
                 <span class="player-latency ${latClass}">${latText}</span>
               </div>
+              <div class="controller-status ${controllerStatus[1]}">${controllerStatus[0]}</div>
               <div class="player-id">${p.id.slice(0, 16)}...</div>
             </div>
           </div>

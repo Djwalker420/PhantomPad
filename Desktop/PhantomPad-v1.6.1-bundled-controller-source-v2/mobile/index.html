@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#06060c">
+  <title>PhantomPad</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <!-- Connect Screen -->
+  <div id="connect-screen" class="connect-screen">
+    <div class="connect-logo">
+      <span class="logo-icon">⚡</span>
+      <h1>PhantomPad</h1>
+      <p>Wireless Game Controller</p>
+    </div>
+
+    <div class="connect-form">
+      <div class="input-group">
+        <label>Server IP Address</label>
+        <input type="text" class="server-input" id="server-ip" placeholder="192.168.1.100" inputmode="url" autocomplete="off" autocorrect="off">
+      </div>
+
+      <div class="input-group">
+        <label>Port (default: 3000)</label>
+        <input type="text" class="server-input" id="server-port" placeholder="3000" value="3000" inputmode="numeric">
+      </div>
+
+      <button class="connect-btn" id="connect-btn">CONNECT</button>
+      <div class="connect-status" id="connect-status"></div>
+    </div>
+
+    <div class="recent-servers" id="recent-section">
+      <div class="divider">Recent Servers</div>
+      <div id="recent-list"></div>
+    </div>
+  </div>
+
+  <!-- Controller (injected after connection) -->
+  <div id="controller-container" class="hidden"></div>
+
+  <script>
+    // PhantomPad Mobile — Connection Manager
+    (function() {
+      'use strict';
+
+      const STORAGE_KEY = 'phantompad_servers';
+      const MAX_RECENT = 5;
+
+      // Load recent servers
+      function getRecentServers() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        catch(e) { return []; }
+      }
+
+      function saveServer(ip, port) {
+        let servers = getRecentServers();
+        servers = servers.filter(s => !(s.ip === ip && s.port === port));
+        servers.unshift({ ip, port, time: Date.now() });
+        if (servers.length > MAX_RECENT) servers = servers.slice(0, MAX_RECENT);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(servers));
+      }
+
+      function removeServer(ip, port) {
+        let servers = getRecentServers().filter(s => !(s.ip === ip && s.port === port));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(servers));
+        renderRecent();
+      }
+
+      function renderRecent() {
+        const servers = getRecentServers();
+        const list = document.getElementById('recent-list');
+        const section = document.getElementById('recent-section');
+
+        if (servers.length === 0) {
+          section.classList.add('hidden');
+          return;
+        }
+
+        section.classList.remove('hidden');
+        list.innerHTML = servers.map(s => {
+          const ago = timeAgo(s.time);
+          return `
+            <div class="recent-item" data-ip="${s.ip}" data-port="${s.port}">
+              <div>
+                <div class="recent-ip">${s.ip}:${s.port}</div>
+                <div class="recent-time">${ago}</div>
+              </div>
+              <button class="recent-delete" data-ip="${s.ip}" data-port="${s.port}">✕</button>
+            </div>`;
+        }).join('');
+
+        list.querySelectorAll('.recent-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            if (e.target.classList.contains('recent-delete')) {
+              e.stopPropagation();
+              removeServer(e.target.dataset.ip, e.target.dataset.port);
+              return;
+            }
+            document.getElementById('server-ip').value = item.dataset.ip;
+            document.getElementById('server-port').value = item.dataset.port;
+            attemptConnect();
+          });
+        });
+      }
+
+      function timeAgo(ts) {
+        const diff = Date.now() - ts;
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+        return `${Math.floor(diff / 86400000)} days ago`;
+      }
+
+      // Connect
+      const statusEl = document.getElementById('connect-status');
+
+      function setStatus(msg, type) {
+        statusEl.className = 'connect-status ' + type;
+        statusEl.innerHTML = msg;
+      }
+
+      async function attemptConnect() {
+        const ip = document.getElementById('server-ip').value.trim();
+        const port = document.getElementById('server-port').value.trim() || '3000';
+
+        if (!ip) {
+          setStatus('Please enter a server IP address', 'error');
+          return;
+        }
+
+        const btn = document.getElementById('connect-btn');
+        btn.disabled = true;
+        setStatus('<span class="spinner"></span>Connecting...', 'connecting');
+
+        const serverUrl = `http://${ip}:${port}`;
+
+        try {
+          // Test connection
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+
+          const resp = await fetch(`${serverUrl}/api/info`, { signal: controller.signal });
+          clearTimeout(timeout);
+
+          if (!resp.ok) throw new Error('Server responded with error');
+
+          setStatus('Connected! Loading controller...', 'success');
+          saveServer(ip, port);
+
+          // Redirect to controller page on the server
+          setTimeout(() => {
+            window.location.href = `${serverUrl}/controller`;
+          }, 500);
+
+        } catch (e) {
+          if (e.name === 'AbortError') {
+            setStatus('Connection timed out. Check IP and make sure server is running.', 'error');
+          } else {
+            setStatus(`Cannot reach server at ${serverUrl}. Check IP and network.`, 'error');
+          }
+          btn.disabled = false;
+        }
+      }
+
+      document.getElementById('connect-btn').addEventListener('click', attemptConnect);
+
+      // Enter key to connect
+      document.querySelectorAll('.server-input').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') attemptConnect();
+        });
+      });
+
+      // Auto-fill last used server
+      const servers = getRecentServers();
+      if (servers.length > 0) {
+        document.getElementById('server-ip').value = servers[0].ip;
+        document.getElementById('server-port').value = servers[0].port;
+      }
+
+      renderRecent();
+
+      // PWA install
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+    })();
+  </script>
+</body>
+</html>

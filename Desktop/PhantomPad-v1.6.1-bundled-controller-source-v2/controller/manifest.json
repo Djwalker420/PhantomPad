@@ -1,0 +1,18 @@
+{
+  "name": "PhantomPad Controller",
+  "short_name": "PhantomPad",
+  "description": "Wireless Game Controller for PC",
+  "start_url": "/controller",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#06060c",
+  "theme_color": "#06060c",
+  "categories": ["games", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

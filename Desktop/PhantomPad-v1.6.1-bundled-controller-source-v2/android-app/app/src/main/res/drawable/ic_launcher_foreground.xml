@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Gamepad body -->
+    <path
+        android:fillColor="#FF00E5FF"
+        android:pathData="M54,30 C42,30 32,38 30,48 L28,58 C26,66 32,74 40,74 L44,74 C48,74 50,72 52,68 L56,68 C58,72 60,74 64,74 L68,74 C76,74 82,66 80,58 L78,48 C76,38 66,30 54,30Z" />
+    <!-- Left stick (circle as arc path) -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M43,46 A6,6 0 1,1 43,58 A6,6 0 1,1 43,46Z" />
+    <!-- Right button top -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M65,37 A3,3 0 1,1 65,43 A3,3 0 1,1 65,37Z" />
+    <!-- Right button left -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M56,43 A3,3 0 1,1 56,49 A3,3 0 1,1 56,43Z" />
+    <!-- Right button right -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M68,43 A3,3 0 1,1 68,49 A3,3 0 1,1 68,43Z" />
+    <!-- Right button bottom -->
+    <path
+        android:fillColor="#FF06060C"
+        android:pathData="M65,49 A3,3 0 1,1 65,55 A3,3 0 1,1 65,49Z" />
+</vector>

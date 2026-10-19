@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-10-18
-Desktop release: 1.6.0; Android release: 1.6.0 (versionCode 4)
+Last updated: 2026-10-19
+Desktop source: 1.6.4; Android source: 1.6.3 (versionCode 7)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -115,3 +115,10 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Stop propagation at the button's `pointerdown`, so the button keeps pointer capture and receives its release. Bumped the controller service-worker cache to v7 so browser clients refresh the corrected JS.
 - Bumped desktop and Android package metadata to 1.6.3; Android `versionCode` is 7. Gradle syncs the shared controller source into APK assets.
 - This source fix has not yet been built, run through CI, or tested on the user's phone/Windows device. Verify that pressing and releasing L3/R3 causes both the PhantomPad visualizer and `joy.cpl` buttons to turn off immediately.
+
+## Windows gamepad report diagnostics (2026-10-19)
+- User confirms the phone events appear in PhantomPad's live visualizer, but Windows Game Controllers does not show ordinary button/axis changes. The dashboard's ViGEmBus availability check has no warning, which only verifies a temporary probe controller, not the per-player controller or its reports.
+- Changed per-player ViGEm allocation to acknowledge successful target connection before marking the player ready; controllers that connected before the driver probe completes are now allocated after readiness.
+- Added per-player dashboard status for waiting, connecting, ready, first accepted input report, or a caught PowerShell/ViGEm error. Input snapshots now report the first backend failure instead of silently disappearing when the target is missing or report commands fail. Gamepad mode no longer silently routes a player without a virtual controller into keyboard mode.
+- Bumped Windows source version to 1.6.4 and CI installer label. Android remains 1.6.3; no Android behavior changed for this backend diagnostics update.
+- This change is a diagnostic and race-safety improvement, not yet a verified repair of Windows game input. No Windows installer build, CI run, or user-hardware test has completed. After building/installing v1.6.4, read the per-player status in the dashboard and use any reported error to target the remaining issue.

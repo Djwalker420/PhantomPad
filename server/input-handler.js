@@ -82,6 +82,8 @@ try {
     Add-Type -Path '${psDllPath}'
     $global:vigemClient = New-Object Nefarius.ViGEm.Client.ViGEmClient
     $global:xctrls = @{}
+    $global:inputAck = @{}
+    $global:inputFailureReported = @{}
     $global:XA = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Axis]
     $global:XS = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Slider]
     $global:XB = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Button]
@@ -101,14 +103,51 @@ Write-Host "KB_READY"
           this.gamepadAvailable = true;
           this.gamepadError = null;
           console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
+          for (const player of this.players.values()) this._createPlayerController(player);
           this.onStatusChange?.(this.getStatus());
+        }
+        const playerReady = output.match(/VIGEM_PLAYER_READY\[(\d+)\]/);
+        if (playerReady) {
+          const player = [...this.players.values()].find((entry) => entry.number === Number(playerReady[1]));
+          if (player) {
+            player.hasController = true;
+            player.controllerStatus = 'ready';
+            player.controllerError = null;
+            console.log(`  ✓ ViGEm controller ready for player ${player.number}`);
+            this._notifyStatusChange();
+          }
         }
         const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
         if (playerFailure) {
           const failedNumber = Number(playerFailure[1]);
           const player = [...this.players.values()].find((entry) => entry.number === failedNumber);
-          if (player) player.hasController = false;
+          if (player) {
+            player.hasController = false;
+            player.controllerStatus = 'error';
+            player.controllerError = playerFailure[2];
+            this._notifyStatusChange();
+          }
           console.error(`  ✗ ViGEm could not create player ${failedNumber}:`, playerFailure[2]);
+        }
+        const inputReported = output.match(/VIGEM_INPUT_REPORT\[(\d+)\]/);
+        if (inputReported) {
+          const player = [...this.players.values()].find((entry) => entry.number === Number(inputReported[1]));
+          if (player) {
+            player.controllerStatus = 'active';
+            player.controllerError = null;
+            console.log(`  ✓ ViGEm accepted an input report for player ${player.number}`);
+            this._notifyStatusChange();
+          }
+        }
+        const inputFailure = output.match(/VIGEM_INPUT_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
+        if (inputFailure) {
+          const player = [...this.players.values()].find((entry) => entry.number === Number(inputFailure[1]));
+          if (player) {
+            player.controllerStatus = 'error';
+            player.controllerError = inputFailure[2];
+            this._notifyStatusChange();
+          }
+          console.error(`  ✗ ViGEm input report failed for player ${inputFailure[1]}:`, inputFailure[2]);
         }
         const failure = output.match(/VIGEM_FAILED:\s*([^\r\n]+)/);
         if (failure) {
@@ -155,24 +194,13 @@ Write-Host "KB_READY"
       latency: null,
       pressedKeys: new Set(),
       keyMapping: { ...config.keyMappings[config.defaultPreset || 'default'] },
-      hasController: false
+      hasController: false,
+      controllerRequested: false,
+      controllerStatus: this.gamepadAvailable ? 'connecting' : 'waiting',
+      controllerError: null
     };
-    
-    if (this.gamepadAvailable && this.ps && this.ps.stdin.writable) {
-      player.hasController = true;
-      this.ps.stdin.write(`
-        try {
-          $c = $global:vigemClient.CreateXbox360Controller()
-          $c.AutoSubmitReport = $false
-          $c.Connect()
-          $global:xctrls[${num}] = $c
-        } catch {
-          Write-Host "VIGEM_PLAYER_FAILED[${num}]: $_"
-        }
-      \n`);
-    }
-    
     this.players.set(socketId, player);
+    this._createPlayerController(player);
     return player;
   }
 
@@ -181,7 +209,7 @@ Write-Host "KB_READY"
     if (!p) return;
     this._releasePlayerInput(p);
     
-    if (p.hasController && this.ps && this.ps.stdin.writable) {
+    if (p.controllerRequested && this.ps && this.ps.stdin.writable) {
       this.ps.stdin.write(`
         try {
           $c = $global:xctrls[${p.number}]
@@ -206,17 +234,56 @@ Write-Host "KB_READY"
 
   getPlayersInfo() {
     return [...this.players.values()].map(p => ({
-      id: p.id, number: p.number, color: p.color, latency: p.latency
+      id: p.id, number: p.number, color: p.color, latency: p.latency,
+      controllerStatus: p.controllerStatus, controllerError: p.controllerError
     }));
+  }
+
+  _notifyStatusChange() {
+    this.onStatusChange?.(this.getStatus());
+  }
+
+  _createPlayerController(player) {
+    if (!player || player.controllerRequested) return false;
+    if (!this.gamepadAvailable) {
+      player.controllerStatus = 'waiting';
+      return false;
+    }
+    if (!this.ps?.stdin?.writable) {
+      player.controllerStatus = 'error';
+      player.controllerError = 'Windows input bridge is not writable';
+      this._notifyStatusChange();
+      return false;
+    }
+    player.controllerRequested = true;
+    player.controllerStatus = 'connecting';
+    player.controllerError = null;
+    const number = player.number;
+    this.ps.stdin.write(`
+try {
+  $global:inputAck.Remove(${number})
+  $global:inputFailureReported.Remove(${number})
+  $c = $global:vigemClient.CreateXbox360Controller()
+  $c.AutoSubmitReport = $false
+  $c.Connect()
+  $global:xctrls[${number}] = $c
+  Write-Host "VIGEM_PLAYER_READY[${number}]"
+} catch {
+  Write-Host "VIGEM_PLAYER_FAILED[${number}]: $_"
+}
+`);
+    return true;
   }
 
   // --- Input Handling ---
   handleInput(socketId, data) {
     const player = this.players.get(socketId);
     if (!player) return;
-    if (this.mode === 'gamepad' && player.hasController) {
-      this._handleGamepadInput(player, data);
-    } else if (this.keyboardAvailable) {
+    if (this.mode === 'gamepad') {
+      if (player.hasController) this._handleGamepadInput(player, data);
+      return;
+    }
+    if (this.keyboardAvailable) {
       this._handleKeyboardInput(player, data);
     }
   }
@@ -224,7 +291,7 @@ Write-Host "KB_READY"
   _handleGamepadInput(player, data) {
     if (!this.ps || !this.ps.stdin.writable) return;
     const pid = player.number;
-    let cmds = `$c = $global:xctrls[${pid}]; if($c) { `;
+    let cmds = `$c = $global:xctrls[${pid}]; if($c) { try { `;
     
     if (data.axes) {
       if (data.axes.leftX !== undefined) {
@@ -263,7 +330,7 @@ Write-Host "KB_READY"
       }
     }
     
-    cmds += `$c.SubmitReport(); }\n`;
+    cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-Host "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Host "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Host "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
     this.ps.stdin.write(cmds);
   }
 
@@ -409,7 +476,7 @@ if ($c) {
   cleanup() {
     this.players.forEach(p => {
       this._releasePlayerInput(p);
-      if (p.hasController && this.ps && this.ps.stdin.writable) {
+      if (p.controllerRequested && this.ps && this.ps.stdin.writable) {
         this.ps.stdin.write(`
           try {
             $c = $global:xctrls[${p.number}]
