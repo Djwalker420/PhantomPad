@@ -62,7 +62,7 @@ class InputHandler {
 
   _initEmulation() {
     try {
-      this.ps = spawn('powershell', ['-NoProfile', '-NoLogo', '-Command', '-'], {
+      this.ps = spawn('powershell', ['-NoProfile', '-NoLogo', '-NoExit', '-Command', '-'], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -77,7 +77,6 @@ using System.Runtime.InteropServices;
 public class KBSim {
     [DllImport("user32.dll")]
     public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-    [DllImport("user32.dll")]
 }
 "@
 
@@ -94,11 +93,11 @@ try {
     $probe.Connect()
     $probe.Disconnect()
     $probe.Dispose()
-    Write-Host "VIGEM_READY"
+    Write-Output "VIGEM_READY"
 } catch {
-    Write-Host "VIGEM_FAILED: $_"
+    Write-Output "VIGEM_FAILED: $_"
 }
-Write-Host "KB_READY"
+Write-Output "KB_READY"
 `;
       this.ps.stdout.on('data', (data) => {
         const bufferedOutput = this.psOutputBuffer + data.toString();
@@ -342,22 +341,26 @@ Write-Host "KB_READY"
     player.controllerStage = 'Waiting for Windows input bridge';
     player.controllerError = null;
     const number = player.number;
+    this._logBridge(`Sending controller creation request for player ${number} to PowerShell.`);
     this.ps.stdin.write(`
 try {
-  Write-Host "VIGEM_PLAYER_START[${number}]"
+  Write-Output "VIGEM_PLAYER_START[${number}]"
   $global:inputAck.Remove(${number})
   $global:inputFailureReported.Remove(${number})
   $c = $global:vigemClient.CreateXbox360Controller()
-  Write-Host "VIGEM_PLAYER_ALLOCATED[${number}]"
+  Write-Output "VIGEM_PLAYER_ALLOCATED[${number}]"
   $c.AutoSubmitReport = $false
-  Write-Host "VIGEM_PLAYER_CONNECTING[${number}]"
+  Write-Output "VIGEM_PLAYER_CONNECTING[${number}]"
   $c.Connect()
   $global:xctrls[${number}] = $c
-  Write-Host "VIGEM_PLAYER_READY[${number}]"
+  Write-Output "VIGEM_PLAYER_READY[${number}]"
 } catch {
-  Write-Host "VIGEM_PLAYER_FAILED[${number}]: $_"
+  Write-Output "VIGEM_PLAYER_FAILED[${number}]: $_"
 }
-`);
+`, (error) => {
+      if (error) this._logBridge(`Player ${number} command could not be written to PowerShell: ${error.message}`);
+      else this._logBridge(`Player ${number} command was written to the PowerShell pipe.`);
+    });
     player.controllerTimeout = setTimeout(() => {
       if (player.controllerStatus !== 'connecting') return;
       player.controllerStatus = 'error';
@@ -426,7 +429,7 @@ try {
       }
     }
     
-    cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-Host "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Host "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Host "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
+    cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-Output "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Output "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Output "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
     this.ps.stdin.write(cmds);
   }
 

@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-10-19
-Desktop source: 1.6.6; Android source: 1.6.3 (versionCode 7)
+Desktop source: 1.6.7; Android source: 1.6.3 (versionCode 7)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -125,3 +125,4 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - This change is a diagnostic and race-safety improvement, not yet a verified repair of Windows game input. No Windows installer build, CI run, or user-hardware test has completed. After building/installing v1.6.4, read the per-player status in the dashboard and use any reported error to target the remaining issue.
 - Follow-up after the user reports a player-controller creation timeout and no device in joy.cpl: added progress markers for PowerShell command start, target allocation, and ViGEm connection; buffered stdout until complete lines so split marker chunks are not missed; the timeout includes the last confirmed stage. Windows source version is 1.6.5.
 - User screenshot from the diagnostic build reports timeout at `Waiting for Windows input bridge`, indicating no per-player PowerShell acknowledgment was observed before target creation. Added persistent PowerShell stdout/stderr, stdin-pipe errors, process-exit details, and timeout stage logging to `PhantomPad_debug.log`; pending player setup now reports an early bridge failure instead of timing out. Bumped Windows version to 1.6.6 and its CI artifact label. This is diagnostic instrumentation, not a verified controller fix; no Windows device test or build has been run.
+- The 1.6.6 debug log confirms the ViGEm startup probe reports ready, but no per-player PowerShell acknowledgment arrives. It also captures an invalid trailing `DllImport` attribute in the keyboard helper's C# declaration; this is fixed, though the log does not prove that issue caused the missing per-player acknowledgment. For v1.6.7, the long-lived PowerShell process now uses `-NoExit`, protocol markers use the success/output stream, and each player command logs whether its pipe write completed. This is a targeted repair/diagnostic attempt; installer build and device verification remain outstanding.
