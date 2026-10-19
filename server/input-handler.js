@@ -35,6 +35,7 @@
  * -----------------------------------------------------------------------------
  */
 const { spawn } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 
@@ -54,6 +55,7 @@ class InputHandler {
     this.onStatusChange = null;
     this.keyboardAvailable = false;
     this.psOutputBuffer = '';
+    this.isCleaningUp = false;
 
     this._initEmulation();
   }
@@ -107,6 +109,7 @@ Write-Host "KB_READY"
         }
         const output = bufferedOutput.slice(0, completeOutputLength);
         this.psOutputBuffer = bufferedOutput.slice(completeOutputLength);
+        this._logBridge(`PowerShell stdout: ${output.trim()}`);
         if (output.includes('VIGEM_READY')) {
           this.gamepadAvailable = true;
           this.gamepadError = null;
@@ -195,13 +198,31 @@ Write-Host "KB_READY"
       });
       this.ps.stderr.on('data', (data) => {
         const message = data.toString().trim();
-        if (message) console.error('  ✗ PowerShell input bridge:', message);
+        if (message) {
+          console.error('  ✗ PowerShell input bridge:', message);
+          this._logBridge(`PowerShell stderr: ${message}`);
+        }
+      });
+      this.ps.stdin.on('error', (error) => {
+        this._logBridge(`PowerShell stdin error: ${error.message}`);
+        this._failPendingControllers(`Windows input bridge pipe failed: ${error.message}`);
       });
       this.ps.on('error', (error) => {
         this.gamepadAvailable = false;
         this.gamepadError = error.message;
         this.keyboardAvailable = false;
         console.error('  ✗ PowerShell input bridge failed:', error.message);
+        this._logBridge(`PowerShell process error: ${error.message}`);
+        this._failPendingControllers(`Windows input bridge failed: ${error.message}`);
+        this.onStatusChange?.(this.getStatus());
+      });
+      this.ps.on('exit', (code, signal) => {
+        this._logBridge(`PowerShell process exited (code=${code}, signal=${signal || 'none'}).`);
+        if (this.isCleaningUp) return;
+        this.gamepadAvailable = false;
+        this.keyboardAvailable = false;
+        this.gamepadError = `Windows input bridge exited (code ${code ?? 'unknown'}).`;
+        this._failPendingControllers(this.gamepadError);
         this.onStatusChange?.(this.getStatus());
       });
       this.ps.stdin.write(psScript + '\n');
@@ -282,6 +303,28 @@ Write-Host "KB_READY"
     this.onStatusChange?.(this.getStatus());
   }
 
+  _logBridge(message) {
+    try {
+      if (!process.versions.electron) return;
+      const { app } = require('electron');
+      const logPath = path.join(app.getPath('userData'), 'PhantomPad_debug.log');
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] [InputBridge] ${message}\n`);
+    } catch (error) {
+      console.error('  ✗ Could not write input bridge diagnostic:', error.message);
+    }
+  }
+
+  _failPendingControllers(message) {
+    for (const player of this.players.values()) {
+      if (player.controllerStatus !== 'connecting') continue;
+      clearTimeout(player.controllerTimeout);
+      player.controllerStatus = 'error';
+      player.controllerStage = null;
+      player.controllerError = message;
+    }
+    this._notifyStatusChange();
+  }
+
   _createPlayerController(player) {
     if (!player || player.controllerRequested) return false;
     if (!this.gamepadAvailable) {
@@ -320,6 +363,8 @@ try {
       player.controllerStatus = 'error';
       player.controllerError = `Timed out during setup: ${player.controllerStage || 'waiting for PowerShell response'}.`;
       player.controllerStage = null;
+      if (this.psOutputBuffer.trim()) this._logBridge(`Unterminated PowerShell stdout at timeout: ${this.psOutputBuffer.trim()}`);
+      this._logBridge(`Player ${number} creation timed out. Last confirmed stage: ${player.controllerError}`);
       console.error(`  ✗ ViGEm controller creation timed out for player ${number}`);
       this._notifyStatusChange();
     }, 5000);
@@ -525,6 +570,7 @@ if ($c) {
   }
 
   cleanup() {
+    this.isCleaningUp = true;
     this.players.forEach(p => {
       this._releasePlayerInput(p);
       if (p.controllerRequested && this.ps && this.ps.stdin.writable) {

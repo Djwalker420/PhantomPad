@@ -1,6 +1,6 @@
 {
   "name": "phantompad",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "description": "Turn your phone into a wireless game controller for PC",
   "main": "electron/main.js",
   "scripts": {
