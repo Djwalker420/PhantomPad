@@ -38,6 +38,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+const PLAYER_CONTROLLER_TIMEOUT_MS = 60000;
 
 const sanitizeNumber = (val, min, max) => {
   const n = Number(val);
@@ -71,6 +72,11 @@ class InputHandler {
         : path.join(__dirname, 'lib', 'Nefarius.ViGEm.Client.dll');
       const psDllPath = packagedDllPath.replace(/'/g, "''");
       const psScript = `
+function global:Write-PhantomPadMarker([string]$Message) {
+    [Console]::Out.WriteLine($Message)
+    [Console]::Out.Flush()
+}
+
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -93,11 +99,11 @@ try {
     $probe.Connect()
     $probe.Disconnect()
     $probe.Dispose()
-    Write-Output "VIGEM_READY"
+    Write-PhantomPadMarker "VIGEM_READY"
 } catch {
-    Write-Output "VIGEM_FAILED: $_"
+    Write-PhantomPadMarker "VIGEM_FAILED: $_"
 }
-Write-Output "KB_READY"
+Write-PhantomPadMarker "KB_READY"
 `;
       this.ps.stdout.on('data', (data) => {
         const bufferedOutput = this.psOutputBuffer + data.toString();
@@ -344,18 +350,18 @@ Write-Output "KB_READY"
     this._logBridge(`Sending controller creation request for player ${number} to PowerShell.`);
     this.ps.stdin.write(`
 try {
-  Write-Output "VIGEM_PLAYER_START[${number}]"
+  Write-PhantomPadMarker "VIGEM_PLAYER_START[${number}]"
   $global:inputAck.Remove(${number})
   $global:inputFailureReported.Remove(${number})
   $c = $global:vigemClient.CreateXbox360Controller()
-  Write-Output "VIGEM_PLAYER_ALLOCATED[${number}]"
+  Write-PhantomPadMarker "VIGEM_PLAYER_ALLOCATED[${number}]"
   $c.AutoSubmitReport = $false
-  Write-Output "VIGEM_PLAYER_CONNECTING[${number}]"
+  Write-PhantomPadMarker "VIGEM_PLAYER_CONNECTING[${number}]"
   $c.Connect()
   $global:xctrls[${number}] = $c
-  Write-Output "VIGEM_PLAYER_READY[${number}]"
+  Write-PhantomPadMarker "VIGEM_PLAYER_READY[${number}]"
 } catch {
-  Write-Output "VIGEM_PLAYER_FAILED[${number}]: $_"
+  Write-PhantomPadMarker "VIGEM_PLAYER_FAILED[${number}]: $_"
 }
 `, (error) => {
       if (error) this._logBridge(`Player ${number} command could not be written to PowerShell: ${error.message}`);
@@ -370,7 +376,7 @@ try {
       this._logBridge(`Player ${number} creation timed out. Last confirmed stage: ${player.controllerError}`);
       console.error(`  ✗ ViGEm controller creation timed out for player ${number}`);
       this._notifyStatusChange();
-    }, 5000);
+    }, PLAYER_CONTROLLER_TIMEOUT_MS);
     return true;
   }
 
@@ -429,7 +435,7 @@ try {
       }
     }
     
-    cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-Output "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Output "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-Output "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
+    cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
     this.ps.stdin.write(cmds);
   }
 
