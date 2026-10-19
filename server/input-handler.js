@@ -110,6 +110,7 @@ Write-Host "KB_READY"
         if (playerReady) {
           const player = [...this.players.values()].find((entry) => entry.number === Number(playerReady[1]));
           if (player) {
+            clearTimeout(player.controllerTimeout);
             player.hasController = true;
             player.controllerStatus = 'ready';
             player.controllerError = null;
@@ -122,6 +123,7 @@ Write-Host "KB_READY"
           const failedNumber = Number(playerFailure[1]);
           const player = [...this.players.values()].find((entry) => entry.number === failedNumber);
           if (player) {
+            clearTimeout(player.controllerTimeout);
             player.hasController = false;
             player.controllerStatus = 'error';
             player.controllerError = playerFailure[2];
@@ -207,6 +209,7 @@ Write-Host "KB_READY"
   removePlayer(socketId) {
     const p = this.players.get(socketId);
     if (!p) return;
+    clearTimeout(p.controllerTimeout);
     this._releasePlayerInput(p);
     
     if (p.controllerRequested && this.ps && this.ps.stdin.writable) {
@@ -272,6 +275,13 @@ try {
   Write-Host "VIGEM_PLAYER_FAILED[${number}]: $_"
 }
 `);
+    player.controllerTimeout = setTimeout(() => {
+      if (player.controllerStatus !== 'connecting') return;
+      player.controllerStatus = 'error';
+      player.controllerError = 'Timed out waiting for ViGEm to create the player controller.';
+      console.error(`  ✗ ViGEm controller creation timed out for player ${number}`);
+      this._notifyStatusChange();
+    }, 5000);
     return true;
   }
 

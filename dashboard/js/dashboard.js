@@ -102,53 +102,70 @@
   // ============================================
   //  Players List
   // ============================================
+  function getControllerStatus(player) {
+    const error = String(player.controllerError || 'details unavailable').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    return {
+      waiting: ['Waiting for driver', 'controller-waiting'],
+      connecting: ['Creating virtual pad', 'controller-connecting'],
+      ready: ['Virtual pad connected', 'controller-ready'],
+      active: ['Input report sent', 'controller-active'],
+      error: [`Virtual pad error: ${error}`, 'controller-error']
+    }[player.controllerStatus] || ['Virtual pad status unknown', 'controller-waiting'];
+  }
+
   socket.on('players-update', (players) => {
     const list = document.getElementById('controllers-list');
     const count = document.getElementById('controller-count');
     count.textContent = players.length;
 
     if (players.length === 0) {
-      list.innerHTML = '<div class="empty-state">No controllers connected</div>';
+      if (!list.querySelector('.empty-state')) list.innerHTML = '<div class="empty-state">No controllers connected</div>';
       updatePlayerVisualizers(players);
       return;
     }
 
-    list.innerHTML = players.map(p => {
-      const lat = Number.isFinite(p.latency) ? p.latency : null;
-      const latClass = lat === null ? '' : lat < 30 ? 'latency-good' : lat < 80 ? 'latency-ok' : 'latency-bad';
-      const latText = lat === null ? 'RTT —' : `RTT ${lat} ms`;
-      const controllerStatus = {
-        waiting: ['Waiting for driver', 'controller-waiting'],
-        connecting: ['Creating virtual pad', 'controller-connecting'],
-        ready: ['Virtual pad connected', 'controller-ready'],
-        active: ['Input report sent', 'controller-active'],
-        error: [`Virtual pad error: ${String(p.controllerError || 'details unavailable').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])}`, 'controller-error']
-      }[p.controllerStatus] || ['Virtual pad status unknown', 'controller-waiting'];
-      return `
-        <div class="player-card">
+    const desiredIds = players.map(p => encodeURIComponent(p.id));
+    const currentIds = [...list.querySelectorAll('.player-card')].map(card => card.dataset.playerId);
+    const structureChanged = desiredIds.length !== currentIds.length || desiredIds.some((id, index) => id !== currentIds[index]);
+    if (structureChanged) {
+      list.innerHTML = players.map(p => `
+        <div class="player-card" data-player-id="${encodeURIComponent(p.id)}">
           <div class="player-info">
             <div class="player-avatar" style="background:${p.color}20;border:2px solid ${p.color};color:${p.color}">P${p.number}</div>
             <div class="player-details">
               <div class="player-name-row">
                 <div class="player-name">Player ${p.number}</div>
-                <span class="player-latency ${latClass}">${latText}</span>
+                <span class="player-latency"></span>
               </div>
-              <div class="controller-status ${controllerStatus[1]}">${controllerStatus[0]}</div>
+              <div class="controller-status"></div>
               <div class="player-id">${p.id.slice(0, 16)}...</div>
             </div>
           </div>
           <div class="player-actions">
             <button class="disconnect-controller-btn" data-controller-id="${encodeURIComponent(p.id)}" title="Disconnect this phone">Disconnect</button>
           </div>
-        </div>`;
-    }).join('');
+        </div>`).join('');
 
-    list.querySelectorAll('.disconnect-controller-btn').forEach((button) => {
-      button.addEventListener('click', () => {
-        const player = players.find(p => encodeURIComponent(p.id) === button.dataset.controllerId);
-        if (!player || !confirm(`Disconnect Player ${player.number}?`)) return;
-        socket.emit('disconnect-controller', player.id);
+      list.querySelectorAll('.disconnect-controller-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+          const player = players.find(p => encodeURIComponent(p.id) === button.dataset.controllerId);
+          if (!player || !confirm(`Disconnect Player ${player.number}?`)) return;
+          socket.emit('disconnect-controller', player.id);
+        });
       });
+    }
+
+    players.forEach(p => {
+      const card = [...list.querySelectorAll('.player-card')].find(element => element.dataset.playerId === encodeURIComponent(p.id));
+      if (!card) return;
+      const lat = Number.isFinite(p.latency) ? p.latency : null;
+      const latency = card.querySelector('.player-latency');
+      latency.textContent = lat === null ? 'RTT —' : `RTT ${lat} ms`;
+      latency.className = 'player-latency ' + (lat === null ? '' : lat < 30 ? 'latency-good' : lat < 80 ? 'latency-ok' : 'latency-bad');
+      const status = card.querySelector('.controller-status');
+      const [statusText, statusClass] = getControllerStatus(p);
+      status.textContent = statusText;
+      status.className = `controller-status ${statusClass}`;
     });
 
     updatePlayerVisualizers(players);

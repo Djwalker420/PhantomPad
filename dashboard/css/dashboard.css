@@ -445,7 +445,7 @@ body::before {
 
 .player-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .player-details .player-name { font-weight: 700; font-size: 14px; }
-.controller-status { font-size: 10px; margin-top: 3px; }
+.controller-status { font-size: 10px; margin-top: 3px; max-width: 420px; overflow-wrap: anywhere; }
 .controller-waiting, .controller-connecting { color: var(--text-dim); }
 .controller-ready { color: var(--success); }
 .controller-active { color: var(--primary); }
