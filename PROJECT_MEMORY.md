@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-10-19
-Desktop source: 1.6.9; Android source: 1.6.3 (versionCode 7)
+Desktop source: 1.6.9; Android source: 1.6.9 (versionCode 8)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -129,3 +129,4 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Follow-up log from the 1.6.7 Windows app shows the controller request was written at 16:41:26 India time; the five-second timeout fired at 16:41:31, then PowerShell emitted START, ALLOCATED, CONNECTING, and READY markers at 16:42:05. That attempt reached READY about 39 seconds after request. A later retry was closed 19 seconds after request, before its result appeared. Increased the player setup timeout to 60 seconds and changed protocol markers to direct flushed stdout so the UI can show progress while ViGEm connects. Bumped Windows source/CI artifact label to 1.6.8. This is based on the captured log; no physical Windows game test has been completed.
 - Local v1.6.8 installer build initially failed while rebuilding the unused optional `vigemclient` package because Python is unavailable. Disabled native dependency rebuild in the Electron config; the retry downloaded Electron successfully but Windows NSIS packaging could not spawn `makensis.exe` in this sandbox (`spawn UNKNOWN`). No installer artifact was produced here. A retry with electron-builder 24.6.3 reached the same NSIS execution restriction.
 - Follow-up on 2026-10-19: the local `%APPDATA%\\phantompad\\PhantomPad_debug.log` confirms the installed build waited the full 60 seconds. PowerShell initialized the ViGEm probe (`VIGEM_READY`) and accepted the player command write, but emitted no `VIGEM_PLAYER_START` marker before timeout. This isolates the failure before per-player ViGEm allocation; extending the timeout did not solve it. Updated PowerShell command submission to append a blank-line terminator for every script block sent over the persistent stdin pipe, so PowerShell commits multiline blocks immediately. Bumped Windows source/CI artifact to 1.6.9. This is a targeted transport repair hypothesis; source has not been built, CI has not run, and Windows/joy.cpl has not yet verified controller creation.
+- After the user confirmed the 1.6.9 Windows fix works, aligned the Android package versionName to 1.6.9 and incremented Android versionCode from 7 to 8. Updated the Android CI artifact label to `PhantomPad-Android-v1.6.9-APK`; Android application behavior was otherwise unchanged. Android build has not yet run.
