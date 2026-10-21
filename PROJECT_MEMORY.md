@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-10-19
-Desktop source: 1.6.9; Android source: 1.6.9 (versionCode 8)
+Last updated: 2026-10-21
+Desktop source: 1.7.0; Android source: 1.7.0 (versionCode 9)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -130,3 +130,9 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Local v1.6.8 installer build initially failed while rebuilding the unused optional `vigemclient` package because Python is unavailable. Disabled native dependency rebuild in the Electron config; the retry downloaded Electron successfully but Windows NSIS packaging could not spawn `makensis.exe` in this sandbox (`spawn UNKNOWN`). No installer artifact was produced here. A retry with electron-builder 24.6.3 reached the same NSIS execution restriction.
 - Follow-up on 2026-10-19: the local `%APPDATA%\\phantompad\\PhantomPad_debug.log` confirms the installed build waited the full 60 seconds. PowerShell initialized the ViGEm probe (`VIGEM_READY`) and accepted the player command write, but emitted no `VIGEM_PLAYER_START` marker before timeout. This isolates the failure before per-player ViGEm allocation; extending the timeout did not solve it. Updated PowerShell command submission to append a blank-line terminator for every script block sent over the persistent stdin pipe, so PowerShell commits multiline blocks immediately. Bumped Windows source/CI artifact to 1.6.9. This is a targeted transport repair hypothesis; source has not been built, CI has not run, and Windows/joy.cpl has not yet verified controller creation.
 - After the user confirmed the 1.6.9 Windows fix works, aligned the Android package versionName to 1.6.9 and incremented Android versionCode from 7 to 8. Updated the Android CI artifact label to `PhantomPad-Android-v1.6.9-APK`; Android application behavior was otherwise unchanged. Android build has not yet run.
+
+## Pairing and client hardening update (2026-10-21)
+- Added an ephemeral pairing code for remote controller sockets, local-only access for dashboard management, bounded input payloads, and validation for controller snapshots and saved names. QR/copy links carry the pairing code; Android now requests it and validates the PhantomPad server response.
+- Hardened Android WebView file/content access and top-level navigation, bounded the vibration/toast bridge, and clarified that latency is phone-to-server network RTT while the Windows visualizer shows input received by the server.
+- Rendered macro names as text, corrected the ADB instructions, and made the Windows tray copy a usable controller URL.
+- Bumped Windows and Android metadata together to 1.7.0 because the mandatory pairing handshake changes client/server compatibility; Android `versionCode` is 9. Updated CI artifact labels. Source syntax and whitespace checks passed; no application build, Jest run, or device test has been performed. The pairing code gates access but LAN traffic remains unencrypted HTTP.
