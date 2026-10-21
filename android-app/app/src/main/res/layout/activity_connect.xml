@@ -101,6 +101,36 @@
             android:layout_marginBottom="18dp"
             android:importantForAutofill="no" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PAIRING CODE FROM WINDOWS APP"
+            android:textSize="11sp"
+            android:textColor="#66FFFFFF"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp"
+            android:maxWidth="380dp" />
+
+        <EditText
+            android:id="@+id/pairing_code_input"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:maxWidth="380dp"
+            android:background="@drawable/input_background"
+            android:hint="16-character code"
+            android:textColorHint="#33FFFFFF"
+            android:textColor="#FFE8E8F0"
+            android:textSize="16sp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:inputType="textCapCharacters|textNoSuggestions"
+            android:maxLength="16"
+            android:padding="14dp"
+            android:singleLine="true"
+            android:layout_marginBottom="18dp"
+            android:importantForAutofill="no" />
+
         <!-- Connect Button -->
         <Button
             android:id="@+id/connect_btn"

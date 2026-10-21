@@ -21,6 +21,11 @@
       const info = await fetch('/api/info').then(r => r.json());
       allInterfaces = info.interfaces || [];
       document.getElementById('port-display').textContent = info.port;
+      const pairing = await fetch('/api/pairing', { cache: 'no-store' }).then(r => {
+        if (!r.ok) throw new Error('Pairing code unavailable');
+        return r.json();
+      });
+      document.getElementById('pairing-code').textContent = pairing.pairingCode;
       updateModeUI(info.mode, info.gamepadAvailable, info.gamepadError);
       buildConnectionTabs();
       if (allInterfaces.length > 0) selectTab(0);
@@ -43,7 +48,15 @@
       let label = iface.name;
       if (iface.type === 'usb-adb') label = 'USB / ADB';
       else if (iface.type === 'usb') label = 'USB Tether';
-      tab.innerHTML = `<span class="tab-icon">${iface.icon}</span><span>${label}</span><span class="tab-type">${iface.type}</span>`;
+      const icon = document.createElement('span');
+      icon.className = 'tab-icon';
+      icon.textContent = iface.icon;
+      const name = document.createElement('span');
+      name.textContent = label;
+      const type = document.createElement('span');
+      type.className = 'tab-type';
+      type.textContent = iface.type;
+      tab.append(icon, name, type);
       tab.addEventListener('click', () => selectTab(i));
       container.appendChild(tab);
     });
@@ -74,6 +87,7 @@
       const qrData = await fetch(`/api/qr?ip=${iface.ip}`).then(r => r.json());
       const qrImg = document.getElementById('qr-code');
       qrImg.src = qrData.qr;
+      document.getElementById('controller-url').textContent = qrData.url;
       qrImg.onload = () => { document.getElementById('qr-loading').style.display = 'none'; };
     } catch (e) { console.error('QR error:', e); }
   }
@@ -84,6 +98,11 @@
   document.getElementById('copy-url-btn').addEventListener('click', () => {
     const url = document.getElementById('controller-url').textContent;
     navigator.clipboard.writeText(url).then(() => flashBtn('copy-url-btn'));
+  });
+
+  document.getElementById('copy-pairing-code-btn').addEventListener('click', () => {
+    const code = document.getElementById('pairing-code').textContent;
+    navigator.clipboard.writeText(code).then(() => flashBtn('copy-pairing-code-btn'));
   });
 
   const adbBtn = document.getElementById('copy-adb-btn');
@@ -108,7 +127,7 @@
       waiting: ['Waiting for driver', 'controller-waiting'],
       connecting: [player.controllerStage || 'Creating virtual pad', 'controller-connecting'],
       ready: ['Virtual pad connected', 'controller-ready'],
-      active: ['Input report sent', 'controller-active'],
+      active: ['ViGEm accepted first input report', 'controller-active'],
       error: [`Virtual pad error: ${error}`, 'controller-error']
     }[player.controllerStatus] || ['Virtual pad status unknown', 'controller-waiting'];
   }
@@ -160,7 +179,7 @@
       if (!card) return;
       const lat = Number.isFinite(p.latency) ? p.latency : null;
       const latency = card.querySelector('.player-latency');
-      latency.textContent = lat === null ? 'RTT —' : `RTT ${lat} ms`;
+      latency.textContent = lat === null ? 'Net RTT —' : `Net RTT ${lat} ms`;
       latency.className = 'player-latency ' + (lat === null ? '' : lat < 30 ? 'latency-good' : lat < 80 ? 'latency-ok' : 'latency-bad');
       const status = card.querySelector('.controller-status');
       const [statusText, statusClass] = getControllerStatus(p);
@@ -517,18 +536,40 @@
       return;
     }
 
-    list.innerHTML = macros.map(m => `
-      <div class="macro-item">
-        <div class="macro-info">
-          <div class="macro-item-name">${m.name}</div>
-          <div class="macro-meta">${m.steps} steps · ${(m.duration / 1000).toFixed(1)}s</div>
-        </div>
-        <div class="macro-actions">
-          <button class="macro-action-btn macro-play-btn" data-name="${m.name}" title="Play">▶</button>
-          <button class="macro-action-btn delete" data-name="${m.name}" title="Delete">🗑</button>
-        </div>
-      </div>
-    `).join('');
+    const fragment = document.createDocumentFragment();
+    macros.forEach((macro) => {
+      const name = String(macro.name || '');
+      const item = document.createElement('div');
+      item.className = 'macro-item';
+      const info = document.createElement('div');
+      info.className = 'macro-info';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'macro-item-name';
+      nameEl.textContent = name;
+      const meta = document.createElement('div');
+      meta.className = 'macro-meta';
+      const duration = Number.isFinite(macro.duration) ? Math.max(0, macro.duration) : 0;
+      const steps = Number.isFinite(macro.steps) ? Math.max(0, macro.steps) : 0;
+      meta.textContent = `${steps} steps · ${(duration / 1000).toFixed(1)}s`;
+      info.append(nameEl, meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'macro-actions';
+      const play = document.createElement('button');
+      play.className = 'macro-action-btn macro-play-btn';
+      play.dataset.name = name;
+      play.title = 'Play';
+      play.textContent = '▶';
+      const remove = document.createElement('button');
+      remove.className = 'macro-action-btn delete';
+      remove.dataset.name = name;
+      remove.title = 'Delete';
+      remove.textContent = '🗑';
+      actions.append(play, remove);
+      item.append(info, actions);
+      fragment.appendChild(item);
+    });
+    list.replaceChildren(fragment);
 
     list.querySelectorAll('.macro-play-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -579,7 +620,7 @@
       card.dataset.playerNumber = String(player.number);
       card.style.setProperty('--player-color', player.color || '#00e5ff');
       card.innerHTML = `
-        <div class="player-visualizer-title"><span>Player ${player.number}</span><span class="visualizer-live">LIVE INPUT</span></div>
+        <div class="player-visualizer-title"><span>Player ${player.number}</span><span class="visualizer-live">INPUT RECEIVED</span></div>
         <div class="vis-controller">
           <div class="vis-stick-box">
             <div class="vis-stick"><div class="vis-crosshair"></div><div class="vis-stick-dot" data-vis-stick="left"></div></div>

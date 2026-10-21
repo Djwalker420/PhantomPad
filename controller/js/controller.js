@@ -127,7 +127,9 @@
       // connected when a hotspot or firewall blocks the initial WebSocket.
       transports: ['polling', 'websocket']
     };
-    const serverUrl = new URLSearchParams(window.location.search).get('serverUrl');
+    const params = new URLSearchParams(window.location.search);
+    const serverUrl = params.get('serverUrl');
+    socketOptions.auth = { pairingCode: params.get('pairingCode') || '' };
     state.socket = serverUrl ? io(serverUrl, socketOptions) : io(socketOptions);
 
     state.socket.on('connect', () => {
@@ -143,7 +145,10 @@
     state.socket.on('connect_error', (error) => {
       state.connected = false;
       updateConnUI(false);
-      document.getElementById('connection-text').textContent = 'Retrying connection';
+      const connectionText = document.getElementById('connection-text');
+      connectionText.textContent = /pairing code/i.test(error?.message || '')
+        ? 'Pairing code rejected — check the Windows app'
+        : 'Retrying connection';
       console.warn('Socket.IO connection failed:', error?.message || error);
     });
 
@@ -314,7 +319,7 @@
   function updateLatencyUI() {
     const el = document.getElementById('latency-display');
     if (el) {
-      el.textContent = state.latency === null ? 'RTT: --' : `RTT: ${state.latency} ms`;
+      el.textContent = state.latency === null ? 'Network RTT: --' : `Network RTT: ${state.latency} ms`;
       const quality = state.latency === null ? 'neutral' : state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad';
       el.className = 'latency-text ' + quality;
     }

@@ -344,6 +344,22 @@ body::before {
 
 .ip-info strong { color: var(--text); font-family: var(--mono); }
 
+.pairing-info {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 229, 255, 0.045);
+}
+
+.pairing-info > div { display: flex; align-items: center; gap: 12px; }
+.pairing-label { color: var(--text-dim); font: 700 10px var(--mono); letter-spacing: 1px; }
+.pairing-info code { color: var(--primary); font: 700 16px var(--mono); letter-spacing: 2px; }
+.pairing-info small { grid-column: 1 / -1; color: var(--text-dim); font-size: 11px; }
+
 /* ===== ADB Help ===== */
 .adb-help {
   margin-top: 18px;
@@ -882,6 +898,7 @@ body::before {
 
 /* ===== Input Visualizer ===== */
 .vis-body { padding: 18px; }
+.visualizer-note { margin: 0 0 12px; color: var(--text-dim); font-size: 11px; line-height: 1.5; }
 
 .input-visualizers {
   display: grid;

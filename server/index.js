@@ -5,6 +5,8 @@ const { Server } = require('socket.io');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const net = require('net');
+const crypto = require('crypto');
 const QRCode = require('qrcode');
 const { InputHandler } = require('./input-handler');
 const { createInputWatchdog } = require('./input-watchdog');
@@ -15,7 +17,50 @@ const config = require('./config');
 const app = express();
 app.use(express.json()); // Body parser (B12)
 const httpServer = createServer(app);
+const pairingCode = crypto.randomBytes(8).toString('hex');
+
+function isLoopbackAddress(address) {
+  const normalized = String(address || '').toLowerCase();
+  return normalized === '::1' || normalized === '127.0.0.1' || normalized === '::ffff:127.0.0.1';
+}
+
+function requireLocalDashboard(req, res, next) {
+  if (!isLoopbackAddress(req.socket?.remoteAddress)) {
+    return res.status(403).send('The PhantomPad dashboard is available only on this PC.');
+  }
+  next();
+}
+
+function isPlainObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function cleanName(value) {
+  if (typeof value !== 'string') return null;
+  const name = value.trim();
+  if (!name || name.length > 48 || /[\u0000-\u001f\u007f]/.test(name)) return null;
+  return name;
+}
+
+function isValidInputPacket(data) {
+  if (!isPlainObject(data)) return false;
+  for (const group of ['buttons', 'axes', 'triggers']) {
+    if (data[group] !== undefined && (!isPlainObject(data[group]) || Object.keys(data[group]).length > 64)) return false;
+  }
+  if (data.buttons && Object.entries(data.buttons).some(([key, value]) => key.length > 32 || typeof value !== 'boolean')) return false;
+  if (data.axes && Object.entries(data.axes).some(([key, value]) =>
+    !['leftX', 'leftY', 'rightX', 'rightY'].includes(key) || typeof value !== 'number' || !Number.isFinite(value) || value < -1 || value > 1
+  )) return false;
+  if (data.triggers && Object.entries(data.triggers).some(([key, value]) =>
+    !['lt', 'rt'].includes(key) || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1
+  )) return false;
+  return true;
+}
+
 const io = new Server(httpServer, {
+  maxHttpBufferSize: 16 * 1024,
   cors: {
     origin: (origin, callback) => {
       // Allow localhost and local network connections
@@ -37,6 +82,22 @@ const io = new Server(httpServer, {
   pingInterval: 2000,
   pingTimeout: 5000,
   transports: ['websocket', 'polling']
+});
+
+io.use((socket, next) => {
+  if (isLoopbackAddress(socket.handshake.address)) {
+    socket.data.role = 'dashboard';
+    return next();
+  }
+
+  const suppliedCode = socket.handshake.auth?.pairingCode;
+  const expected = Buffer.from(pairingCode, 'utf8');
+  const supplied = typeof suppliedCode === 'string' ? Buffer.from(suppliedCode, 'utf8') : Buffer.alloc(0);
+  if (supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected)) {
+    socket.data.role = 'controller';
+    return next();
+  }
+  next(new Error('Pairing code required or invalid'));
 });
 
 const PORT = config.port;
@@ -158,9 +219,16 @@ function getAllInterfaces() {
   return results;
 }
 
+function getControllerUrl() {
+  const ifaces = getAllInterfaces();
+  const iface = ifaces.find((item) => item.type === 'wifi') || ifaces.find((item) => item.type !== 'usb-adb') || ifaces[0];
+  const ip = iface?.ip || '127.0.0.1';
+  return `http://${ip}:${currentPort}/controller?pairingCode=${encodeURIComponent(pairingCode)}`;
+}
+
 // --- Static Files ---
 app.use('/controller', express.static(path.join(__dirname, '..', 'controller')));
-app.use('/dashboard', express.static(path.join(__dirname, '..', 'dashboard')));
+app.use('/dashboard', requireLocalDashboard, express.static(path.join(__dirname, '..', 'dashboard')));
 app.use('/mobile', express.static(path.join(__dirname, '..', 'mobile')));
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
@@ -169,24 +237,29 @@ app.get('/api/info', (req, res) => {
   res.json({ port: currentPort, interfaces: getAllInterfaces(), ...inputHandler.getStatus() });
 });
 
-app.get('/api/qr', async (req, res) => {
+app.get('/api/qr', requireLocalDashboard, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   try {
     const ifaces = getAllInterfaces();
-    const ip = req.query.ip || ifaces.find(i => i.type === 'wifi')?.ip || ifaces[0]?.ip || '127.0.0.1';
+    const requestedIp = typeof req.query.ip === 'string' ? req.query.ip : null;
+    const ip = requestedIp || ifaces.find(i => i.type === 'wifi')?.ip || ifaces[0]?.ip || '127.0.0.1';
 
-    // Basic IP pattern validation (B9)
-    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (ip !== 'localhost' && !ipPattern.test(ip)) {
+    if (ip !== 'localhost' && net.isIP(ip) !== 4) {
       return res.status(400).send('Invalid IP address');
     }
 
-    const url = `http://${ip}:${currentPort}/controller`;
+    const url = `http://${ip}:${currentPort}/controller?pairingCode=${encodeURIComponent(pairingCode)}`;
     const qr = await QRCode.toDataURL(url, { width: 280, margin: 2, color: { dark: '#00e5ff', light: '#00000000' } });
     res.json({ qr, url, ip });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/mappings', (req, res) => {
+app.get('/api/pairing', requireLocalDashboard, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ pairingCode });
+});
+
+app.get('/api/mappings', requireLocalDashboard, (req, res) => {
   res.json({
     presets: config.keyMappings,
     custom: customMappings,
@@ -195,8 +268,8 @@ app.get('/api/mappings', (req, res) => {
   });
 });
 
-app.get('/api/profiles', (req, res) => res.json(profiles));
-app.get('/api/macros', (req, res) => res.json(macroHandler.getMacrosList()));
+app.get('/api/profiles', requireLocalDashboard, (req, res) => res.json(profiles));
+app.get('/api/macros', requireLocalDashboard, (req, res) => res.json(macroHandler.getMacrosList()));
 
 // --- Socket.IO ---
 io.on('connection', (socket) => {
@@ -206,6 +279,7 @@ io.on('connection', (socket) => {
 
   // ---- Controller registration ----
   socket.on('register-controller', () => {
+    if (socket.data.role !== 'controller') return socket.disconnect(true);
     const player = inputHandler.addPlayer(socket.id);
     if (!player) { socket.emit('error-msg', 'Max 4 players'); return; }
     console.log(`  ✓ P${player.number} connected: ${socket.id}`);
@@ -216,6 +290,7 @@ io.on('connection', (socket) => {
 
   // ---- Dashboard registration ----
   socket.on('register-dashboard', () => {
+    if (socket.data.role !== 'dashboard') return socket.disconnect(true);
     socket.join('dashboard');
     socket.emit('players-update', inputHandler.getPlayersInfo());
     socket.emit('status-update', inputHandler.getStatus());
@@ -241,7 +316,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect-controller', (controllerId) => {
-    if (!socket.rooms.has('dashboard') || typeof controllerId !== 'string') return;
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof controllerId !== 'string') return;
     const target = io.sockets.sockets.get(controllerId);
     if (!target || !inputHandler.players.has(controllerId)) return;
     target.disconnect(true);
@@ -249,13 +324,14 @@ io.on('connection', (socket) => {
 
   // ---- Controller input ----
   socket.on('input', (data) => {
+    if (socket.data.role !== 'controller' || !inputHandler.players.has(socket.id)) return;
     // Rate limit (B6)
     const now = Date.now();
     if (now - lastInputTime < RATE_LIMIT_MS) return;
     lastInputTime = now;
 
     // Validation (B5)
-    if (!data || typeof data !== 'object') return;
+    if (!isValidInputPacket(data)) return;
 
     inputHandler.handleInput(socket.id, data);
     if (inputHandler.players.has(socket.id)) inputWatchdog.refresh();
@@ -265,6 +341,7 @@ io.on('connection', (socket) => {
 
   // ---- Mode switching ----
   socket.on('set-mode', (mode) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard')) return;
     const ok = inputHandler.setMode(mode);
     io.emit('status-update', inputHandler.getStatus());
     if (!ok) socket.emit('error-msg', 'Gamepad mode requires ViGEmBus driver');
@@ -272,12 +349,17 @@ io.on('connection', (socket) => {
 
   // ---- Preset switching ----
   socket.on('set-preset', (preset) => {
-    const mapping = config.keyMappings[preset] || customMappings[preset];
+    if (typeof preset !== 'string' || preset.length > 48) return;
+    const mapping = Object.prototype.hasOwnProperty.call(config.keyMappings, preset)
+      ? config.keyMappings[preset]
+      : Object.prototype.hasOwnProperty.call(customMappings, preset) ? customMappings[preset] : null;
     if (mapping) {
-      if (inputHandler.players.has(socket.id)) {
+      if (socket.data.role === 'controller' && inputHandler.players.has(socket.id)) {
         inputHandler.setPlayerMapping(socket.id, mapping);
-      } else {
+      } else if (socket.data.role === 'dashboard' && socket.rooms.has('dashboard')) {
         inputHandler.setGlobalMapping(mapping);
+      } else {
+        return;
       }
       io.emit('preset-changed', preset);
     }
@@ -285,16 +367,21 @@ io.on('connection', (socket) => {
 
   // ---- Custom mappings ----
   socket.on('save-mapping', (data) => {
-    customMappings[data.name] = data.mapping;
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || !isPlainObject(data)) return;
+    const name = cleanName(data.name);
+    if (!name || ['__proto__', 'constructor', 'prototype'].includes(name.toLowerCase()) || !isPlainObject(data.mapping)) return;
+    customMappings[name] = data.mapping;
     saveMappings();
     io.emit('mappings-updated', { presets: config.keyMappings, custom: customMappings });
   });
 
   socket.on('set-mapping', (mapping) => {
-    inputHandler.setPlayerMapping(socket.id, mapping);
+    if (!isPlainObject(mapping) || socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard')) return;
+    inputHandler.setGlobalMapping(mapping);
   });
 
   socket.on('delete-mapping', (name) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof name !== 'string' || !Object.prototype.hasOwnProperty.call(customMappings, name)) return;
     delete customMappings[name];
     saveMappings();
     io.emit('mappings-updated', { presets: config.keyMappings, custom: customMappings });
@@ -302,21 +389,28 @@ io.on('connection', (socket) => {
 
   // ---- Profiles ----
   socket.on('save-profile', (data) => {
-    profiles[data.name] = { mapping: data.mapping, mode: data.mode, created: Date.now() };
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || !isPlainObject(data)) return;
+    const name = cleanName(data.name);
+    if (!name || ['__proto__', 'constructor', 'prototype'].includes(name.toLowerCase())) return;
+    if (data.mapping !== undefined && !isPlainObject(data.mapping)) return;
+    if (data.mode !== undefined && !['gamepad', 'keyboard'].includes(data.mode)) return;
+    profiles[name] = { mapping: data.mapping, mode: data.mode, created: Date.now() };
     saveProfiles();
     io.emit('profiles-updated', profiles);
   });
 
   socket.on('load-profile', (name) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof name !== 'string') return;
     const p = profiles[name];
     if (p) {
-      if (p.mapping) inputHandler.setPlayerMapping(socket.id, p.mapping);
+      if (p.mapping) inputHandler.setGlobalMapping(p.mapping);
       if (p.mode) { inputHandler.setMode(p.mode); io.emit('status-update', inputHandler.getStatus()); }
       socket.emit('profile-loaded', { name, ...p });
     }
   });
 
   socket.on('delete-profile', (name) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof name !== 'string') return;
     delete profiles[name];
     saveProfiles();
     io.emit('profiles-updated', profiles);
@@ -324,11 +418,14 @@ io.on('connection', (socket) => {
 
   // ---- Macros ----
   socket.on('macro-start-record', (name) => {
-    const ok = macroHandler.startRecording(name || `Macro_${Date.now()}`);
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard')) return;
+    const safeName = cleanName(name) || `Macro_${Date.now()}`;
+    const ok = macroHandler.startRecording(safeName);
     io.to('dashboard').emit('macro-recording', ok ? macroHandler.recording.name : null);
   });
 
   socket.on('macro-stop-record', () => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard')) return;
     const macro = macroHandler.stopRecording();
     saveMacros();
     io.to('dashboard').emit('macro-recording', null);
@@ -336,6 +433,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('macro-play', (name) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof name !== 'string') return;
     macroHandler.playMacro(name, socket.id).then(() => {
       io.to('dashboard').emit('macro-playing', null);
     });
@@ -343,11 +441,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('macro-stop', (name) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof name !== 'string') return;
     macroHandler.stopMacro(name);
     io.to('dashboard').emit('macro-playing', null);
   });
 
   socket.on('macro-delete', (name) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof name !== 'string') return;
     macroHandler.deleteMacro(name);
     saveMacros();
     io.to('dashboard').emit('macros-update', macroHandler.getMacrosList());
@@ -412,7 +512,7 @@ httpServer.on('listening', () => {
 tryListen();
 
 // Export for Electron
-module.exports = { app, httpServer, io, PORT, activePort: currentPort };
+module.exports = { app, httpServer, io, PORT, activePort: currentPort, getControllerUrl };
 
 // --- Cleanup (B8) ---
 ['SIGINT', 'SIGTERM', 'SIGQUIT'].forEach(sig => {

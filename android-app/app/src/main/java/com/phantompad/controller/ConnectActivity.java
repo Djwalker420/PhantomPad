@@ -20,12 +20,13 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ConnectActivity extends AppCompatActivity {
 
-    private EditText ipInput, portInput;
+    private EditText ipInput, portInput, pairingCodeInput;
     private Button connectBtn;
     private TextView statusText;
     private LinearLayout recentList;
@@ -49,6 +50,7 @@ public class ConnectActivity extends AppCompatActivity {
 
         ipInput = findViewById(R.id.ip_input);
         portInput = findViewById(R.id.port_input);
+        pairingCodeInput = findViewById(R.id.pairing_code_input);
         connectBtn = findViewById(R.id.connect_btn);
         statusText = findViewById(R.id.status_text);
         recentList = findViewById(R.id.recent_list);
@@ -70,6 +72,7 @@ public class ConnectActivity extends AppCompatActivity {
     private void attemptConnect() {
         String ip = ipInput.getText().toString().trim();
         String port = portInput.getText().toString().trim();
+        String pairingCode = pairingCodeInput.getText().toString().trim().toLowerCase(Locale.ROOT);
 
         if (ip.isEmpty()) {
             statusText.setText("Please enter a server IP address");
@@ -78,6 +81,27 @@ public class ConnectActivity extends AppCompatActivity {
         }
 
         if (port.isEmpty()) port = "3000";
+
+        if (!pairingCode.matches("[0-9a-f]{16}")) {
+            statusText.setText("Enter the 16-character pairing code shown in the Windows app");
+            statusText.setTextColor(getColor(R.color.danger));
+            return;
+        }
+
+        if (!isValidServerAddress(ip)) {
+            statusText.setText("Enter a valid IPv4 address or localhost");
+            statusText.setTextColor(getColor(R.color.danger));
+            return;
+        }
+
+        try {
+            int portNumber = Integer.parseInt(port);
+            if (portNumber < 1 || portNumber > 65535) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            statusText.setText("Enter a port between 1 and 65535");
+            statusText.setTextColor(getColor(R.color.danger));
+            return;
+        }
 
         connectBtn.setEnabled(false);
         statusText.setText("⏳ Connecting...");
@@ -105,6 +129,18 @@ public class ConnectActivity extends AppCompatActivity {
                     }
                     reader.close();
 
+                    JSONObject serverInfo;
+                    try {
+                        serverInfo = new JSONObject(response.toString());
+                    } catch (Exception invalidJson) {
+                        throw new Exception("This address did not respond as a PhantomPad server");
+                    }
+                    JSONArray interfaces = serverInfo.optJSONArray("interfaces");
+                    int reportedPort = serverInfo.optInt("port", -1);
+                    if (interfaces == null || reportedPort < 1 || reportedPort > 65535) {
+                        throw new Exception("This address did not respond as a PhantomPad server");
+                    }
+
                     // Success - save and launch controller
                     runOnUiThread(() -> {
                         statusText.setText("✅ Connected! Loading controller...");
@@ -120,6 +156,7 @@ public class ConnectActivity extends AppCompatActivity {
                         // Launch controller activity
                         Intent intent = new Intent(ConnectActivity.this, MainActivity.class);
                         intent.putExtra("server_url", serverUrl);
+                        intent.putExtra("pairing_code", pairingCode);
                         startActivity(intent);
                         finish();
                     });
@@ -133,6 +170,8 @@ public class ConnectActivity extends AppCompatActivity {
                     String errorMsg;
                     if (e.getMessage() != null && e.getMessage().contains("timeout")) {
                         errorMsg = "⏱️ Connection timed out. Check IP and server.";
+                    } else if (e.getMessage() != null && e.getMessage().contains("PhantomPad server")) {
+                        errorMsg = "❌ This address is not a PhantomPad server";
                     } else {
                         errorMsg = "❌ Can't reach " + serverUrl;
                     }
@@ -142,6 +181,22 @@ public class ConnectActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private boolean isValidServerAddress(String value) {
+        if ("localhost".equalsIgnoreCase(value)) return true;
+        String[] octets = value.split("\\.", -1);
+        if (octets.length != 4) return false;
+        for (String octet : octets) {
+            if (octet.isEmpty() || octet.length() > 3) return false;
+            try {
+                int number = Integer.parseInt(octet);
+                if (number < 0 || number > 255) return false;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void saveServer(String ip, String port) {

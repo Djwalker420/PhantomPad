@@ -63,8 +63,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
+        // The bundled HTTPS page connects to the user's local HTTP server. Keep
+        // this for that connection, while restricting top-level navigation below.
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setUseWideViewPort(true);
@@ -72,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-        settings.setAllowContentAccess(true);
+        settings.setAllowContentAccess(false);
 
         // Hardware-accelerated rendering
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -93,8 +95,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                // Load all URLs in the WebView
-                return false;
+                return request.isForMainFrame() && !isTrustedControllerPage(request.getUrl());
+            }
+
+            @Override
+            @SuppressWarnings("deprecation")
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return !isTrustedControllerPage(Uri.parse(url));
             }
 
             @Override
@@ -138,14 +145,37 @@ public class MainActivity extends AppCompatActivity {
 
         // Load the controller UI from this APK; only controller traffic goes to Windows.
         String serverUrl = getIntent().getStringExtra("server_url");
-        if (serverUrl != null && !serverUrl.isEmpty()) {
+        String pairingCode = getIntent().getStringExtra("pairing_code");
+        if (isValidServerUrl(serverUrl) && pairingCode != null && pairingCode.matches("(?i)[0-9a-f]{16}")) {
             String localControllerUrl = "https://appassets.androidplatform.net/assets/controller/index.html?serverUrl="
-                    + Uri.encode(serverUrl);
+                    + Uri.encode(serverUrl) + "&pairingCode=" + Uri.encode(pairingCode.toLowerCase(java.util.Locale.ROOT));
             webView.loadUrl(localControllerUrl);
         } else {
             // No URL provided, go back to connect
             goBackToConnect();
         }
+    }
+
+    private boolean isTrustedControllerPage(Uri uri) {
+        return uri != null
+                && "https".equalsIgnoreCase(uri.getScheme())
+                && "appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())
+                && uri.getPath() != null
+                && uri.getPath().startsWith("/assets/controller/");
+    }
+
+    private boolean isValidServerUrl(String value) {
+        if (value == null || value.isEmpty()) return false;
+        Uri uri = Uri.parse(value);
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        int port = uri.getPort();
+        return "http".equalsIgnoreCase(scheme)
+                && host != null
+                && port >= 1 && port <= 65535
+                && uri.getUserInfo() == null
+                && uri.getQuery() == null
+                && uri.getFragment() == null;
     }
 
     private void hideSystemUI() {
@@ -180,17 +210,19 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void vibrate(int ms) {
             if (vibrator == null || !vibrator.hasVibrator()) return;
+            int safeDuration = Math.max(1, Math.min(ms, 500));
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
+                vibrator.vibrate(VibrationEffect.createOneShot(safeDuration, VibrationEffect.DEFAULT_AMPLITUDE));
             } else {
-                vibrator.vibrate(ms);
+                vibrator.vibrate(safeDuration);
             }
         }
 
         @SuppressWarnings("unused")
         @JavascriptInterface
         public void showToast(String message) {
-            runOnUiThread(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show());
+            String safeMessage = message == null ? "" : message.substring(0, Math.min(message.length(), 100));
+            runOnUiThread(() -> Toast.makeText(MainActivity.this, safeMessage, Toast.LENGTH_SHORT).show());
         }
     }
 

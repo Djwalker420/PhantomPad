@@ -122,7 +122,7 @@ function createTray() {
       label: 'Copy Controller URL',
       click: () => {
         const { clipboard } = require('electron');
-        clipboard.writeText(`http://localhost:${server.activePort}/controller`);
+        clipboard.writeText(server.getControllerUrl());
       }
     },
     { type: 'separator' },

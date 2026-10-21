@@ -48,6 +48,11 @@
                 <span>IP: <strong id="ip-display">—</strong></span>
                 <span>Port: <strong id="port-display">—</strong></span>
               </div>
+              <div class="pairing-info">
+                <div><span class="pairing-label">PAIRING CODE</span><code id="pairing-code">Loading…</code></div>
+                <button id="copy-pairing-code-btn" class="copy-btn" title="Copy pairing code">📋</button>
+                <small>Enter this code in the PhantomPad Android app. It changes when the Windows app restarts.</small>
+              </div>
             </div>
           </div>
 
@@ -60,7 +65,8 @@
               <code>adb reverse tcp:3000 tcp:3000</code>
               <button class="copy-btn" id="copy-adb-btn" title="Copy">📋</button>
             </div>
-            <div class="adb-step"><span class="step-num">4</span> Open <strong>http://127.0.0.1:3000/controller</strong> in phone's browser</div>
+            <div class="adb-step"><span class="step-num">4</span> Open the copied controller URL in your phone's browser</div>
+            <div class="adb-step"><span class="step-num">5</span> For the Android app, enter <strong>127.0.0.1</strong>, port <strong>3000</strong>, and the pairing code shown above</div>
           </div>
 
           <!-- USB Tether Help -->
@@ -134,6 +140,7 @@
           <h2>📊 Input Visualizer</h2>
         </div>
         <div class="card-body vis-body">
+          <p class="visualizer-note">This shows input received by the Windows server. The controller status above reports whether ViGEm accepted a report; it cannot confirm that a game read it.</p>
           <div id="input-visualizers" class="input-visualizers">
             <div class="empty-state">Connect a controller to see its live input.</div>
           </div>
