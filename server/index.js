@@ -12,6 +12,7 @@ const { InputHandler } = require('./input-handler');
 const { createInputWatchdog } = require('./input-watchdog');
 const { MacroHandler } = require('./macro-handler');
 const { GameMonitor } = require('./game-monitor');
+const { DeviceTrustStore } = require('./device-trust');
 const config = require('./config');
 
 const app = express();
@@ -19,9 +20,11 @@ app.use(express.json()); // Body parser (B12)
 const httpServer = createServer(app);
 const pairingCode = crypto.randomInt(0, 100_000_000).toString().padStart(8, '0');
 const pairingAttempts = new Map();
+const pendingDeviceChallenges = new Map();
 const PAIRING_ATTEMPT_WINDOW_MS = 60_000;
 const PAIRING_MAX_FAILED_ATTEMPTS = 5;
 const PAIRING_LOCKOUT_MS = 60_000;
+const DEVICE_CHALLENGE_LIFETIME_MS = 2 * 60 * 1000;
 
 function isLoopbackAddress(address) {
   const normalized = String(address || '').toLowerCase();
@@ -39,6 +42,20 @@ function isPlainObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
+}
+
+function isLocalControllerOrigin(origin) {
+  return Boolean(origin && (
+    origin.startsWith('http://192.168.') ||
+    origin.startsWith('http://10.') ||
+    origin.startsWith('http://172.') ||
+    origin.startsWith('http://localhost') ||
+    origin.startsWith('http://127.0.0.1')
+  ));
+}
+
+function isAllowedControllerOrigin(origin) {
+  return !origin || origin === 'https://appassets.androidplatform.net' || isLocalControllerOrigin(origin);
 }
 
 function cleanName(value) {
@@ -67,20 +84,8 @@ const io = new Server(httpServer, {
   maxHttpBufferSize: 16 * 1024,
   cors: {
     origin: (origin, callback) => {
-      // Allow localhost and local network connections
-      const isAndroidBundledController = origin === 'https://appassets.androidplatform.net';
-      const isLocalNetworkOrigin = origin && (
-        origin.startsWith('http://192.168.') ||
-        origin.startsWith('http://10.') ||
-        origin.startsWith('http://172.') ||
-        origin.startsWith('http://localhost') ||
-        origin.startsWith('http://127.0.0.1')
-      );
-      if (!origin || isAndroidBundledController || isLocalNetworkOrigin) {
-        callback(null, true);
-      } else {
-        callback(new Error('Blocked by CORS'));
-      }
+      if (isAllowedControllerOrigin(origin)) callback(null, true);
+      else callback(new Error('Blocked by CORS'));
     }
   },
   pingInterval: 2000,
@@ -89,7 +94,8 @@ const io = new Server(httpServer, {
 });
 
 io.use((socket, next) => {
-  if (isLoopbackAddress(socket.handshake.address)) {
+  const auth = socket.handshake.auth || {};
+  if (isLoopbackAddress(socket.handshake.address) && !auth.pairingCode && !auth.challenge) {
     socket.data.role = 'dashboard';
     return next();
   }
@@ -98,12 +104,30 @@ io.use((socket, next) => {
   const address = String(socket.handshake.address || 'unknown').toLowerCase().replace(/^::ffff:/, '');
   const previousAttempt = pairingAttempts.get(address);
   if (previousAttempt?.blockedUntil > now) return next(new Error('Pairing code rate limited. Try again in 60 seconds.'));
-  const suppliedCode = socket.handshake.auth?.pairingCode;
+  const suppliedCode = auth.pairingCode;
   const expected = Buffer.from(pairingCode, 'utf8');
   const supplied = typeof suppliedCode === 'string' ? Buffer.from(suppliedCode, 'utf8') : Buffer.alloc(0);
   if (supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected)) {
     pairingAttempts.delete(address);
     socket.data.role = 'controller';
+    if (auth.publicKey !== undefined) {
+      try {
+        const parsedKey = deviceTrustStore.parsePublicKey(auth.publicKey);
+        socket.data.pendingPublicKey = parsedKey.der.toString('base64');
+        socket.data.pendingDeviceId = deviceTrustStore.deviceIdFor(parsedKey.der);
+      } catch (_) {
+        return next(new Error('Phone verification setup failed. Update the PhantomPad app and reconnect.'));
+      }
+    }
+    return next();
+  }
+
+  const challenge = typeof auth.challenge === 'string' ? pendingDeviceChallenges.get(auth.challenge) : null;
+  if (challenge && challenge.deviceId === auth.deviceId && challenge.expiresAt > now &&
+      deviceTrustStore.verify(auth.deviceId, auth.challenge, auth.signature)) {
+    pendingDeviceChallenges.delete(auth.challenge);
+    socket.data.role = 'controller';
+    socket.data.pendingDeviceId = auth.deviceId;
     return next();
   }
 
@@ -144,6 +168,8 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const MAPPINGS_FILE = path.join(DATA_DIR, 'custom-mappings.json');
 const PROFILES_FILE = path.join(DATA_DIR, 'profiles.json');
 const MACROS_FILE = path.join(DATA_DIR, 'macros.json');
+const DEVICE_TRUST_FILE = path.join(DATA_DIR, 'trusted-devices.json');
+const deviceTrustStore = new DeviceTrustStore(DEVICE_TRUST_FILE);
 
 let customMappings = {};
 let profiles = {};
@@ -283,6 +309,28 @@ app.get('/api/pairing', requireLocalDashboard, (req, res) => {
   res.json({ pairingCode });
 });
 
+app.get('/api/device-challenge', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const origin = req.get('Origin');
+  if (origin && !isAllowedControllerOrigin(origin)) return res.status(403).json({ error: 'Origin not allowed' });
+  if (origin) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+  }
+
+  const deviceId = typeof req.query.deviceId === 'string' ? req.query.deviceId : '';
+  if (!deviceTrustStore.getActive(deviceId)) return res.status(401).json({ error: 'Trusted phone expired or revoked' });
+
+  const challenge = crypto.randomBytes(32).toString('base64url');
+  const now = Date.now();
+  for (const [key, value] of pendingDeviceChallenges) {
+    if (value.expiresAt <= now) pendingDeviceChallenges.delete(key);
+  }
+  while (pendingDeviceChallenges.size >= 2048) pendingDeviceChallenges.delete(pendingDeviceChallenges.keys().next().value);
+  pendingDeviceChallenges.set(challenge, { deviceId, expiresAt: now + DEVICE_CHALLENGE_LIFETIME_MS });
+  res.json({ challenge });
+});
+
 app.get('/api/mappings', requireLocalDashboard, (req, res) => {
   res.json({
     presets: config.keyMappings,
@@ -306,8 +354,44 @@ io.on('connection', (socket) => {
     if (socket.data.role !== 'controller') return socket.disconnect(true);
     const player = inputHandler.addPlayer(socket.id);
     if (!player) { socket.emit('error-msg', 'Max 4 players'); return; }
+    if (socket.data.pendingPublicKey) {
+      try {
+        const trusted = deviceTrustStore.add(socket.data.pendingPublicKey);
+        socket.data.deviceId = trusted.deviceId;
+        socket.data.expiresAt = trusted.expiresAt;
+        delete socket.data.pendingDeviceId;
+        delete socket.data.pendingPublicKey;
+      } catch (error) {
+        inputHandler.removePlayer(socket.id);
+        console.warn('Could not persist Android device trust:', error.message);
+        socket.emit('error-msg', 'Could not save this phone as trusted. Check Windows app permissions and retry.');
+        return socket.disconnect(true);
+      }
+    } else if (socket.data.pendingDeviceId) {
+      let trusted;
+      try {
+        trusted = deviceTrustStore.renew(socket.data.pendingDeviceId);
+      } catch (error) {
+        inputHandler.removePlayer(socket.id);
+        console.warn('Could not renew Android device trust:', error.message);
+        socket.emit('error-msg', 'Could not renew phone verification. Check Windows app permissions and retry.');
+        return socket.disconnect(true);
+      }
+      if (!trusted) {
+        inputHandler.removePlayer(socket.id);
+        socket.emit('error-msg', 'Trusted phone expired or revoked. Enter the current pairing code again.');
+        return socket.disconnect(true);
+      }
+      socket.data.deviceId = trusted.deviceId;
+      socket.data.expiresAt = trusted.expiresAt;
+      delete socket.data.pendingDeviceId;
+    }
     console.log(`  ✓ P${player.number} connected: ${socket.id}`);
     socket.emit('player-assigned', { number: player.number, color: player.color });
+    if (socket.data.deviceId) {
+      socket.emit('device-trust-confirmed', { deviceId: socket.data.deviceId, expiresAt: socket.data.expiresAt });
+      io.to('dashboard').emit('trusted-devices', deviceTrustStore.list());
+    }
     if (activeGame) socket.emit('active-game-update', { name: activeGame, preset: config.processMappings[activeGame] || 'manual' });
     io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
   });
@@ -325,6 +409,7 @@ io.on('connection', (socket) => {
       vk: config.VK
     });
     socket.emit('macros-update', macroHandler.getMacrosList());
+    socket.emit('trusted-devices', deviceTrustStore.list());
   });
 
   // ---- Latency ping ----
@@ -344,6 +429,14 @@ io.on('connection', (socket) => {
     const target = io.sockets.sockets.get(controllerId);
     if (!target || !inputHandler.players.has(controllerId)) return;
     target.disconnect(true);
+  });
+
+  socket.on('revoke-trusted-device', (deviceId) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || !deviceTrustStore.revoke(deviceId)) return;
+    for (const connectedSocket of io.sockets.sockets.values()) {
+      if (connectedSocket.data.deviceId === deviceId) connectedSocket.disconnect(true);
+    }
+    io.to('dashboard').emit('trusted-devices', deviceTrustStore.list());
   });
 
   // ---- Controller input ----

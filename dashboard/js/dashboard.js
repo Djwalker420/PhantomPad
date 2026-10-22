@@ -190,6 +190,47 @@
     updatePlayerVisualizers(players);
   });
 
+  socket.on('trusted-devices', (devices) => {
+    const list = document.getElementById('trusted-devices-list');
+    if (!list) return;
+    list.replaceChildren();
+    if (!Array.isArray(devices) || devices.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No Android phones remembered yet';
+      list.appendChild(empty);
+      return;
+    }
+
+    devices.forEach((device) => {
+      if (!device || !/^[a-f0-9]{64}$/.test(device.deviceId || '')) return;
+      const row = document.createElement('div');
+      row.className = 'trusted-device-row';
+      const details = document.createElement('div');
+      details.className = 'trusted-device-details';
+      const name = document.createElement('span');
+      name.className = 'trusted-device-name';
+      name.textContent = `Android phone · ${device.deviceId.slice(0, 8)}`;
+      const expiry = document.createElement('span');
+      expiry.className = 'trusted-device-expiry';
+      expiry.textContent = `Trusted until ${new Date(device.expiresAt).toLocaleString()}`;
+      details.append(name, expiry);
+
+      const revoke = document.createElement('button');
+      revoke.type = 'button';
+      revoke.className = 'trusted-device-revoke';
+      revoke.textContent = 'Forget';
+      revoke.title = 'Revoke this phone and disconnect it if connected';
+      revoke.addEventListener('click', () => {
+        if (confirm(`Forget Android phone ${device.deviceId.slice(0, 8)}? It will need the pairing code to connect again.`)) {
+          socket.emit('revoke-trusted-device', device.deviceId);
+        }
+      });
+      row.append(details, revoke);
+      list.appendChild(row);
+    });
+  });
+
   // ============================================
   //  Mode Toggle
   // ============================================

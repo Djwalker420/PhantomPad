@@ -21,12 +21,27 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceResponse;
 import android.widget.Toast;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import android.util.Base64;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebViewAssetLoader;
 
+import org.json.JSONObject;
+
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.spec.ECGenParameterSpec;
+import java.security.cert.Certificate;
+
 public class MainActivity extends AppCompatActivity {
+
+    private static final String DEVICE_KEY_ALIAS = "phantompad-device-trust-v1";
 
     private WebView webView;
     private Vibrator vibrator;
@@ -146,7 +161,8 @@ public class MainActivity extends AppCompatActivity {
         // Load the controller UI from this APK; only controller traffic goes to Windows.
         String serverUrl = getIntent().getStringExtra("server_url");
         String pairingCode = getIntent().getStringExtra("pairing_code");
-        if (isValidServerUrl(serverUrl) && pairingCode != null && pairingCode.matches("[0-9]{8}")) {
+        if (isValidServerUrl(serverUrl) && pairingCode != null &&
+                (pairingCode.isEmpty() || pairingCode.matches("[0-9]{8}"))) {
             String localControllerUrl = "https://appassets.androidplatform.net/assets/controller/index.html?serverUrl="
                     + Uri.encode(serverUrl) + "&pairingCode=" + Uri.encode(pairingCode);
             webView.loadUrl(localControllerUrl);
@@ -206,6 +222,64 @@ public class MainActivity extends AppCompatActivity {
 
     // JavaScript Interface for native features
     public class WebAppInterface {
+        @SuppressWarnings("unused")
+        @JavascriptInterface
+        public String getDeviceIdentity() {
+            try {
+                KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+                keyStore.load(null);
+                Certificate certificate = keyStore.getCertificate(DEVICE_KEY_ALIAS);
+                if (certificate == null) {
+                    KeyPairGenerator generator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore");
+                    generator.initialize(new KeyGenParameterSpec.Builder(
+                            DEVICE_KEY_ALIAS,
+                            KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
+                            .setAlgorithmParameterSpec(new ECGenParameterSpec("secp256r1"))
+                            .setDigests(KeyProperties.DIGEST_SHA256)
+                            .setUserAuthenticationRequired(false)
+                            .build());
+                    generator.generateKeyPair();
+                    keyStore.load(null);
+                    certificate = keyStore.getCertificate(DEVICE_KEY_ALIAS);
+                }
+
+                byte[] publicKey = certificate.getPublicKey().getEncoded();
+                byte[] digest = MessageDigest.getInstance("SHA-256").digest(publicKey);
+                StringBuilder deviceId = new StringBuilder(digest.length * 2);
+                for (byte value : digest) deviceId.append(String.format(java.util.Locale.ROOT, "%02x", value & 0xff));
+
+                JSONObject identity = new JSONObject();
+                identity.put("deviceId", deviceId.toString());
+                identity.put("publicKey", Base64.encodeToString(publicKey, Base64.NO_WRAP));
+                return identity.toString();
+            } catch (Exception error) {
+                android.util.Log.e("PhantomPad", "Could not load Android device trust key", error);
+                return "";
+            }
+        }
+
+        @SuppressWarnings("unused")
+        @JavascriptInterface
+        public String signDeviceChallenge(String challenge) {
+            try {
+                if (challenge == null || challenge.length() > 100) return "";
+                byte[] challengeBytes = Base64.decode(challenge, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+                if (challengeBytes.length != 32) return "";
+
+                KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+                keyStore.load(null);
+                PrivateKey privateKey = (PrivateKey) keyStore.getKey(DEVICE_KEY_ALIAS, null);
+                if (privateKey == null) return "";
+                Signature signer = Signature.getInstance("SHA256withECDSA");
+                signer.initSign(privateKey);
+                signer.update(challengeBytes);
+                return Base64.encodeToString(signer.sign(), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+            } catch (Exception error) {
+                android.util.Log.e("PhantomPad", "Could not sign device trust challenge", error);
+                return "";
+            }
+        }
+
         @SuppressWarnings("unused")
         @JavascriptInterface
         public void vibrate(int ms) {

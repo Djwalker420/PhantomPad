@@ -51,7 +51,16 @@
               <div class="pairing-info">
                 <div><span class="pairing-label">8-DIGIT PAIRING CODE</span><code id="pairing-code">Loading…</code></div>
                 <button id="copy-pairing-code-btn" class="copy-btn" title="Copy pairing code">📋</button>
-                <small>Enter this when connecting. Network reconnects reuse it automatically; the code changes when the Windows app restarts.</small>
+                <small>Enter once in the Android app. Each successful connection renews that phone’s 30-day trust. Use the code again after 30 days without connecting, or after revoking the phone below. Browser controllers still need the code when they connect.</small>
+              </div>
+              <div class="trusted-devices-panel">
+                <div class="trusted-devices-heading">
+                  <strong>Remembered Android phones</strong>
+                  <span>30-day rolling trust</span>
+                </div>
+                <div id="trusted-devices-list" class="trusted-devices-list">
+                  <div class="empty-state">No Android phones remembered yet</div>
+                </div>
               </div>
             </div>
           </div>
@@ -66,7 +75,7 @@
               <button class="copy-btn" id="copy-adb-btn" title="Copy">📋</button>
             </div>
             <div class="adb-step"><span class="step-num">4</span> Open the copied controller URL in your phone's browser</div>
-            <div class="adb-step"><span class="step-num">5</span> For the Android app, enter <strong>127.0.0.1</strong>, port <strong>3000</strong>, and the 8-digit pairing code shown above</div>
+            <div class="adb-step"><span class="step-num">5</span> For first Android pairing, enter <strong>127.0.0.1</strong>, port <strong>3000</strong>, and the 8-digit code. Later connections can leave the code blank for 30 days after each successful connection.</div>
           </div>
 
           <!-- USB Tether Help -->

@@ -81,8 +81,8 @@ public class ConnectActivity extends AppCompatActivity {
 
         if (port.isEmpty()) port = "3000";
 
-        if (!pairingCode.matches("[0-9]{8}")) {
-            statusText.setText("Enter the 8-digit pairing code shown in the Windows app");
+        if (!pairingCode.isEmpty() && !pairingCode.matches("[0-9]{8}")) {
+            statusText.setText("Enter all 8 digits, or leave it blank for a phone already paired here");
             statusText.setTextColor(getColor(R.color.danger));
             return;
         }

@@ -118,7 +118,7 @@
     }
   }
 
-  function initSocket() {
+  async function initSocket() {
     const socketOptions = {
       reconnection: true,
       reconnectionDelay: 500,
@@ -129,7 +129,51 @@
     };
     const params = new URLSearchParams(window.location.search);
     const serverUrl = params.get('serverUrl');
-    socketOptions.auth = { pairingCode: params.get('pairingCode') || '' };
+    let pairingCode = params.get('pairingCode') || '';
+    const native = window.PhantomPadNative;
+    let deviceIdentity = null;
+
+    if (native && typeof native.getDeviceIdentity === 'function') {
+      try {
+        deviceIdentity = JSON.parse(native.getDeviceIdentity() || '{}');
+        if (!/^[a-f0-9]{64}$/.test(deviceIdentity.deviceId || '') || !deviceIdentity.publicKey) {
+          throw new Error('The phone could not create its secure device key.');
+        }
+      } catch (error) {
+        updateConnUI(false);
+        document.getElementById('connection-text').textContent = error.message || 'Pairing is needed. Return and enter the Windows code.';
+        console.warn('PhantomPad device verification failed:', error);
+        return;
+      }
+    }
+
+    socketOptions.auth = (callback) => {
+      const makeAuth = async () => {
+        if (!deviceIdentity) {
+          // Browser/PWA clients keep using the pairing code. The Android app
+          // uses its Keystore identity for 30-day remembered trust.
+          return { pairingCode };
+        }
+        if (/^[0-9]{8}$/.test(pairingCode)) {
+          return { pairingCode, deviceId: deviceIdentity.deviceId, publicKey: deviceIdentity.publicKey };
+        }
+
+        const challengeUrl = new URL('/api/device-challenge', serverUrl || window.location.origin);
+        challengeUrl.searchParams.set('deviceId', deviceIdentity.deviceId);
+        const response = await fetch(challengeUrl, { cache: 'no-store' });
+        if (!response.ok) return { pairingCode: '', deviceId: deviceIdentity.deviceId };
+        const challengeData = await response.json();
+        const signature = native.signDeviceChallenge(challengeData.challenge || '');
+        if (!signature) throw new Error('The phone could not verify its saved pairing. Enter the Windows pairing code again.');
+        return { deviceId: deviceIdentity.deviceId, challenge: challengeData.challenge, signature };
+      };
+
+      makeAuth().then(callback).catch((error) => {
+        console.warn('PhantomPad device verification failed:', error);
+        callback({ pairingCode: '' });
+      });
+    };
+
     state.socket = serverUrl ? io(serverUrl, socketOptions) : io(socketOptions);
 
     state.socket.on('connect', () => {
@@ -146,10 +190,21 @@
       state.connected = false;
       updateConnUI(false);
       const connectionText = document.getElementById('connection-text');
-      connectionText.textContent = /pairing code/i.test(error?.message || '')
-        ? 'Pairing code rejected — check the Windows app'
+      connectionText.textContent = /pairing code|trusted phone verification/i.test(error?.message || '')
+        ? 'Pairing needed or expired — return and enter the current Windows code'
         : 'Retrying connection';
       console.warn('Socket.IO connection failed:', error?.message || error);
+    });
+
+    state.socket.on('device-trust-confirmed', () => {
+      pairingCode = '';
+      // Remove the one-time code from the Android WebView URL after pairing.
+      const currentParams = new URLSearchParams(window.location.search);
+      if (currentParams.has('pairingCode')) {
+        currentParams.delete('pairingCode');
+        const query = currentParams.toString();
+        history.replaceState(null, document.title, `${window.location.pathname}${query ? `?${query}` : ''}`);
+      }
     });
 
     state.socket.on('disconnect', (reason) => {

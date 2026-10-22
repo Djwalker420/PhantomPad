@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-10-22
-Desktop source: 1.7.2; Android source: 1.7.2 (versionCode 11)
+Desktop source: 1.8.0; Android source: 1.8.0 (versionCode 12)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -141,3 +141,13 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Changed the temporary pairing credential to an eight-digit numeric code. Failed remote pairing attempts are limited to five distinct codes per source address in a 60-second window, followed by a 60-second lockout. Repeated automatic retries of the same stale code count once, so a Windows restart does not cause reconnect retries to lock out the phone; successful pairing clears that address's failure counter.
 - Updated Android entry validation and keyboard, dashboard instructions, and the controller assets bundled in the Android app. The credential is sent only during Socket.IO connection/authentication; existing automatic reconnections reuse it and input packets remain unchanged.
 - Bumped Windows and Android metadata to 1.7.2; Android `versionCode` is 11. No APK/installer build, automated tests, or device tests have been run for this update. Eight digits are shorter but reduce the secret space compared with the former 16-character hexadecimal code; attempt limiting mitigates online guessing.
+
+## Remembered Android phone trust (2026-10-22)
+- Bumped Windows and Android source versions to 1.8.0; Android `versionCode` is 12. CI artifact names now include v1.8.0.
+- Android creates a P-256 signing key in Android Keystore. Its private key stays on the phone; Windows stores only the public key in `trusted-devices.json` under its persistent PhantomPad data folder (`%APPDATA%` for the packaged app, `data/` for development).
+- First pairing still requires the current 8-digit Windows code. After successful controller registration, Windows trusts that Android device for 30 days. Each successful reconnect renews the expiry to 30 days from that connection. Restarting Windows PhantomPad does not erase the trusted-device list.
+- Later Android connections request a short-lived, one-use challenge and sign it with the Keystore key. The client requests a fresh challenge for each Socket.IO connection/reconnection. Verification happens only during connection setup, not on controller input packets.
+- The local Windows dashboard lists remembered Android phones and can revoke one immediately, disconnecting any active controller session. Expired trust is removed when accessed/listed and requires the current pairing code again.
+- The Android Connect screen permits an empty code for a remembered phone. If trust is missing, expired, or revoked, it asks the user to return and enter the current code. Clearing app data or reinstalling loses the Android Keystore key and requires pairing again.
+- Browser/PWA controller clients still use the pairing code for each new connection; only the native Android app uses remembered Keystore trust in this update.
+- `node --check` passed for `server/index.js`, `server/device-trust.js`, `controller/js/controller.js`, and `dashboard/js/dashboard.js`; `git diff --check` passed. No Jest tests, Android Java compilation, APK/installer builds, or physical-device tests have been run for this change.

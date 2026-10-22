@@ -104,7 +104,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="8-DIGIT PAIRING CODE FROM WINDOWS APP"
+            android:text="PAIRING CODE (FIRST PAIRING OR AFTER 30 DAYS UNUSED)"
             android:textSize="11sp"
             android:textColor="#66FFFFFF"
             android:letterSpacing="0.15"
@@ -118,7 +118,7 @@
             android:layout_height="56dp"
             android:maxWidth="380dp"
             android:background="@drawable/input_background"
-            android:hint="8-digit code"
+            android:hint="Leave blank for a remembered phone"
             android:textColorHint="#33FFFFFF"
             android:textColor="#FFE8E8F0"
             android:textSize="16sp"
