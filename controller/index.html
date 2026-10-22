@@ -17,10 +17,11 @@
   <div id="settings-overlay" class="settings-overlay hidden">
     <div class="settings-panel">
       <div class="settings-header">
-        <h2>⚙️ Settings</h2>
+        <div><h2>Controller settings</h2><span class="settings-caption">Tune the controls for this phone</span></div>
         <button id="close-settings" class="icon-btn">✕</button>
       </div>
       <div class="settings-body">
+        <div class="settings-section-heading">Controls</div>
         <div class="setting-group"><label>Vibration</label>
           <label class="toggle"><input type="checkbox" id="haptic-toggle" checked><span class="slider"></span></label>
         </div>
@@ -48,6 +49,8 @@
         <div class="setting-group setting-actions">
           <button id="reset-control-positions-btn" class="action-btn secondary-action">Reset control positions</button>
         </div>
+        <div class="settings-divider"></div>
+        <div class="settings-section-heading">Appearance</div>
         <div class="setting-group"><label>Theme</label>
           <div class="theme-options">
             <button class="theme-btn active" data-theme="phantom">Phantom</button>
@@ -64,6 +67,7 @@
           </select>
         </div>
         <div class="settings-divider"></div>
+        <div class="settings-section-heading">Game behavior</div>
         <div class="setting-group preset-section">
           <label>Game Preset</label>
           <select id="preset-select" class="select-input">

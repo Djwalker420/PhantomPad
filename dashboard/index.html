@@ -13,8 +13,11 @@
     <!-- Header -->
     <header class="header">
       <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <h1>Phantom<span class="accent">Pad</span></h1>
+        <span class="logo-icon" aria-hidden="true">P</span>
+        <div class="logo-copy">
+          <h1>Phantom<span class="accent">Pad</span></h1>
+          <span class="brand-kicker">WIRELESS CONTROL DECK</span>
+        </div>
       </div>
       <div class="header-status">
         <span class="status-pill" id="server-status">● Server Running</span>
@@ -26,7 +29,7 @@
       <!-- Connection Card -->
       <section class="card connection-card" id="connection-card">
         <div class="card-header">
-          <h2>📱 Connect Your Phone</h2>
+          <div><h2>Connect a phone</h2><p class="card-subtitle">Scan the code or enter this address in PhantomPad.</p></div>
         </div>
         <div class="card-body">
           <div class="conn-tabs" id="conn-tabs"></div>
@@ -90,7 +93,7 @@
       <!-- Controllers Card -->
       <section class="card controllers-card">
         <div class="card-header">
-          <h2>🎮 Controllers</h2>
+          <div><h2>Player slots</h2><p class="card-subtitle">Connected phones and virtual controller status.</p></div>
           <span class="badge" id="controller-count">0</span>
         </div>
         <div class="card-body">
@@ -103,7 +106,7 @@
       <!-- Mode & Preset Card -->
       <section class="card mode-card">
         <div class="card-header">
-          <h2>⚙️ Input Mode</h2>
+          <div><h2>Input setup</h2><p class="card-subtitle">Choose how PhantomPad sends your controls.</p></div>
         </div>
         <div class="card-body">
           <div class="mode-toggle">
@@ -146,7 +149,7 @@
       <!-- Input Visualizer -->
       <section class="card card-full visualizer-card">
         <div class="card-header">
-          <h2>📊 Input Visualizer</h2>
+          <div><h2>Live input</h2><p class="card-subtitle">See button and stick activity received by Windows.</p></div>
         </div>
         <div class="card-body vis-body">
           <p class="visualizer-note">This shows input received by the Windows server. The controller status above reports whether ViGEm accepted a report; it cannot confirm that a game read it.</p>
@@ -159,7 +162,7 @@
       <!-- Key Mapping Editor -->
       <section class="card card-full mapping-card" id="mapping-card">
         <div class="card-header">
-          <h2>🗺️ Key Mapping Editor</h2>
+          <div><h2>Button mapping</h2><p class="card-subtitle">Tune keyboard controls for your games.</p></div>
         </div>
         <div class="mapping-editor">
           <div class="editor-toolbar">
@@ -183,7 +186,7 @@
       <!-- Macros Card -->
       <section class="card card-full macros-card" id="macros-card">
         <div class="card-header">
-          <h2>🎬 Macros</h2>
+          <div><h2>Macros</h2><p class="card-subtitle">Record and replay button sequences.</p></div>
         </div>
         <div class="card-body">
           <div class="macro-controls">

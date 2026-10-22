@@ -104,10 +104,10 @@ try {
     $global:XA = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Axis]
     $global:XS = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Slider]
     $global:XB = [Nefarius.ViGEm.Client.Targets.Xbox360.Xbox360Button]
-    $probe = $global:vigemClient.CreateXbox360Controller()
-    $probe.Connect()
-    $probe.Disconnect()
-    $probe.Dispose()
+    # The client constructor already connects to the ViGEm bus. Do not plug
+    # and unplug a temporary Xbox target on every app launch: that can cause
+    # device-list churn and the archived .NET wrapper can report a misleading
+    # Win32Exception after the target was successfully plugged in.
     Write-PhantomPadMarker "VIGEM_READY"
 } catch {
     Write-PhantomPadMarker "VIGEM_FAILED: $_"
@@ -127,7 +127,7 @@ Write-PhantomPadMarker "KB_READY"
         if (output.includes('VIGEM_READY')) {
           this.gamepadAvailable = true;
           this.gamepadError = null;
-          console.log('  ✓ ViGEm bus and virtual Xbox controller connection verified');
+          console.log('  ✓ ViGEm bus connection established; player targets will be checked when connected');
           for (const player of this.players.values()) this._createPlayerController(player);
           this.onStatusChange?.(this.getStatus());
         }
@@ -167,6 +167,12 @@ Write-PhantomPadMarker "KB_READY"
             console.log(`  ✓ ViGEm controller ready for player ${player.number}`);
             this._notifyStatusChange();
           }
+        }
+        const playerNotice = output.match(/VIGEM_PLAYER_NOTICE\[(\d+)\]:\s*([^\r\n]+)/);
+        if (playerNotice) {
+          const message = `Player ${playerNotice[1]} controller connected; ${playerNotice[2]}`;
+          this._logBridge(message);
+          console.warn(`  ⚠ ${message}`);
         }
         const playerFailure = output.match(/VIGEM_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
         if (playerFailure) {
@@ -366,7 +372,26 @@ try {
   Write-PhantomPadMarker "VIGEM_PLAYER_ALLOCATED[${number}]"
   $c.AutoSubmitReport = $false
   Write-PhantomPadMarker "VIGEM_PLAYER_CONNECTING[${number}]"
-  $c.Connect()
+  try {
+    $c.Connect()
+  } catch {
+    # Xbox360Controller.Connect() first plugs the target into the bus, then
+    # registers its optional vibration callback. The bundled ViGEm.NET
+    # wrapper can throw a generic Win32Exception (The operation completed
+    # successfully) for that second step. Trust the wrapper's own connected
+    # state so a successfully plugged-in controller remains usable.
+    $targetConnected = $false
+    $targetType = $c.GetType()
+    $connectedField = $null
+    $bindingFlags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
+    while ($targetType -and -not $connectedField) {
+      $connectedField = $targetType.GetField('_isConnected', $bindingFlags)
+      $targetType = $targetType.BaseType
+    }
+    if ($connectedField) { $targetConnected = [bool]$connectedField.GetValue($c) }
+    if (-not $targetConnected) { throw }
+    Write-PhantomPadMarker "VIGEM_PLAYER_NOTICE[${number}]: vibration feedback registration was unavailable"
+  }
   $global:xctrls[${number}] = $c
   Write-PhantomPadMarker "VIGEM_PLAYER_READY[${number}]"
 } catch {

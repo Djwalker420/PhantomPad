@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-10-22
-Desktop source: 1.8.0; Android source: 1.8.0 (versionCode 12)
+Desktop source: 1.9.0; Android source: 1.9.0 (versionCode 13)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -151,3 +151,17 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - The Android Connect screen permits an empty code for a remembered phone. If trust is missing, expired, or revoked, it asks the user to return and enter the current code. Clearing app data or reinstalling loses the Android Keystore key and requires pairing again.
 - Browser/PWA controller clients still use the pairing code for each new connection; only the native Android app uses remembered Keystore trust in this update.
 - `node --check` passed for `server/index.js`, `server/device-trust.js`, `controller/js/controller.js`, and `dashboard/js/dashboard.js`; `git diff --check` passed. No Jest tests, Android Java compilation, APK/installer builds, or physical-device tests have been run for this change.
+
+## ViGEm startup false alarm (2026-10-22)
+- User reports the Windows app displays `Exception calling "Connect" with "0" argument(s): "The operation completed successfully"` and links to Install / repair. Repairing ViGEmBus does not prevent the warning from returning.
+- Source inspection found startup creates a temporary Xbox target, calls `Connect()`, then `Disconnect()` as a probe. The bundled archived ViGEm.NET wrapper calls base target plug-in first, then separately registers vibration feedback; for unexpected ViGEm error codes it throws `Win32Exception(Marshal.GetLastWin32Error())`, which can produce the misleading success text. A failed probe could also skip Disconnect and leave the temporary target plugged in. This is a likely code-path explanation, not yet confirmed from the user's debug log.
+- Windows source is updated to rely on the ViGEm client constructor for bus connection status and avoid plugging/unplugging a throwaway controller every app launch. For real player targets, if Connect throws but the wrapper's internal connected state confirms the target was plugged into the bus, PhantomPad keeps that controller active and logs that vibration feedback registration was unavailable. Actual target plug-in failures still remain errors.
+- Kept the Windows package version and CI installer artifact label at 1.8.0 when the user deferred version changes. The later UI refresh bumps both applications to 1.9.0.
+- No tests, build, CI, or user-device validation were run for the ViGEm fix before the UI refresh. The new 1.9.0 Windows package should be installed to confirm the warning no longer appears and game input continues. No ViGEm repair/reinstall should be needed unless the bus client itself reports a real missing/access/version failure.
+
+## Control Deck UI refresh (2026-10-22)
+- Reworked the Windows dashboard styling toward a cleaner graphite control deck, with a simplified PhantomPad monogram, grouped card descriptions, responsive connection/player/mode layout, flatter surfaces, muted teal accent, and removal of the remote Google Fonts import.
+- Restyled the shared Android/browser controller page with a matte graphite surface, reduced glow effects, improved settings section headings and spacing, and a bottom-sheet settings panel on narrow screens. Controller HTML IDs, pointer event handling, socket transport, and input payload behavior were preserved.
+- Redesigned Android's Connect screen and Recent PC cards while preserving the view IDs consumed by `ConnectActivity.java`; connection/authentication behavior is unchanged.
+- Bumped Windows and Android versions together to 1.9.0, Android `versionCode` to 13, CI artifact labels to v1.9.0, and the controller service-worker cache to v9.
+- Included the pending Windows ViGEm startup false-alarm fix from the prior section. No tests, builds, CI, or visual/device checks have been run for this UI update; rebuild Windows installer and Android APK before using it.

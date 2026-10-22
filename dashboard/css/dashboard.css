@@ -1,6 +1,5 @@
 /* PhantomPad Dashboard v3 — Full Redesign */
 /* Premium dark UI with glassmorphism */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1125,3 +1124,101 @@ body::before {
 
 /* ===== Utility ===== */
 .hidden { display: none !important; }
+
+/* PhantomPad Control Deck visual refresh */
+:root {
+  --bg: #090d12;
+  --bg-elevated: #111820;
+  --bg-card: #111820;
+  --bg-card-hover: #151e27;
+  --border: #222d38;
+  --border-hover: #344654;
+  --primary: #55d6d2;
+  --primary-dim: rgba(85,214,210,0.12);
+  --primary-glow: rgba(85,214,210,0.14);
+  --secondary: #a7b4c2;
+  --secondary-dim: rgba(167,180,194,0.12);
+  --text: #edf3f6;
+  --text-secondary: #a9b6c0;
+  --text-dim: #7f8d98;
+  --success: #78d6a3;
+  --success-dim: rgba(120,214,163,0.1);
+  --danger: #ff777e;
+  --danger-dim: rgba(255,119,126,0.1);
+  --warning: #efc16c;
+  --warning-dim: rgba(239,193,108,0.1);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 14px 40px rgba(0,0,0,0.24);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.34);
+  --font: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Cascadia Code', 'Consolas', monospace;
+}
+
+html, body { background: var(--bg); }
+body { background-image: radial-gradient(ellipse at 7% -10%, rgba(85,214,210,0.07), transparent 34%); }
+body::before { display: none; }
+.app { max-width: 1520px; padding: 32px clamp(20px, 3vw, 48px) 48px; }
+.header { margin-bottom: 28px; padding-bottom: 22px; border-color: var(--border); }
+.logo { gap: 14px; }
+.logo-icon {
+  width: 46px; height: 46px; display: grid; place-items: center;
+  border-radius: 14px; border: 1px solid rgba(85,214,210,0.35);
+  background: linear-gradient(145deg, rgba(85,214,210,0.17), rgba(85,214,210,0.04));
+  color: var(--primary); font: 800 23px/1 var(--font); filter: none; animation: none;
+}
+.logo h1 { background: none; -webkit-text-fill-color: currentColor; color: var(--text); font: 750 23px/1.1 var(--font); letter-spacing: -0.6px; }
+.accent { color: var(--primary); }
+.logo-copy { display: grid; gap: 5px; }
+.brand-kicker { color: var(--text-dim); font: 600 9px/1 var(--font); letter-spacing: 1.7px; }
+.status-pill { padding: 8px 13px; border-radius: 9px; font-size: 11px; letter-spacing: 0; }
+.main-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.main-grid > .connection-card { grid-column: span 7; grid-row: span 2; }
+.main-grid > .controllers-card, .main-grid > .mode-card { grid-column: span 5; }
+.main-grid > .card-full { grid-column: 1 / -1; }
+.card { background: var(--bg-card); border-color: var(--border); border-radius: var(--radius); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: var(--shadow); }
+.card:hover { border-color: var(--border-hover); box-shadow: var(--shadow); }
+.card-header { padding: 18px 21px; background: transparent; border-bottom-color: var(--border); }
+.card-header h2 { font-size: 15px; letter-spacing: -0.2px; }
+.card-subtitle { margin-top: 5px; color: var(--text-dim); font-size: 11px; line-height: 1.45; }
+.card-body { padding: 20px 21px; }
+.badge { color: #081113; background: var(--primary); border-radius: 8px; min-width: 30px; text-align: center; }
+.conn-tab, .mode-btn, .preset-btn, .editor-btn, .editor-select, .copy-btn { border-radius: 10px; }
+.conn-tab { background: #0d1319; border-color: var(--border); color: var(--text-dim); }
+.conn-tab.active { background: var(--primary-dim); border-color: rgba(85,214,210,0.5); color: var(--primary); box-shadow: none; }
+.qr-frame { border-radius: 16px; border: 1px solid var(--border); background: #f6f8f8; padding: 12px; }
+.url-box, .pairing-info, .trusted-devices-panel, .adb-help { background: #0c1218; border-color: var(--border); border-radius: 12px; }
+.url-box code, .pairing-info code { color: var(--primary); }
+.pairing-code, #pairing-code { letter-spacing: 0.16em; }
+.player-card { background: #0d141a; border-color: var(--border); border-radius: 13px; padding: 15px; }
+.player-card:hover { border-color: rgba(85,214,210,0.42); }
+.player-avatar { border-radius: 12px; }
+.player-latency { border-radius: 8px; }
+.mode-btn { background: #0d141a; border-color: var(--border); min-height: 94px; }
+.mode-btn.active { border-color: rgba(85,214,210,0.55); background: linear-gradient(145deg, rgba(85,214,210,0.12), #101820); box-shadow: inset 0 0 0 1px rgba(85,214,210,0.12); }
+.mode-icon { filter: grayscale(0.35); }
+.visualizer-note { color: var(--text-dim); }
+.player-visualizer, .mapping-item, .macro-item { background: #0d141a; border-color: var(--border); border-radius: 13px; }
+.editor-toolbar { padding: 16px 20px; border-bottom-color: var(--border); }
+.editor-btn { background: #17212a; border-color: var(--border); color: var(--text); }
+.editor-btn.primary { background: var(--primary); color: #071112; border-color: var(--primary); }
+.editor-btn.danger { color: var(--danger); }
+.editor-select, .macro-name-input, .modal-input { background: #0c1218; border-color: var(--border); color: var(--text); }
+.modal { background: #111820; border-color: var(--border); border-radius: 18px; }
+.warning { border-radius: 10px; }
+.empty-state { border-color: #2a3640; border-radius: 12px; }
+
+@media (max-width: 1200px) {
+  .main-grid { grid-template-columns: minmax(0, 1fr); }
+  .main-grid > .connection-card, .main-grid > .controllers-card, .main-grid > .mode-card,
+  .main-grid > .card-full { grid-column: 1; grid-row: auto; }
+}
+@media (max-width: 700px) {
+  .app { padding: 18px 14px 30px; }
+  .header { flex-direction: row; align-items: center; gap: 12px; }
+  .header-status { width: auto; }
+  .logo-icon { width: 40px; height: 40px; }
+  .logo h1 { font-size: 20px; }
+  .brand-kicker { font-size: 8px; }
+  .card-header, .card-body { padding-left: 16px; padding-right: 16px; }
+}
