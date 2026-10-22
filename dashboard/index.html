@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#06060c">
+  <meta name="theme-color" content="#090d12">
   <meta name="description" content="PhantomPad - Turn your phone into a wireless game controller for PC">
   <title>PhantomPad — Dashboard</title>
   <link rel="stylesheet" href="css/dashboard.css">
@@ -24,10 +24,26 @@
       </div>
     </header>
 
+    <div class="workspace-heading">
+      <div class="workspace-copy">
+        <span class="workspace-eyebrow" id="workspace-eyebrow">SESSION / 01</span>
+        <h2 id="workspace-title">Play setup</h2>
+        <p id="workspace-description">Connect phones, choose the input mode, and check each player.</p>
+      </div>
+      <nav class="workspace-nav" aria-label="PhantomPad workspace">
+        <button class="workspace-tab active" type="button" data-workspace-target="play" aria-pressed="true">
+          <span class="workspace-tab-index">01</span><span>Play</span>
+        </button>
+        <button class="workspace-tab" type="button" data-workspace-target="customize" aria-pressed="false">
+          <span class="workspace-tab-index">02</span><span>Customize</span>
+        </button>
+      </nav>
+    </div>
+
     <!-- Main Grid -->
     <main class="main-grid">
       <!-- Connection Card -->
-      <section class="card connection-card" id="connection-card">
+      <section class="card connection-card" id="connection-card" data-workspace="play">
         <div class="card-header">
           <div><h2>Connect a phone</h2><p class="card-subtitle">Scan the code or enter this address in PhantomPad.</p></div>
         </div>
@@ -91,7 +107,7 @@
       </section>
 
       <!-- Controllers Card -->
-      <section class="card controllers-card">
+      <section class="card controllers-card" data-workspace="play">
         <div class="card-header">
           <div><h2>Player slots</h2><p class="card-subtitle">Connected phones and virtual controller status.</p></div>
           <span class="badge" id="controller-count">0</span>
@@ -104,7 +120,7 @@
       </section>
 
       <!-- Mode & Preset Card -->
-      <section class="card mode-card">
+      <section class="card mode-card" data-workspace="play">
         <div class="card-header">
           <div><h2>Input setup</h2><p class="card-subtitle">Choose how PhantomPad sends your controls.</p></div>
         </div>
@@ -147,7 +163,7 @@
       </section>
 
       <!-- Input Visualizer -->
-      <section class="card card-full visualizer-card">
+      <section class="card card-full visualizer-card" data-workspace="play">
         <div class="card-header">
           <div><h2>Live input</h2><p class="card-subtitle">See button and stick activity received by Windows.</p></div>
         </div>
@@ -160,7 +176,7 @@
       </section>
 
       <!-- Key Mapping Editor -->
-      <section class="card card-full mapping-card" id="mapping-card">
+      <section class="card card-full mapping-card" id="mapping-card" data-workspace="customize" hidden>
         <div class="card-header">
           <div><h2>Button mapping</h2><p class="card-subtitle">Tune keyboard controls for your games.</p></div>
         </div>
@@ -184,7 +200,7 @@
       </section>
 
       <!-- Macros Card -->
-      <section class="card card-full macros-card" id="macros-card">
+      <section class="card card-full macros-card" id="macros-card" data-workspace="customize" hidden>
         <div class="card-header">
           <div><h2>Macros</h2><p class="card-subtitle">Record and replay button sequences.</p></div>
         </div>

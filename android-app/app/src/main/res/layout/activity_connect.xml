@@ -76,6 +76,32 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/recent_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxWidth="480dp"
+            android:orientation="vertical"
+            android:layout_marginBottom="18dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="RECENT PCS · TAP TO RECONNECT"
+                android:textColor="@color/label"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.12"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:id="@+id/recent_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxWidth="480dp"
@@ -217,32 +243,6 @@
                 android:minHeight="20dp"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/recent_section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxWidth="480dp"
-            android:orientation="vertical"
-            android:layout_marginTop="24dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="RECENT PCS"
-                android:textColor="@color/label"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.14"
-                android:layout_marginBottom="10dp" />
-
-            <LinearLayout
-                android:id="@+id/recent_list"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
         </LinearLayout>
 
     </LinearLayout>

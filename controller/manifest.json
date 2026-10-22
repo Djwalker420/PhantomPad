@@ -5,8 +5,8 @@
   "start_url": "/controller",
   "display": "fullscreen",
   "orientation": "landscape",
-  "background_color": "#06060c",
-  "theme_color": "#06060c",
+  "background_color": "#0a0f14",
+  "theme_color": "#0a0f14",
   "categories": ["games", "utilities"],
   "icons": [
     {

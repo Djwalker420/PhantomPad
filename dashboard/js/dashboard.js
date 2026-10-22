@@ -13,6 +13,39 @@
   let editMode = false;
   let listeningKey = null; // which button we're listening for a keypress on
 
+  const workspaceCopy = {
+    play: {
+      index: 'SESSION / 01',
+      title: 'Play setup',
+      description: 'Connect phones, choose the input mode, and check each player.'
+    },
+    customize: {
+      index: 'SETUP / 02',
+      title: 'Customize controls',
+      description: 'Shape your keyboard mappings and record macros for your games.'
+    }
+  };
+
+  document.querySelectorAll('[data-workspace-target]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const workspace = button.dataset.workspaceTarget;
+      const copy = workspaceCopy[workspace];
+      if (!copy) return;
+      document.querySelectorAll('[data-workspace]').forEach((section) => {
+        section.hidden = section.dataset.workspace !== workspace;
+      });
+      document.querySelectorAll('[data-workspace-target]').forEach((tab) => {
+        const selected = tab === button;
+        tab.classList.toggle('active', selected);
+        tab.setAttribute('aria-pressed', String(selected));
+      });
+      document.getElementById('workspace-eyebrow').textContent = copy.index;
+      document.getElementById('workspace-title').textContent = copy.title;
+      document.getElementById('workspace-description').textContent = copy.description;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
   // ============================================
   //  Server Info
   // ============================================
