@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-10-21
-Desktop source: 1.7.0; Android source: 1.7.0 (versionCode 9)
+Last updated: 2026-10-22
+Desktop source: 1.7.2; Android source: 1.7.2 (versionCode 11)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -136,3 +136,8 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Hardened Android WebView file/content access and top-level navigation, bounded the vibration/toast bridge, and clarified that latency is phone-to-server network RTT while the Windows visualizer shows input received by the server.
 - Rendered macro names as text, corrected the ADB instructions, and made the Windows tray copy a usable controller URL.
 - Bumped Windows and Android metadata together to 1.7.0 because the mandatory pairing handshake changes client/server compatibility; Android `versionCode` is 9. Updated CI artifact labels. Source syntax and whitespace checks passed; no application build, Jest run, or device test has been performed. The pairing code gates access but LAN traffic remains unencrypted HTTP.
+
+## Shorter pairing code update (2026-10-22)
+- Changed the temporary pairing credential to an eight-digit numeric code. Failed remote pairing attempts are limited to five distinct codes per source address in a 60-second window, followed by a 60-second lockout. Repeated automatic retries of the same stale code count once, so a Windows restart does not cause reconnect retries to lock out the phone; successful pairing clears that address's failure counter.
+- Updated Android entry validation and keyboard, dashboard instructions, and the controller assets bundled in the Android app. The credential is sent only during Socket.IO connection/authentication; existing automatic reconnections reuse it and input packets remain unchanged.
+- Bumped Windows and Android metadata to 1.7.2; Android `versionCode` is 11. No APK/installer build, automated tests, or device tests have been run for this update. Eight digits are shorter but reduce the secret space compared with the former 16-character hexadecimal code; attempt limiting mitigates online guessing.

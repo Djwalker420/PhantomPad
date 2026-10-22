@@ -146,9 +146,9 @@ public class MainActivity extends AppCompatActivity {
         // Load the controller UI from this APK; only controller traffic goes to Windows.
         String serverUrl = getIntent().getStringExtra("server_url");
         String pairingCode = getIntent().getStringExtra("pairing_code");
-        if (isValidServerUrl(serverUrl) && pairingCode != null && pairingCode.matches("(?i)[0-9a-f]{16}")) {
+        if (isValidServerUrl(serverUrl) && pairingCode != null && pairingCode.matches("[0-9]{8}")) {
             String localControllerUrl = "https://appassets.androidplatform.net/assets/controller/index.html?serverUrl="
-                    + Uri.encode(serverUrl) + "&pairingCode=" + Uri.encode(pairingCode.toLowerCase(java.util.Locale.ROOT));
+                    + Uri.encode(serverUrl) + "&pairingCode=" + Uri.encode(pairingCode);
             webView.loadUrl(localControllerUrl);
         } else {
             // No URL provided, go back to connect

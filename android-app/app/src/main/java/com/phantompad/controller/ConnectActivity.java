@@ -20,7 +20,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -72,7 +71,7 @@ public class ConnectActivity extends AppCompatActivity {
     private void attemptConnect() {
         String ip = ipInput.getText().toString().trim();
         String port = portInput.getText().toString().trim();
-        String pairingCode = pairingCodeInput.getText().toString().trim().toLowerCase(Locale.ROOT);
+        String pairingCode = pairingCodeInput.getText().toString().trim();
 
         if (ip.isEmpty()) {
             statusText.setText("Please enter a server IP address");
@@ -82,8 +81,8 @@ public class ConnectActivity extends AppCompatActivity {
 
         if (port.isEmpty()) port = "3000";
 
-        if (!pairingCode.matches("[0-9a-f]{16}")) {
-            statusText.setText("Enter the 16-character pairing code shown in the Windows app");
+        if (!pairingCode.matches("[0-9]{8}")) {
+            statusText.setText("Enter the 8-digit pairing code shown in the Windows app");
             statusText.setTextColor(getColor(R.color.danger));
             return;
         }

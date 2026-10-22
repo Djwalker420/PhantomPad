@@ -17,7 +17,11 @@ const config = require('./config');
 const app = express();
 app.use(express.json()); // Body parser (B12)
 const httpServer = createServer(app);
-const pairingCode = crypto.randomBytes(8).toString('hex');
+const pairingCode = crypto.randomInt(0, 100_000_000).toString().padStart(8, '0');
+const pairingAttempts = new Map();
+const PAIRING_ATTEMPT_WINDOW_MS = 60_000;
+const PAIRING_MAX_FAILED_ATTEMPTS = 5;
+const PAIRING_LOCKOUT_MS = 60_000;
 
 function isLoopbackAddress(address) {
   const normalized = String(address || '').toLowerCase();
@@ -90,12 +94,32 @@ io.use((socket, next) => {
     return next();
   }
 
+  const now = Date.now();
+  const address = String(socket.handshake.address || 'unknown').toLowerCase().replace(/^::ffff:/, '');
+  const previousAttempt = pairingAttempts.get(address);
+  if (previousAttempt?.blockedUntil > now) return next(new Error('Pairing code rate limited. Try again in 60 seconds.'));
   const suppliedCode = socket.handshake.auth?.pairingCode;
   const expected = Buffer.from(pairingCode, 'utf8');
   const supplied = typeof suppliedCode === 'string' ? Buffer.from(suppliedCode, 'utf8') : Buffer.alloc(0);
   if (supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected)) {
+    pairingAttempts.delete(address);
     socket.data.role = 'controller';
     return next();
+  }
+
+  const attempt = previousAttempt && now - previousAttempt.windowStarted < PAIRING_ATTEMPT_WINDOW_MS
+    ? previousAttempt
+    : { failedCodes: new Set(), windowStarted: now, blockedUntil: 0 };
+  const failedCode = typeof suppliedCode === 'string' && suppliedCode.length <= 8 ? suppliedCode : '<invalid-code>';
+  attempt.failedCodes.add(failedCode);
+  if (attempt.failedCodes.size >= PAIRING_MAX_FAILED_ATTEMPTS) attempt.blockedUntil = now + PAIRING_LOCKOUT_MS;
+  pairingAttempts.delete(address);
+  pairingAttempts.set(address, attempt);
+  if (pairingAttempts.size > 1024) {
+    for (const [key, value] of pairingAttempts) {
+      if (now - value.windowStarted > PAIRING_ATTEMPT_WINDOW_MS + PAIRING_LOCKOUT_MS) pairingAttempts.delete(key);
+    }
+    while (pairingAttempts.size > 1024) pairingAttempts.delete(pairingAttempts.keys().next().value);
   }
   next(new Error('Pairing code required or invalid'));
 });
