@@ -7,5 +7,10 @@ contextBridge.exposeInMainWorld('phantompad', {
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
-  getVersion: () => ipcRenderer.invoke('get-version')
+  getVersion: () => ipcRenderer.invoke('get-version'),
+  getTrayEnabled: () => ipcRenderer.invoke('get-tray-enabled'),
+  setTrayEnabled: (enabled) => ipcRenderer.invoke('set-tray-enabled', Boolean(enabled)),
+  getTrayStatus: () => ipcRenderer.invoke('get-tray-status'),
+  hideTrayVisualizer: () => ipcRenderer.send('tray-visualizer-hide'),
+  openDashboard: () => ipcRenderer.send('dashboard-show')
 });

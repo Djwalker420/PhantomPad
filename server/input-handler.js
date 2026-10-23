@@ -264,7 +264,7 @@ Write-PhantomPadMarker "KB_READY"
     if (existing) return existing;
     if (this.players.size >= this.maxPlayers) return null;
     const num = this._nextPlayerNum();
-    const colors = ['#00e5ff', '#ff1744', '#00e676', '#ffd600'];
+    const colors = ['#00f5d4', '#4f46e5', '#00e676', '#ffd600'];
     const player = {
       id: socketId, number: num,
       color: colors[num - 1] || colors[0],

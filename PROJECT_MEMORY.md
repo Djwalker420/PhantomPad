@@ -1,7 +1,7 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-10-22
-Desktop source: 1.9.0; Android source: 1.9.0 (versionCode 13)
+Last updated: 2026-10-23
+Desktop source: 1.10.0; Android source: 1.10.0 (versionCode 14)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
@@ -166,3 +166,14 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Reworked the shared Android/browser controller into a hardware-style control deck with a framed tactile surface, compact status capsule, and grouped expandable settings for controls, appearance, game presets, and motion. Controller input DOM ids, pointer handling, socket transport, and input payload behavior remain unchanged.
 - Bumped Windows and Android versions together to 1.9.0, Android `versionCode` to 13, CI artifact labels to v1.9.0, and the controller service-worker cache to v10.
 - Included the pending Windows ViGEm startup false-alarm fix from the prior section. No tests, builds, CI, or visual/device checks have been run for this UI update; rebuild Windows installer and Android APK before using it.
+
+## PhantomPad brand and tray visualizer update (2026-10-23)
+- Bumped Windows and Android app versions together to `1.10.0`; Android `versionCode` is `14`; CI artifact names now use `v1.10.0`. Bumped the shared controller service-worker cache from `v10` to `v11` so the logo and theme changes refresh on phones.
+- Added the supplied six SVG brand variants under `assets/brand/`. The color lockup now brands the Windows dashboard; the color mark appears in the mobile connect page, controller status bar, Windows tray visualizer, Android connect screen, Android launcher icon, and Windows application icon. Mono black/white variants are included for future high-contrast use.
+- Changed the default PhantomPad palette to the supplied cyan/teal `#00F5D4` and indigo `#4F46E5` across dashboard, controller, mobile connect page, and Android native UI. Other controller themes remain available.
+- Replaced the fixed-only Electron tray entry with a live tray visualizer. The dashboard includes a tray enable switch (default enabled and saved in Electron user data as `settings.json`). Closing the main window hides it while the server and input bridge remain running if the tray option is on. Clicking the tray icon opens a live player view with actual server RTT, ViGEm/player state, button activity, and both stick positions. The tray menu can reopen the dashboard or explicitly quit PhantomPad.
+- Added an explicit server shutdown export used by Electron's Quit action so the input handler and game monitor clean up when the user truly exits; ordinary window close continues to hide while tray mode is enabled.
+- The supplied `ai_studio_code.txt` was treated as a visual prototype. Its hardcoded sample phone, fake 1.4 ms latency, random ping simulation, and pretend taskbar were not ported. The live view reads current state from `server/index.js` through a narrow Electron IPC bridge in `electron/preload.js`.
+- Added a reproducible `scripts/generate-brand-art.ps1`; it generated the matching `electron/icon.png`, `build/installerHeader.bmp`, and `build/installerSidebar.bmp`. Configured the NSIS assisted installer to use the custom branded header and sidebar, including its uninstall sidebar.
+- Mirrored shared controller assets into `android-app/app/src/main/assets/controller`; Gradle continues to synchronize these from `controller/` during `preBuild`.
+- Source changes and artwork are present locally. Jest, Android APK build, Windows installer build, CI, tray runtime behavior, and device behavior have not been run or verified in this update. Nothing was committed, pushed, or merged. No physical two-device test is claimed.

@@ -1,5 +1,5 @@
 // PhantomPad Controller - Service Worker (Network-First with offline fallback)
-const CACHE_NAME = 'phantompad-controller-v10';
+const CACHE_NAME = 'phantompad-controller-v11';
 const ASSETS_TO_CACHE = [
   '/controller/',
   '/controller/index.html',
@@ -7,7 +7,8 @@ const ASSETS_TO_CACHE = [
   '/controller/js/utils.js',
   '/controller/js/controller.js',
   '/controller/js/socket.io.min.js',
-  '/controller/manifest.json'
+  '/controller/manifest.json',
+  '/controller/icons/phantompad-mark-color.svg'
 ];
 
 self.addEventListener('install', (e) => {

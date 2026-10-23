@@ -1,6 +1,6 @@
 {
   "name": "phantompad",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Turn your phone into a wireless game controller for PC",
   "main": "electron/main.js",
   "scripts": {
@@ -30,7 +30,10 @@
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp"
     },
     "asarUnpack": [
       "server/lib/Nefarius.ViGEm.Client.dll"

@@ -13,13 +13,14 @@
     <!-- Header -->
     <header class="header">
       <div class="logo">
-        <span class="logo-icon" aria-hidden="true">P</span>
-        <div class="logo-copy">
-          <h1>Phantom<span class="accent">Pad</span></h1>
-          <span class="brand-kicker">WIRELESS CONTROL DECK</span>
-        </div>
+        <img class="brand-lockup" src="/dashboard/assets/phantompad-lockup-color.svg" alt="PhantomPad — Wireless Control Deck">
       </div>
       <div class="header-status">
+        <label class="tray-setting" id="tray-setting" title="Keep PhantomPad running and show its live status in the Windows system tray" hidden>
+          <input id="tray-visualizer-toggle" type="checkbox">
+          <span class="tray-switch" aria-hidden="true"></span>
+          <span>Tray visualizer</span>
+        </label>
         <span class="status-pill" id="server-status">● Server Running</span>
       </div>
     </header>

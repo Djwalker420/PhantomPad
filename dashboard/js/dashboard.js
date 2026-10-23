@@ -5,6 +5,21 @@
   const socket = io({ transports: ['websocket', 'polling'] });
   socket.emit('register-dashboard');
 
+  const traySetting = document.getElementById('tray-setting');
+  const trayToggle = document.getElementById('tray-visualizer-toggle');
+  if (window.phantompad?.isElectron && traySetting && trayToggle) {
+    traySetting.hidden = false;
+    window.phantompad.getTrayEnabled().then((enabled) => { trayToggle.checked = Boolean(enabled); });
+    trayToggle.addEventListener('change', async () => {
+      try {
+        trayToggle.checked = await window.phantompad.setTrayEnabled(trayToggle.checked);
+      } catch (error) {
+        trayToggle.checked = !trayToggle.checked;
+        console.error('Could not update tray visualizer preference:', error);
+      }
+    });
+  }
+
   let allInterfaces = [];
   let activeTab = 0;
   let mappingsData = { presets: {}, custom: {}, vkNames: {}, vk: {} };

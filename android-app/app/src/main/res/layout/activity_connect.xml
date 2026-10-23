@@ -25,15 +25,14 @@
             android:orientation="horizontal"
             android:layout_marginBottom="26dp">
 
-            <TextView
+            <ImageView
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="@drawable/brand_mark_background"
-                android:gravity="center"
-                android:text="P"
-                android:textColor="@color/primary"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:contentDescription="@string/app_name"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/brand_mark" />
 
             <LinearLayout
                 android:layout_width="0dp"

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';">
+  <title>PhantomPad Tray Visualizer</title>
+  <link rel="stylesheet" href="tray-visualizer.css">
+</head>
+<body>
+  <main class="panel">
+    <header>
+      <img src="../assets/brand/phantompad-mark-color.svg" alt="" aria-hidden="true">
+      <div class="heading"><strong>PhantomPad</strong><span>LIVE INPUT</span></div>
+      <button id="close" title="Close visualizer" aria-label="Close visualizer">×</button>
+    </header>
+    <div class="host-status"><span class="pulse"></span><span id="host-state">Starting input bridge…</span><span id="mode">GAMEPAD</span></div>
+    <section id="players" class="players"><p class="empty">Waiting for a phone to connect</p></section>
+    <footer><button id="dashboard">Open dashboard</button><span>PhantomPad runs in the tray</span></footer>
+  </main>
+  <script src="tray-visualizer.js"></script>
+</body>
+</html>

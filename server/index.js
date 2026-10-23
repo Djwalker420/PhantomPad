@@ -150,6 +150,7 @@ io.use((socket, next) => {
 
 const PORT = config.port;
 const inputHandler = new InputHandler(config);
+const latestInputByPlayer = new Map();
 inputHandler.onStatusChange = (status) => {
   io.emit('status-update', status);
   io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
@@ -451,6 +452,11 @@ io.on('connection', (socket) => {
     if (!isValidInputPacket(data)) return;
 
     inputHandler.handleInput(socket.id, data);
+    latestInputByPlayer.set(socket.id, {
+      buttons: data.buttons || {},
+      axes: data.axes || {},
+      triggers: data.triggers || {}
+    });
     if (inputHandler.players.has(socket.id)) inputWatchdog.refresh();
     if (macroHandler.recording) macroHandler.recordInput(data);
     io.to('dashboard').emit('input-visualize', { playerId: socket.id, ...data });
@@ -575,6 +581,7 @@ io.on('connection', (socket) => {
     inputWatchdog.stop();
     const info = inputHandler.getPlayerInfo(socket.id);
     if (info) {
+      latestInputByPlayer.delete(socket.id);
       inputHandler.removePlayer(socket.id);
       console.log(`  ✗ P${info.number} disconnected: ${socket.id}`);
       io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
@@ -629,13 +636,39 @@ httpServer.on('listening', () => {
 tryListen();
 
 // Export for Electron
-module.exports = { app, httpServer, io, PORT, activePort: currentPort, getControllerUrl };
+function getTrayStatus() {
+  return {
+    mode: inputHandler.getMode(),
+    gamepadAvailable: inputHandler.gamepadAvailable,
+    gamepadError: inputHandler.gamepadError,
+    players: inputHandler.getPlayersInfo().map((player) => ({
+      number: player.number,
+      color: player.color,
+      latency: player.latency,
+      controllerStatus: player.controllerStatus,
+      controllerError: player.controllerError,
+      input: latestInputByPlayer.get(player.id) || { buttons: {}, axes: {}, triggers: {} }
+    }))
+  };
+}
+
+let isShuttingDown = false;
+function shutdown() {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  inputHandler.cleanup();
+  gameMonitor.cleanup();
+  if (httpServer.listening) {
+    try { httpServer.close(); } catch (_) {}
+  }
+}
+
+module.exports = { app, httpServer, io, PORT, activePort: currentPort, getControllerUrl, getTrayStatus, shutdown };
 
 // --- Cleanup (B8) ---
 ['SIGINT', 'SIGTERM', 'SIGQUIT'].forEach(sig => {
   process.on(sig, () => {
-    inputHandler.cleanup();
-    gameMonitor.cleanup();
+    shutdown();
     process.exit(0);
   });
 });

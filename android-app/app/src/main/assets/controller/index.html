@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="/controller/icons/icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#06060c">
+  <meta name="theme-color" content="#00F5D4">
   <title>PhantomPad Controller</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/controller.css">
@@ -17,10 +17,12 @@
   <div id="settings-overlay" class="settings-overlay hidden">
     <div class="settings-panel">
       <div class="settings-header">
-        <h2>⚙️ Settings</h2>
+        <div><h2>Controller settings</h2><span class="settings-caption">Tune the controls for this phone</span></div>
         <button id="close-settings" class="icon-btn">✕</button>
       </div>
       <div class="settings-body">
+        <details class="setting-section" open>
+          <summary><span>Controls</span><small>Feel, size and placement</small></summary>
         <div class="setting-group"><label>Vibration</label>
           <label class="toggle"><input type="checkbox" id="haptic-toggle" checked><span class="slider"></span></label>
         </div>
@@ -48,6 +50,9 @@
         <div class="setting-group setting-actions">
           <button id="reset-control-positions-btn" class="action-btn secondary-action">Reset control positions</button>
         </div>
+        </details>
+        <details class="setting-section">
+          <summary><span>Appearance</span><small>Colors and button labels</small></summary>
         <div class="setting-group"><label>Theme</label>
           <div class="theme-options">
             <button class="theme-btn active" data-theme="phantom">Phantom</button>
@@ -63,7 +68,9 @@
             <option value="nintendo">Nintendo Switch</option>
           </select>
         </div>
-        <div class="settings-divider"></div>
+        </details>
+        <details class="setting-section">
+          <summary><span>Game presets</span><small>Mappings and opacity</small></summary>
         <div class="setting-group preset-section">
           <label>Game Preset</label>
           <select id="preset-select" class="select-input">
@@ -99,7 +106,9 @@
         <div class="setting-group"><label>Opacity</label>
           <input type="range" id="opacity-slider" min="30" max="100" value="85" class="range-slider">
         </div>
-        <div class="settings-divider"></div>
+        </details>
+        <details class="setting-section">
+          <summary><span>Motion controls</span><small>Gyroscope options</small></summary>
         <div class="setting-group"><label>Motion Controls</label>
           <select id="motion-select" class="select-input">
             <option value="off">Off</option>
@@ -115,6 +124,7 @@
         <div class="setting-group">
           <button id="calibrate-btn" class="action-btn">📐 Calibrate Motion</button>
         </div>
+        </details>
       </div>
     </div>
   </div>
@@ -146,6 +156,7 @@
 
     <!-- Main Play Area -->
     <div class="play-area">
+      <div class="controller-deck-label" aria-hidden="true"><img class="controller-brand-mark" src="/controller/icons/phantompad-mark-color.svg" alt=""><span>PHANTOMPAD</span><i></i><span>WIRELESS GAMEPAD</span></div>
       <div class="zone left-zone">
         <div class="joystick-container" id="left-stick-zone" data-layout-id="leftStick">
           <div class="joystick-base" id="left-stick-base">
