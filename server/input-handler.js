@@ -471,6 +471,27 @@ try {
     if (-not $targetConnected) { throw }
     Write-PhantomPadMarker "VIGEM_PLAYER_NOTICE[${number}]: vibration feedback registration was unavailable"
   }
+  $global:xctrls[${number}] = $c
+  Write-PhantomPadMarker "VIGEM_PLAYER_READY[${number}]"
+} catch {
+  Write-PhantomPadMarker "VIGEM_PLAYER_FAILED[${number}]: $_"
+}
+`, (error) => {
+      if (error) this._logBridge(`Player ${number} command could not be written to PowerShell: ${error.message}`);
+      else this._logBridge(`Player ${number} command was written to the PowerShell pipe.`);
+    });
+    player.controllerTimeout = setTimeout(() => {
+      if (player.controllerStatus !== 'connecting') return;
+      player.controllerStatus = 'error';
+      player.controllerError = `Timed out during setup: ${player.controllerStage || 'waiting for PowerShell response'}.`;
+      player.controllerStage = null;
+      if (this.psOutputBuffer.trim()) this._logBridge(`Unterminated PowerShell stdout at timeout: ${this.psOutputBuffer.trim()}`);
+      this._logBridge(`Player ${number} creation timed out. Last confirmed stage: ${player.controllerError}`);
+      console.error(`  ✗ ViGEm controller creation timed out for player ${number}`);
+      this._notifyStatusChange();
+    }, PLAYER_CONTROLLER_TIMEOUT_MS);
+    return true;
+  }
 
   _createActiveController(player) {
     if (this.mode === 'racepad') return this._createRacepadController(player);
@@ -529,27 +550,6 @@ try {
     player.hasController = false;
     player.controllerType = null;
     clearTimeout(player.controllerTimeout);
-  }
-  $global:xctrls[${number}] = $c
-  Write-PhantomPadMarker "VIGEM_PLAYER_READY[${number}]"
-} catch {
-  Write-PhantomPadMarker "VIGEM_PLAYER_FAILED[${number}]: $_"
-}
-`, (error) => {
-      if (error) this._logBridge(`Player ${number} command could not be written to PowerShell: ${error.message}`);
-      else this._logBridge(`Player ${number} command was written to the PowerShell pipe.`);
-    });
-    player.controllerTimeout = setTimeout(() => {
-      if (player.controllerStatus !== 'connecting') return;
-      player.controllerStatus = 'error';
-      player.controllerError = `Timed out during setup: ${player.controllerStage || 'waiting for PowerShell response'}.`;
-      player.controllerStage = null;
-      if (this.psOutputBuffer.trim()) this._logBridge(`Unterminated PowerShell stdout at timeout: ${this.psOutputBuffer.trim()}`);
-      this._logBridge(`Player ${number} creation timed out. Last confirmed stage: ${player.controllerError}`);
-      console.error(`  ✗ ViGEm controller creation timed out for player ${number}`);
-      this._notifyStatusChange();
-    }, PLAYER_CONTROLLER_TIMEOUT_MS);
-    return true;
   }
 
   // --- Input Handling ---
