@@ -64,9 +64,10 @@ async function refresh() {
   if (!window.phantompad?.getTrayStatus) return;
   try {
     const status = await window.phantompad.getTrayStatus();
-    const active = status.gamepadAvailable;
-    hostState.textContent = active ? 'Windows input bridge ready' : (status.gamepadError || 'Windows input bridge unavailable');
-    modeElement.textContent = String(status.mode || 'gamepad').toUpperCase();
+    const racepad = status.activeMode === 'racepad';
+    const active = racepad ? status.racepadAvailable : status.gamepadAvailable;
+    hostState.textContent = active ? 'Windows input bridge ready' : (racepad ? status.racepadError : status.gamepadError) || 'Windows input bridge unavailable';
+    modeElement.textContent = `${status.mode === 'auto' ? 'AUTO · ' : ''}${String(status.activeMode || status.mode || 'gamepad').toUpperCase()}`;
     playersElement.replaceChildren();
     if (!status.players?.length) {
       const empty = document.createElement('p'); empty.className = 'empty'; empty.textContent = 'Waiting for a phone to connect';

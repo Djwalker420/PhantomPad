@@ -295,12 +295,27 @@ const processMappings = {
   'Starfield': 'starfield'
 };
 
+const racingProcesses = new Set([
+  'acs', 'acc', 'ac2-win64-shipping', 'assettocorsa', 'assettocorsacompetizione', 'assettocorsaevo',
+  'forzahorizon3', 'forzahorizon4', 'forzahorizon5', 'forzamotorsport', 'forzamotorsport7',
+  ...Array.from({ length: 9 }, (_, index) => `f1_${index + 18}`),
+  'dirt4', 'dirt5', 'dirtrally', 'dirtrally2', 'wrc', 'wrc7', 'wrc8', 'wrc9', 'wrc10', 'iracingsim64dx11',
+  'rfactor2', 'automobilista2', 'beamng.drive', 'beamng.drive.x64', 'pcars2', 'pcars2avx', 'pcars3',
+  'projectcars2', 'projectcars3', 'raceroomgame', 'rrre', 'lemansultimate', 'kartkraft', 'trackmania',
+  'thecrew', 'thecrew2', 'thecrewmotorfest', 'needforspeed2015', 'needforspeedheat', 'needforspeedpayback', 'needforspeedunbound'
+].map(name => name.replace(/\s+/g, '').toLowerCase()));
+
+function isRacingProcess(name) {
+  return typeof name === 'string' && racingProcesses.has(name.replace(/\s+/g, '').replace(/\.exe$/i, '').toLowerCase());
+}
+
 module.exports = {
   port: 3000,
   defaultMode: 'gamepad',
   defaultPreset: 'default',
   axisThreshold: 0.5,
   triggerThreshold: 0.3,
+  isRacingProcess,
   VK,
   VK_NAMES,
   keyMappings,

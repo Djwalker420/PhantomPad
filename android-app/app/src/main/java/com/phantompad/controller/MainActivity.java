@@ -251,6 +251,7 @@ public class MainActivity extends AppCompatActivity {
                 JSONObject identity = new JSONObject();
                 identity.put("deviceId", deviceId.toString());
                 identity.put("publicKey", Base64.encodeToString(publicKey, Base64.NO_WRAP));
+                identity.put("deviceName", Build.MODEL);
                 return identity.toString();
             } catch (Exception error) {
                 android.util.Log.e("PhantomPad", "Could not load Android device trust key", error);

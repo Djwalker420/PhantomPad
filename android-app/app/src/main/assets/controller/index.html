@@ -121,6 +121,10 @@
           <input type="range" id="motion-sens-slider" min="20" max="200" value="100" class="range-slider">
           <span id="motion-sens-value">1.0x</span>
         </div>
+        <div class="setting-group"><label>Race steering tilt range</label>
+          <input type="range" id="race-steering-range" min="10" max="90" value="35" class="range-slider">
+          <span id="race-steering-range-value">35°</span>
+        </div>
         <div class="setting-group">
           <button id="calibrate-btn" class="action-btn">📐 Calibrate Motion</button>
         </div>
@@ -157,6 +161,48 @@
     <!-- Main Play Area -->
     <div class="play-area">
       <div class="controller-deck-label" aria-hidden="true"><img class="controller-brand-mark" src="/controller/icons/phantompad-mark-color.svg" alt=""><span>PHANTOMPAD</span><i></i><span>WIRELESS GAMEPAD</span></div>
+      <div id="racepad-deck" class="racepad-deck hidden">
+        <div id="race-steering" class="race-steering-touch"><span>STEERING</span><small>Hold and slide · tilt steering in settings</small><i></i></div>
+        <div class="race-pedals">
+          <div class="race-pedal" data-pedal="clutch"><i></i><b>CLUTCH</b></div>
+          <div class="race-pedal" data-pedal="brake"><i></i><b>BRAKE</b></div>
+          <div class="race-pedal" data-pedal="throttle"><i></i><b>THROTTLE</b></div>
+          <div class="race-pedal" data-pedal="handbrake"><i></i><b>HANDBRAKE</b></div>
+        </div>
+        <div class="race-gear-controls">
+          <button data-btn="gearUp" data-layout-id="gearUp">SHIFT +</button>
+          <button data-btn="gearDown" data-layout-id="gearDown">SHIFT −</button>
+          <button data-btn="gearReverse" data-layout-id="gearReverse">R</button>
+          <button data-btn="gear1" data-layout-id="gear1">1</button>
+          <button data-btn="gear2" data-layout-id="gear2">2</button>
+          <button data-btn="gear3" data-layout-id="gear3">3</button>
+          <button data-btn="gear4" data-layout-id="gear4">4</button>
+          <button data-btn="gear5" data-layout-id="gear5">5</button>
+          <button data-btn="gear6" data-layout-id="gear6">6</button>
+        </div>
+        <div class="race-wheel-buttons">
+          <button data-btn="A" data-layout-id="raceA">A</button>
+          <button data-btn="B" data-layout-id="raceB">B</button>
+          <button data-btn="X" data-layout-id="raceX">X</button>
+          <button data-btn="Y" data-layout-id="raceY">Y</button>
+          <button data-btn="lb" data-layout-id="raceLB">LB</button>
+          <button data-btn="rb" data-layout-id="raceRB">RB</button>
+          <button data-btn="dpadUp" data-layout-id="raceUp">▲</button>
+          <button data-btn="dpadDown" data-layout-id="raceDown">▼</button>
+          <button data-btn="dpadLeft" data-layout-id="raceLeft">◀</button>
+          <button data-btn="dpadRight" data-layout-id="raceRight">▶</button>
+          <button data-btn="pitLimiter" data-layout-id="pitLimiter">PIT</button>
+          <button data-btn="headlights" data-layout-id="headlights">LIGHTS</button>
+          <button data-btn="wipers" data-layout-id="wipers">WIPERS</button>
+          <button data-btn="camera" data-layout-id="camera">CAMERA</button>
+          <button data-btn="horn" data-layout-id="horn">HORN</button>
+          <button data-btn="ignition" data-layout-id="ignition">IGNITION</button>
+          <button data-btn="absToggle" data-layout-id="absToggle">ABS</button>
+          <button data-btn="tractionToggle" data-layout-id="tractionToggle">TCS</button>
+          <button data-btn="back" data-layout-id="back">BACK</button>
+          <button data-btn="start" data-layout-id="start">MENU</button>
+        </div>
+      </div>
       <div class="zone left-zone">
         <div class="joystick-container" id="left-stick-zone" data-layout-id="leftStick">
           <div class="joystick-base" id="left-stick-base">

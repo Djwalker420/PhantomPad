@@ -385,6 +385,9 @@ body::before {
 .trusted-device-expiry { color: var(--text-dim); font-size: 10px; }
 .trusted-device-revoke { flex: none; border: 1px solid rgba(255,23,68,0.3); border-radius: 6px; padding: 6px 9px; background: var(--danger-dim); color: var(--danger); font-size: 10px; cursor: pointer; }
 .trusted-device-revoke:hover { border-color: var(--danger); }
+.pairing-request-actions { display: flex; gap: 6px; }
+.pairing-approve { flex: none; border: 1px solid rgba(0,230,118,0.3); border-radius: 6px; padding: 6px 9px; background: rgba(0,230,118,0.08); color: var(--success); font-size: 10px; cursor: pointer; }
+.pairing-approve:hover { border-color: var(--success); }
 .trusted-devices-list .empty-state { padding: 6px 0 0; font-size: 11px; }
 
 /* ===== ADB Help ===== */
@@ -527,7 +530,8 @@ body::before {
 
 /* ===== Mode Card ===== */
 .mode-toggle {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -578,6 +582,7 @@ body::before {
 .mode-icon { font-size: 28px; display: block; margin-bottom: 8px; }
 .mode-label { font-size: 15px; font-weight: 700; display: block; }
 .mode-desc { font-size: 11px; color: var(--text-dim); display: block; margin-top: 4px; }
+.mode-detail { margin: 0 0 14px; }
 
 .warning {
   background: var(--warning-dim);
@@ -1258,3 +1263,11 @@ body::before { display: none; }
   .workspace-nav { width: 100%; }
   .workspace-tab { min-width: 0; flex: 1; }
 }
+@media (max-width: 720px) {
+  .mode-toggle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.vis-race-axes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.vis-race-axes > div { display: grid; gap: 5px; color: var(--text-dim); font: 600 9px var(--mono); text-transform: uppercase; }
+.vis-race-axes i { height: 6px; overflow: hidden; border-radius: 10px; background: var(--bg-elevated); }
+.vis-race-axes b { display: block; width: 50%; height: 100%; border-radius: inherit; background: var(--player-color); transition: width 50ms linear; }
+@media (max-width: 700px) { .vis-race-axes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

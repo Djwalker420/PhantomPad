@@ -1,5 +1,5 @@
 // PhantomPad Controller - Service Worker (Network-First with offline fallback)
-const CACHE_NAME = 'phantompad-controller-v11';
+const CACHE_NAME = 'phantompad-controller-v12';
 const ASSETS_TO_CACHE = [
   '/controller/',
   '/controller/index.html',

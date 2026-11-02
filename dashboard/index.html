@@ -71,7 +71,7 @@
               <div class="pairing-info">
                 <div><span class="pairing-label">8-DIGIT PAIRING CODE</span><code id="pairing-code">Loading…</code></div>
                 <button id="copy-pairing-code-btn" class="copy-btn" title="Copy pairing code">📋</button>
-                <small>Enter once in the Android app. Each successful connection renews that phone’s 30-day trust. Use the code again after 30 days without connecting, or after revoking the phone below. Browser controllers still need the code when they connect.</small>
+                <small>Browser controllers use this code. New Android phones appear below for approval; approved phones stay trusted for 30 days after each successful connection.</small>
               </div>
               <div class="trusted-devices-panel">
                 <div class="trusted-devices-heading">
@@ -81,6 +81,13 @@
                 <div id="trusted-devices-list" class="trusted-devices-list">
                   <div class="empty-state">No Android phones remembered yet</div>
                 </div>
+              </div>
+              <div class="trusted-devices-panel pairing-requests-panel" id="pairing-requests-panel" hidden>
+                <div class="trusted-devices-heading">
+                  <strong>New phone requests</strong>
+                  <span>Approve only phones you recognize</span>
+                </div>
+                <div id="pairing-requests-list" class="trusted-devices-list"></div>
               </div>
             </div>
           </div>
@@ -127,6 +134,11 @@
         </div>
         <div class="card-body">
           <div class="mode-toggle">
+            <button class="mode-btn" id="mode-auto" data-mode="auto">
+              <span class="mode-icon">✨</span>
+              <span class="mode-label">Auto</span>
+              <span class="mode-desc">Detect the focused game</span>
+            </button>
             <button class="mode-btn" id="mode-keyboard" data-mode="keyboard">
               <span class="mode-icon">⌨️</span>
               <span class="mode-label">Keyboard</span>
@@ -135,11 +147,19 @@
             <button class="mode-btn" id="mode-gamepad" data-mode="gamepad">
               <span class="mode-icon">🎮</span>
               <span class="mode-label">Gamepad</span>
-              <span class="mode-desc">Virtual Xbox 360</span>
+              <span class="mode-desc">Xbox-compatible controller</span>
+            </button>
+            <button class="mode-btn" id="mode-racepad" data-mode="racepad">
+              <span class="mode-icon">🏁</span>
+              <span class="mode-label">Racepad</span>
+              <span class="mode-desc">DirectInput sim controls</span>
             </button>
           </div>
+          <p id="mode-detail" class="card-subtitle mode-detail">Auto mode uses Racepad for recognized racing sims and Gamepad for other apps. You can select a mode manually.</p>
           <div id="gamepad-warning" class="warning hidden">
-            ⚠️ <span id="gamepad-warning-message">Checking ViGEmBus connection…</span> <a href="https://github.com/nefarius/ViGEmBus/releases" target="_blank" rel="noopener">Install / repair</a>
+            ⚠️ <span id="gamepad-warning-message">Checking virtual controller drivers…</span>
+            <a id="vigem-help" href="https://github.com/nefarius/ViGEmBus/releases" target="_blank" rel="noopener">ViGEm details</a>
+            <a id="vjoy-help" href="https://github.com/jshafer817/vJoy/releases" target="_blank" rel="noopener">Install vJoy</a>
           </div>
           <div class="preset-section">
             <label>Key Preset</label>
@@ -169,7 +189,7 @@
           <div><h2>Live input</h2><p class="card-subtitle">See button and stick activity received by Windows.</p></div>
         </div>
         <div class="card-body vis-body">
-          <p class="visualizer-note">This shows input received by the Windows server. The controller status above reports whether ViGEm accepted a report; it cannot confirm that a game read it.</p>
+          <p class="visualizer-note">This shows input received by the Windows server. The status above reports whether the selected virtual driver accepted it; it cannot confirm that a game read it.</p>
           <div id="input-visualizers" class="input-visualizers">
             <div class="empty-state">Connect a controller to see its live input.</div>
           </div>

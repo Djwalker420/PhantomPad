@@ -1,10 +1,20 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-10-23
-Desktop source: 1.10.0; Android source: 1.10.0 (versionCode 14)
+Last updated: 2026-11-02
+Desktop source: 1.12.0; Android source: 1.12.0 (versionCode 16)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
+
+## Current local work (2026-11-02)
+- Added UDP local-network discovery so the Android connection screen can list PhantomPad PCs by name; scanning runs only while that screen is open.
+- New Android phones request approval in the Windows dashboard. Approval stores the existing Android public-key identity for the existing rolling 30-day trust period. Pending requests are limited to eight concurrently and expire after one minute.
+- Kept the browser/PWA pairing-code path and existing Socket.IO input transport unchanged.
+- Added selectable Gamepad, Keyboard, Racepad, and Auto output modes. Auto checks the focused Windows process once per second and selects Racepad for known racing-sim names, Gamepad otherwise; manual mode selection remains available.
+- Added optional vJoy output for separate steering, throttle, brake, clutch, and handbrake axes, gear and wheel buttons, live axis visualizers, and a phone Racepad touch screen with adjustable tilt range. vJoy device IDs map to player numbers, so configure one device per phone.
+- vJoy requires an installed/enabled driver and configured devices with X/Y/Z/Rx/Ry axes and 32 buttons. Racepad is generic DirectInput; each game's bindings still need setup, and compatibility is not guaranteed for every racing game. Physical wheel torque feedback is not provided.
+- Gyropad's public repo has no Android/Windows source. Its Play listing describes gyro steering, adjustable wheel range/speed, Racepad pedals and shift paddles; public materials do not state a numeric polling rate.
+- Desktop and Android source versions are 1.12.0 (Android versionCode 16). No build, test run, CI run, or hardware test has been performed for these local changes. No commit or push has been made.
 
 ## Mission
 Fix input lag, dropped input, and stuck controls; preserve two-device isolation; verify changes with automated tests and real-device testing.
@@ -177,3 +187,19 @@ Fix input lag, dropped input, and stuck controls; preserve two-device isolation;
 - Added a reproducible `scripts/generate-brand-art.ps1`; it generated the matching `electron/icon.png`, `build/installerHeader.bmp`, and `build/installerSidebar.bmp`. Configured the NSIS assisted installer to use the custom branded header and sidebar, including its uninstall sidebar.
 - Mirrored shared controller assets into `android-app/app/src/main/assets/controller`; Gradle continues to synchronize these from `controller/` during `preBuild`.
 - Source changes and artwork are present locally. Jest, Android APK build, Windows installer build, CI, tray runtime behavior, and device behavior have not been run or verified in this update. Nothing was committed, pushed, or merged. No physical two-device test is claimed.
+
+## Generic Racepad and automatic mode selection (2026-11-02)
+- Added a generic racing controller output using optional vJoy while retaining existing ViGEm Gamepad and Keyboard outputs. Racepad exposes steering, throttle, brake, clutch, and handbrake axes plus 32 mapped buttons for shifting and common wheel controls.
+- Added focused-process auto-detection for a curated list of racing titles. Auto mode selects Racepad for recognized process names and Gamepad for other foreground apps. The Windows dashboard also offers explicit Auto, Gamepad, Racepad, and Keyboard selection. Detection uses the focused process, not a full list of running apps; unknown titles need manual Racepad selection.
+- Added an Android/browser Racepad control layout with touch steering, four independently touchable pedal strips, gear and wheel buttons, and the existing optional tilt steering sensitivity setting. Dashboard status and input visualization report the active mode and race axes.
+- Each racing game still needs its controls bound to the generic vJoy axes/buttons in that game's settings. This provides broad DirectInput compatibility, not guaranteed compatibility with every game; some games accept only Xbox-style input. It does not provide physical wheel force feedback. Configure vJoy with axes X/Y/Z/Rx/Ry and at least 32 buttons, and one vJoy device per connected phone (IDs 1–4).
+- Corrected pedal output to use the complete vJoy range (0–32767) and steering to use the complete signed range. Mirrored the final shared controller CSS into Android assets; Gradle also synchronizes shared controller assets during `preBuild`.
+- Bumped Windows/Android source metadata to 1.12.0, Android `versionCode` 16, and service-worker cache v12.
+- Source review only. Jest, Android compilation/APK, Windows installer, CI, and physical device/game compatibility have not been tested for this update. No changes have been committed or pushed.
+
+## Required driver setup in the Windows installer (2026-11-02)
+- Kept Windows and Android source versions at 1.12.0 and Android `versionCode` at 16 as requested; this does not advance the unpushed Racepad version.
+- Added an electron-builder NSIS include at `build/installer.nsh`. On a fresh app install it checks the ViGEmBus and vJoy driver service registry keys. If either is absent, the setup asks the user to approve downloading/installing the mandatory drivers. Declining or installation failure stops PhantomPad setup. App upgrades skip the driver prompt and do not repair/update existing drivers.
+- Added `build/install-drivers.ps1` to query the latest GitHub release metadata for `nefarius/ViGEmBus` and `jshafer817/vJoy`, download each missing official setup asset over HTTPS, check a release SHA-256 digest when GitHub provides one, run each vendor installer interactively, and verify both driver service registry keys afterward. Internet access is required during initial Windows installation when a driver is missing.
+- Updated `package.json` to use the NSIS include and simplified README driver requirements to reflect mandatory installation. No driver installers are embedded or redistributed in the source; they are fetched by the installer at install time.
+- PowerShell syntax parsing and `git diff --check` passed. The driver download/install flow and Windows NSIS build have not been executed. No app tests, APK/installer builds, commits, or pushes were performed.

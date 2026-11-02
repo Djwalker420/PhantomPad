@@ -13,6 +13,7 @@ const { createInputWatchdog } = require('./input-watchdog');
 const { MacroHandler } = require('./macro-handler');
 const { GameMonitor } = require('./game-monitor');
 const { DeviceTrustStore } = require('./device-trust');
+const { startDiscovery } = require('./discovery');
 const config = require('./config');
 
 const app = express();
@@ -21,6 +22,8 @@ const httpServer = createServer(app);
 const pairingCode = crypto.randomInt(0, 100_000_000).toString().padStart(8, '0');
 const pairingAttempts = new Map();
 const pendingDeviceChallenges = new Map();
+const pendingPairingApprovals = new Map();
+let stopDiscovery = () => {};
 const PAIRING_ATTEMPT_WINDOW_MS = 60_000;
 const PAIRING_MAX_FAILED_ATTEMPTS = 5;
 const PAIRING_LOCKOUT_MS = 60_000;
@@ -72,7 +75,9 @@ function isValidInputPacket(data) {
   }
   if (data.buttons && Object.entries(data.buttons).some(([key, value]) => key.length > 32 || typeof value !== 'boolean')) return false;
   if (data.axes && Object.entries(data.axes).some(([key, value]) =>
-    !['leftX', 'leftY', 'rightX', 'rightY'].includes(key) || typeof value !== 'number' || !Number.isFinite(value) || value < -1 || value > 1
+    !['leftX', 'leftY', 'rightX', 'rightY', 'steering', 'throttle', 'brake', 'clutch', 'handbrake'].includes(key) ||
+    typeof value !== 'number' || !Number.isFinite(value) || value < -1 || value > 1 ||
+    (['throttle', 'brake', 'clutch', 'handbrake'].includes(key) && value < 0)
   )) return false;
   if (data.triggers && Object.entries(data.triggers).some(([key, value]) =>
     !['lt', 'rt'].includes(key) || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1
@@ -95,9 +100,28 @@ const io = new Server(httpServer, {
 
 io.use((socket, next) => {
   const auth = socket.handshake.auth || {};
-  if (isLoopbackAddress(socket.handshake.address) && !auth.pairingCode && !auth.challenge) {
+  if (isLoopbackAddress(socket.handshake.address) && !auth.pairingCode && !auth.challenge && !auth.pairingRequest) {
     socket.data.role = 'dashboard';
     return next();
+  }
+
+  if (auth.pairingRequest === true && typeof auth.deviceId === 'string' && /^[a-f0-9]{64}$/.test(auth.deviceId)) {
+    try {
+      const address = socket.handshake.address;
+      const pending = [...io.sockets.sockets.values()].filter((client) => client.data.role === 'pending-controller');
+      if (pending.length >= 8 || pending.filter((client) => client.handshake.address === address).length >= 2) {
+        return next(new Error('Too many phone approval requests. Try again shortly.'));
+      }
+      const parsedKey = deviceTrustStore.parsePublicKey(auth.publicKey);
+      if (deviceTrustStore.deviceIdFor(parsedKey.der) !== auth.deviceId) return next(new Error('Phone verification failed'));
+      socket.data.role = 'pending-controller';
+      socket.data.pendingPublicKey = parsedKey.der.toString('base64');
+      socket.data.pendingDeviceId = auth.deviceId;
+      socket.data.pendingDeviceName = cleanName(auth.deviceName) || 'Android phone';
+      return next();
+    } catch (_) {
+      return next(new Error('Phone verification setup failed'));
+    }
   }
 
   const now = Date.now();
@@ -152,11 +176,11 @@ const PORT = config.port;
 const inputHandler = new InputHandler(config);
 const latestInputByPlayer = new Map();
 inputHandler.onStatusChange = (status) => {
-  io.emit('status-update', status);
+  io.emit('status-update', { ...status, activeGame });
   io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
 };
 const macroHandler = new MacroHandler(inputHandler);
-const gameMonitor = new GameMonitor({ interval: 3000 });
+const gameMonitor = new GameMonitor({ interval: 1000 });
 
 // --- Persistent Storage ---
 let DATA_DIR = path.join(__dirname, '..', 'data');
@@ -179,6 +203,9 @@ let activeGame = null;
 gameMonitor.on('game-changed', (processName) => {
   activeGame = processName;
   console.log(`  🎮 Game Detected: ${processName}`);
+  const detectedMode = config.isRacingProcess(processName) ? 'racepad' : 'gamepad';
+  inputHandler.setDetectedMode(detectedMode);
+  io.emit('status-update', { ...inputHandler.getStatus(), activeGame });
   
   const presetKey = config.processMappings[processName];
   if (presetKey) {
@@ -186,11 +213,11 @@ gameMonitor.on('game-changed', (processName) => {
     if (mapping) {
       inputHandler.setGlobalMapping(mapping);
       io.emit('preset-changed', presetKey);
-      io.emit('active-game-update', { name: processName, preset: presetKey });
+      io.emit('active-game-update', { name: processName, preset: presetKey, mode: inputHandler.getActiveMode() });
       console.log(`  ✓ Auto-switched to preset: ${presetKey}`);
     }
   } else {
-    io.emit('active-game-update', { name: processName, preset: 'manual' });
+    io.emit('active-game-update', { name: processName, preset: 'manual', mode: inputHandler.getActiveMode() });
   }
 });
 gameMonitor.start();
@@ -285,7 +312,7 @@ app.get('/', (req, res) => res.redirect('/dashboard'));
 
 // --- API ---
 app.get('/api/info', (req, res) => {
-  res.json({ port: currentPort, interfaces: getAllInterfaces(), ...inputHandler.getStatus() });
+  res.json({ port: currentPort, interfaces: getAllInterfaces(), activeGame, ...inputHandler.getStatus() });
 });
 
 app.get('/api/qr', requireLocalDashboard, async (req, res) => {
@@ -349,9 +376,31 @@ io.on('connection', (socket) => {
   let lastInputTime = 0;
   const RATE_LIMIT_MS = 8; // ~125Hz max (B6)
   const inputWatchdog = createInputWatchdog(socket.id, inputHandler, 300);
+  let pairingTimer = socket.data.role === 'pending-controller'
+    ? setTimeout(() => {
+      pendingPairingApprovals.delete(socket.id);
+      socket.emit('pairing-rejected');
+      socket.disconnect(true);
+      io.to('dashboard').emit('pairing-requests-update', [...pendingPairingApprovals.values()]);
+    }, 60_000)
+    : null;
+  if (pairingTimer) socket.data.pairingTimer = pairingTimer;
 
   // ---- Controller registration ----
   socket.on('register-controller', () => {
+    if (socket.data.role === 'pending-controller') {
+      if (socket.data.pendingRegistered) return;
+      socket.data.pendingRegistered = true;
+      pendingPairingApprovals.set(socket.id, {
+        socketId: socket.id,
+        name: socket.data.pendingDeviceName,
+        deviceId: socket.data.pendingDeviceId,
+        address: String(socket.handshake.address || '').replace(/^::ffff:/, '')
+      });
+      socket.emit('pairing-waiting');
+      io.to('dashboard').emit('pairing-requests-update', [...pendingPairingApprovals.values()]);
+      return;
+    }
     if (socket.data.role !== 'controller') return socket.disconnect(true);
     const player = inputHandler.addPlayer(socket.id);
     if (!player) { socket.emit('error-msg', 'Max 4 players'); return; }
@@ -386,6 +435,14 @@ io.on('connection', (socket) => {
       socket.data.deviceId = trusted.deviceId;
       socket.data.expiresAt = trusted.expiresAt;
       delete socket.data.pendingDeviceId;
+    } else if (socket.data.deviceId) {
+      const trusted = deviceTrustStore.renew(socket.data.deviceId);
+      if (!trusted) {
+        inputHandler.removePlayer(socket.id);
+        socket.emit('error-msg', 'Trusted phone expired or revoked. Approve it again in the Windows app.');
+        return socket.disconnect(true);
+      }
+      socket.data.expiresAt = trusted.expiresAt;
     }
     console.log(`  ✓ P${player.number} connected: ${socket.id}`);
     socket.emit('player-assigned', { number: player.number, color: player.color });
@@ -393,7 +450,7 @@ io.on('connection', (socket) => {
       socket.emit('device-trust-confirmed', { deviceId: socket.data.deviceId, expiresAt: socket.data.expiresAt });
       io.to('dashboard').emit('trusted-devices', deviceTrustStore.list());
     }
-    if (activeGame) socket.emit('active-game-update', { name: activeGame, preset: config.processMappings[activeGame] || 'manual' });
+    if (activeGame) socket.emit('active-game-update', { name: activeGame, preset: config.processMappings[activeGame] || 'manual', mode: inputHandler.getActiveMode() });
     io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
   });
 
@@ -402,7 +459,7 @@ io.on('connection', (socket) => {
     if (socket.data.role !== 'dashboard') return socket.disconnect(true);
     socket.join('dashboard');
     socket.emit('players-update', inputHandler.getPlayersInfo());
-    socket.emit('status-update', inputHandler.getStatus());
+    socket.emit('status-update', { ...inputHandler.getStatus(), activeGame });
     socket.emit('mappings-data', {
       presets: config.keyMappings,
       custom: customMappings,
@@ -411,6 +468,41 @@ io.on('connection', (socket) => {
     });
     socket.emit('macros-update', macroHandler.getMacrosList());
     socket.emit('trusted-devices', deviceTrustStore.list());
+    socket.emit('pairing-requests-update', [...pendingPairingApprovals.values()]);
+  });
+
+  socket.on('approve-pairing-request', (controllerId) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof controllerId !== 'string') return;
+    const target = io.sockets.sockets.get(controllerId);
+    if (!target || target.data.role !== 'pending-controller' || !pendingPairingApprovals.has(controllerId)) return;
+    try {
+      clearTimeout(target.data.pairingTimer);
+      const trusted = deviceTrustStore.add(target.data.pendingPublicKey);
+      target.data.role = 'controller';
+      target.data.deviceId = trusted.deviceId;
+      target.data.expiresAt = trusted.expiresAt;
+      delete target.data.pendingPublicKey;
+      delete target.data.pendingDeviceId;
+      pendingPairingApprovals.delete(controllerId);
+      target.emit('pairing-approved');
+      io.to('dashboard').emit('pairing-requests-update', [...pendingPairingApprovals.values()]);
+      io.to('dashboard').emit('trusted-devices', deviceTrustStore.list());
+    } catch (error) {
+      console.warn('Could not approve Android device:', error.message);
+      target.emit('pairing-rejected');
+      target.disconnect(true);
+    }
+  });
+
+  socket.on('reject-pairing-request', (controllerId) => {
+    if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard') || typeof controllerId !== 'string') return;
+    const target = io.sockets.sockets.get(controllerId);
+    if (!target || target.data.role !== 'pending-controller') return;
+    clearTimeout(target.data.pairingTimer);
+    pendingPairingApprovals.delete(controllerId);
+    target.emit('pairing-rejected');
+    target.disconnect(true);
+    io.to('dashboard').emit('pairing-requests-update', [...pendingPairingApprovals.values()]);
   });
 
   // ---- Latency ping ----
@@ -466,8 +558,8 @@ io.on('connection', (socket) => {
   socket.on('set-mode', (mode) => {
     if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard')) return;
     const ok = inputHandler.setMode(mode);
-    io.emit('status-update', inputHandler.getStatus());
-    if (!ok) socket.emit('error-msg', 'Gamepad mode requires ViGEmBus driver');
+    io.emit('status-update', { ...inputHandler.getStatus(), activeGame });
+    if (!ok) socket.emit('error-msg', mode === 'racepad' ? 'Racepad mode needs vJoy installed, enabled, and configured.' : 'Gamepad mode requires ViGEmBus driver');
   });
 
   // ---- Preset switching ----
@@ -516,7 +608,7 @@ io.on('connection', (socket) => {
     const name = cleanName(data.name);
     if (!name || ['__proto__', 'constructor', 'prototype'].includes(name.toLowerCase())) return;
     if (data.mapping !== undefined && !isPlainObject(data.mapping)) return;
-    if (data.mode !== undefined && !['gamepad', 'keyboard'].includes(data.mode)) return;
+    if (data.mode !== undefined && !['auto', 'gamepad', 'racepad', 'keyboard'].includes(data.mode)) return;
     profiles[name] = { mapping: data.mapping, mode: data.mode, created: Date.now() };
     saveProfiles();
     io.emit('profiles-updated', profiles);
@@ -527,7 +619,7 @@ io.on('connection', (socket) => {
     const p = profiles[name];
     if (p) {
       if (p.mapping) inputHandler.setGlobalMapping(p.mapping);
-      if (p.mode) { inputHandler.setMode(p.mode); io.emit('status-update', inputHandler.getStatus()); }
+      if (p.mode) { inputHandler.setMode(p.mode); io.emit('status-update', { ...inputHandler.getStatus(), activeGame }); }
       socket.emit('profile-loaded', { name, ...p });
     }
   });
@@ -578,6 +670,10 @@ io.on('connection', (socket) => {
 
   // ---- Disconnect ----
   socket.on('disconnect', () => {
+    clearTimeout(pairingTimer);
+    if (pendingPairingApprovals.delete(socket.id)) {
+      io.to('dashboard').emit('pairing-requests-update', [...pendingPairingApprovals.values()]);
+    }
     inputWatchdog.stop();
     const info = inputHandler.getPlayerInfo(socket.id);
     if (info) {
@@ -617,10 +713,11 @@ httpServer.on('error', (e) => {
 });
 
 httpServer.on('listening', () => {
+  stopDiscovery = startDiscovery(() => currentPort);
   module.exports.activePort = currentPort;
   const ifaces = getAllInterfaces();
   console.log('  ╔═══════════════════════════════════════════════════╗');
-  console.log('  ║           ⚡ PhantomPad Server v1.2 ⚡            ║');
+  console.log('  ║          ⚡ PhantomPad Server v1.12.0 ⚡          ║');
   console.log('  ╠═══════════════════════════════════════════════════╣');
   console.log(`  ║  Dashboard:  http://localhost:${currentPort.toString().padEnd(20)}║`);
   console.log(`  ║  Mode:       ${inputHandler.getMode().padEnd(37)}║`);
@@ -639,8 +736,11 @@ tryListen();
 function getTrayStatus() {
   return {
     mode: inputHandler.getMode(),
+    activeMode: inputHandler.getActiveMode(),
     gamepadAvailable: inputHandler.gamepadAvailable,
     gamepadError: inputHandler.gamepadError,
+    racepadAvailable: inputHandler.racepadAvailable,
+    racepadError: inputHandler.racepadError,
     players: inputHandler.getPlayersInfo().map((player) => ({
       number: player.number,
       color: player.color,
@@ -658,6 +758,7 @@ function shutdown() {
   isShuttingDown = true;
   inputHandler.cleanup();
   gameMonitor.cleanup();
+  stopDiscovery();
   if (httpServer.listening) {
     try { httpServer.close(); } catch (_) {}
   }

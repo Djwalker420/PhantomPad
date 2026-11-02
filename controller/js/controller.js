@@ -8,6 +8,7 @@
     theme: 'phantom', layout: 'xbox', sendRate: 60,
     motionMode: 'off',
     motionSens: 1.0,
+    raceSteeringRange: 35,
     controllerScale: 100,
     controllerLayout: 'standard',
     controllerPositions: {}
@@ -29,8 +30,9 @@
   // --- State ---
   const state = {
     socket: null, connected: false,
-    buttons: {}, axes: { leftX: 0, leftY: 0, rightX: 0, rightY: 0 }, triggers: { lt: 0, rt: 0 },
+    buttons: {}, axes: { leftX: 0, leftY: 0, rightX: 0, rightY: 0, steering: 0, throttle: 0, brake: 0, clutch: 0, handbrake: 0 }, triggers: { lt: 0, rt: 0 },
     isGamepad: false,
+    outputMode: 'gamepad',
     motionBase: { beta: 0, gamma: 0, set: false },
     latency: null,
     lastInput: null
@@ -98,9 +100,11 @@
     // Preserve known button keys so the server receives explicit releases.
     for (const key of Object.keys(state.buttons)) state.buttons[key] = false;
     state.axes.leftX = state.axes.leftY = state.axes.rightX = state.axes.rightY = 0;
+    state.axes.steering = state.axes.throttle = state.axes.brake = state.axes.clutch = state.axes.handbrake = 0;
     state.triggers.lt = state.triggers.rt = 0;
 
     document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
+    document.querySelectorAll('[data-pedal]').forEach(el => el.style.setProperty('--pedal-value', '0%'));
     joysticks.forEach(joystick => {
       joystick.active = false;
       joystick.touchId = null;
@@ -130,6 +134,7 @@
     const params = new URLSearchParams(window.location.search);
     const serverUrl = params.get('serverUrl');
     let pairingCode = params.get('pairingCode') || '';
+    let pairingRejected = false;
     const native = window.PhantomPadNative;
     let deviceIdentity = null;
 
@@ -141,7 +146,7 @@
         }
       } catch (error) {
         updateConnUI(false);
-        document.getElementById('connection-text').textContent = error.message || 'Pairing is needed. Return and enter the Windows code.';
+        document.getElementById('connection-text').textContent = error.message || 'Could not prepare secure phone verification.';
         console.warn('PhantomPad device verification failed:', error);
         return;
       }
@@ -161,10 +166,16 @@
         const challengeUrl = new URL('/api/device-challenge', serverUrl || window.location.origin);
         challengeUrl.searchParams.set('deviceId', deviceIdentity.deviceId);
         const response = await fetch(challengeUrl, { cache: 'no-store' });
-        if (!response.ok) return { pairingCode: '', deviceId: deviceIdentity.deviceId };
+        if (response.status === 401) return {
+          pairingRequest: true,
+          deviceId: deviceIdentity.deviceId,
+          publicKey: deviceIdentity.publicKey,
+          deviceName: deviceIdentity.deviceName || 'Android phone'
+        };
+        if (!response.ok) throw new Error('Could not verify the saved phone pairing.');
         const challengeData = await response.json();
         const signature = native.signDeviceChallenge(challengeData.challenge || '');
-        if (!signature) throw new Error('The phone could not verify its saved pairing. Enter the Windows pairing code again.');
+        if (!signature) throw new Error('The phone could not sign its secure connection request.');
         return { deviceId: deviceIdentity.deviceId, challenge: challengeData.challenge, signature };
       };
 
@@ -177,6 +188,7 @@
     state.socket = serverUrl ? io(serverUrl, socketOptions) : io(socketOptions);
 
     state.socket.on('connect', () => {
+      pairingRejected = false;
       resetInputState(false);
       lastSentInput = null;
       lastPacketTime = 0;
@@ -191,10 +203,12 @@
       updateConnUI(false);
       const connectionText = document.getElementById('connection-text');
       connectionText.textContent = /pairing code|trusted phone verification/i.test(error?.message || '')
-        ? 'Pairing needed or expired — return and enter the current Windows code'
+        ? (window.PhantomPadNative ? 'Update PhantomPad on Windows, then try connecting again' : 'Pairing failed. Open the latest controller link from PhantomPad on Windows')
         : 'Retrying connection';
       console.warn('Socket.IO connection failed:', error?.message || error);
     });
+
+    state.socket.on('status-update', (status) => setOutputMode(status.activeMode || status.mode));
 
     state.socket.on('device-trust-confirmed', () => {
       pairingCode = '';
@@ -214,7 +228,7 @@
       lastPacketTime = 0;
       resetInputState(false);
       updateConnUI(false);
-      if (reason === 'io server disconnect') {
+      if (reason === 'io server disconnect' && !pairingRejected) {
         document.getElementById('connection-text').textContent = 'Disconnected by PC';
       }
       updateLatencyUI();
@@ -222,6 +236,25 @@
     });
 
     state.socket.on('reconnecting', () => updateConnUI(false));
+
+    state.socket.on('pairing-waiting', () => {
+      state.connected = false;
+      stopLatencyPing();
+      updateConnUI(false);
+      document.getElementById('connection-text').textContent = 'Waiting for approval in PhantomPad on Windows';
+    });
+    state.socket.on('pairing-approved', () => {
+      state.connected = true;
+      state.socket.emit('register-controller');
+      updateConnUI(true);
+      startLatencyPing();
+    });
+    state.socket.on('pairing-rejected', () => {
+      pairingRejected = true;
+      state.connected = false;
+      updateConnUI(false);
+      document.getElementById('connection-text').textContent = 'Connection request was declined';
+    });
 
     state.socket.on('vibrate', (d) => {
       haptic(d.duration || 50);
@@ -252,7 +285,16 @@
         const el = document.getElementById('current-game-name');
         if (el) el.textContent = data.name;
       }
+      if (data.mode) setOutputMode(data.mode);
     });
+  }
+
+  function setOutputMode(mode) {
+    if (!['gamepad', 'racepad', 'keyboard'].includes(mode)) return;
+    state.outputMode = mode;
+    const controller = document.getElementById('controller');
+    controller.classList.toggle('racepad-active', mode === 'racepad');
+    document.querySelector('.controller-deck-label span:last-child').textContent = mode === 'racepad' ? 'RACEPAD' : 'WIRELESS GAMEPAD';
   }
 
   function updateConnUI(connected) {
@@ -499,9 +541,10 @@
       }
 
       if (settings.motionMode === 'steering') {
-        // Steering mode uses roll (gamma) for X-axis steering
         let tiltX = e.gamma - state.motionBase.gamma;
-        state.axes.leftX = Utils.normalizeSensor(tiltX, 45, settings.motionSens, settings.deadzone);
+        const steering = Utils.normalizeSensor(tiltX, settings.raceSteeringRange || 35, settings.motionSens, settings.deadzone);
+        state.axes.leftX = steering;
+        state.axes.steering = steering;
         return;
       }
 
@@ -569,6 +612,39 @@
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointercancel', release);
       btn.addEventListener('lostpointercapture', release);
+    });
+  }
+
+  function initRacepadControls() {
+    const steering = document.getElementById('race-steering');
+    let steeringPointer = null;
+    const setSteering = (event) => {
+      const rect = steering.getBoundingClientRect();
+      state.axes.steering = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - 0.5) * 2));
+    };
+    steering.addEventListener('pointerdown', (event) => { event.preventDefault(); steeringPointer = event.pointerId; steering.setPointerCapture(steeringPointer); setSteering(event); });
+    steering.addEventListener('pointermove', (event) => { if (event.pointerId === steeringPointer) setSteering(event); });
+    const releaseSteering = (event) => { if (event.pointerId !== steeringPointer) return; steeringPointer = null; state.axes.steering = 0; };
+    steering.addEventListener('pointerup', releaseSteering);
+    steering.addEventListener('pointercancel', releaseSteering);
+
+    document.querySelectorAll('[data-pedal]').forEach((pedal) => {
+      const axis = pedal.dataset.pedal;
+      let pointer = null;
+      const update = (event) => {
+        const rect = pedal.getBoundingClientRect();
+        const value = Math.max(0, Math.min(1, 1 - (event.clientY - rect.top) / rect.height));
+        state.axes[axis] = Math.round(value * 1000) / 1000;
+        pedal.style.setProperty('--pedal-value', `${value * 100}%`);
+      };
+      pedal.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = event.pointerId; pedal.setPointerCapture(pointer); update(event); });
+      pedal.addEventListener('pointermove', (event) => { if (event.pointerId === pointer) update(event); });
+      const release = (event) => {
+        if (event.pointerId !== pointer) return;
+        pointer = null; state.axes[axis] = 0; pedal.style.setProperty('--pedal-value', '0%');
+      };
+      pedal.addEventListener('pointerup', release);
+      pedal.addEventListener('pointercancel', release);
     });
   }
   // ========================
@@ -716,6 +792,15 @@
       document.getElementById('motion-sens-value').textContent = settings.motionSens.toFixed(1) + 'x';
     });
 
+    const raceRange = document.getElementById('race-steering-range');
+    raceRange.value = settings.raceSteeringRange || 35;
+    document.getElementById('race-steering-range-value').textContent = `${raceRange.value}°`;
+    raceRange.addEventListener('input', (e) => {
+      settings.raceSteeringRange = parseInt(e.target.value, 10);
+      document.getElementById('race-steering-range-value').textContent = `${settings.raceSteeringRange}°`;
+      saveSettings();
+    });
+
     document.getElementById('calibrate-btn').addEventListener('click', calibrateMotion);
 
     document.getElementById('fullscreen-btn').addEventListener('click', () => {
@@ -776,6 +861,7 @@
   function init() {
     initSocket();
     initButtons();
+    initRacepadControls();
     initMotion();
 
     joysticks.push(new VirtualJoystick(

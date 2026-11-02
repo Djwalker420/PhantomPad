@@ -74,7 +74,7 @@
         return r.json();
       });
       document.getElementById('pairing-code').textContent = pairing.pairingCode;
-      updateModeUI(info.mode, info.gamepadAvailable, info.gamepadError);
+      updateModeUI(info);
       buildConnectionTabs();
       if (allInterfaces.length > 0) selectTab(0);
     } catch (e) {
@@ -171,11 +171,13 @@
   // ============================================
   function getControllerStatus(player) {
     const error = String(player.controllerError || 'details unavailable').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    const driver = player.controllerType === 'racepad' ? 'vJoy Racepad' : 'ViGEm gamepad';
     return {
       waiting: ['Waiting for driver', 'controller-waiting'],
       connecting: [player.controllerStage || 'Creating virtual pad', 'controller-connecting'],
-      ready: ['Virtual pad connected', 'controller-ready'],
-      active: ['ViGEm accepted first input report', 'controller-active'],
+      ready: [`${driver} connected`, 'controller-ready'],
+      keyboard: ['Keyboard mode ready', 'controller-ready'],
+      active: [`${driver} accepted input`, 'controller-active'],
       error: [`Virtual pad error: ${error}`, 'controller-error']
     }[player.controllerStatus] || ['Virtual pad status unknown', 'controller-waiting'];
   }
@@ -270,7 +272,7 @@
       revoke.textContent = 'Forget';
       revoke.title = 'Revoke this phone and disconnect it if connected';
       revoke.addEventListener('click', () => {
-        if (confirm(`Forget Android phone ${device.deviceId.slice(0, 8)}? It will need the pairing code to connect again.`)) {
+        if (confirm(`Forget Android phone ${device.deviceId.slice(0, 8)}? It will need Windows approval to connect again.`)) {
           socket.emit('revoke-trusted-device', device.deviceId);
         }
       });
@@ -279,25 +281,82 @@
     });
   });
 
+  socket.on('pairing-requests-update', (requests) => {
+    const panel = document.getElementById('pairing-requests-panel');
+    const list = document.getElementById('pairing-requests-list');
+    if (!panel || !list) return;
+    list.replaceChildren();
+    panel.hidden = !Array.isArray(requests) || requests.length === 0;
+    if (panel.hidden) return;
+    requests.forEach((request) => {
+      if (!request || typeof request.socketId !== 'string') return;
+      const row = document.createElement('div');
+      row.className = 'trusted-device-row';
+      const details = document.createElement('div');
+      details.className = 'trusted-device-details';
+      const name = document.createElement('span');
+      name.className = 'trusted-device-name';
+      name.textContent = request.name || 'Android phone';
+      const id = document.createElement('span');
+      id.className = 'trusted-device-expiry';
+      id.textContent = `${String(request.deviceId || '').slice(0, 8)} · ${request.address || 'local network'}`;
+      details.append(name, id);
+      const actions = document.createElement('div');
+      actions.className = 'pairing-request-actions';
+      const approve = document.createElement('button');
+      approve.type = 'button';
+      approve.className = 'pairing-approve';
+      approve.textContent = 'Allow';
+      approve.addEventListener('click', () => socket.emit('approve-pairing-request', request.socketId));
+      const reject = document.createElement('button');
+      reject.type = 'button';
+      reject.className = 'trusted-device-revoke';
+      reject.textContent = 'Reject';
+      reject.addEventListener('click', () => socket.emit('reject-pairing-request', request.socketId));
+      actions.append(approve, reject);
+      row.append(details, actions);
+      list.appendChild(row);
+    });
+  });
+
   // ============================================
   //  Mode Toggle
   // ============================================
-  function updateModeUI(mode, gamepadAvailable, gamepadError) {
+  function updateModeUI(status) {
+    const mode = status.mode || 'auto';
+    const gamepadAvailable = status.gamepadAvailable;
+    const racepadAvailable = status.racepadAvailable;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('mode-' + mode);
     if (activeBtn) activeBtn.classList.add('active');
 
     const gpBtn = document.getElementById('mode-gamepad');
+    const rpBtn = document.getElementById('mode-racepad');
     const warning = document.getElementById('gamepad-warning');
     const warningMessage = document.getElementById('gamepad-warning-message');
-    if (!gamepadAvailable) {
-      if (warningMessage) warningMessage.textContent = gamepadError || 'ViGEmBus is unavailable. Install or repair it, then restart PhantomPad.';
-      gpBtn.classList.add('disabled');
-      warning.classList.remove('hidden');
+    const vjoyHelp = document.getElementById('vjoy-help');
+    const vigemHelp = document.getElementById('vigem-help');
+    const detail = document.getElementById('mode-detail');
+    gpBtn.classList.toggle('disabled', !gamepadAvailable);
+    rpBtn.classList.toggle('disabled', !racepadAvailable);
+    if (mode === 'auto' && status.autoGameMode === 'racepad' && !racepadAvailable) {
+      warningMessage.textContent = `Racing game detected, but vJoy is unavailable. Using Gamepad mode. ${status.racepadError || ''}`;
+      vjoyHelp.hidden = false; vigemHelp.hidden = true; warning.classList.remove('hidden');
+    } else if (mode === 'racepad' && !racepadAvailable) {
+      warningMessage.textContent = status.racepadError || 'Install vJoy and enable X/Y/Z/Rx/Ry axes and 32 buttons.';
+      vjoyHelp.hidden = false; vigemHelp.hidden = true; warning.classList.remove('hidden');
+    } else if (mode === 'gamepad' && !gamepadAvailable) {
+      warningMessage.textContent = status.gamepadError || 'ViGEmBus is unavailable.';
+      vjoyHelp.hidden = true; vigemHelp.hidden = false; warning.classList.remove('hidden');
+    } else if (mode === 'auto' && status.activeMode === 'gamepad' && !gamepadAvailable) {
+      warningMessage.textContent = status.gamepadError || 'ViGEmBus is unavailable; Gamepad output cannot start.';
+      vjoyHelp.hidden = true; vigemHelp.hidden = false; warning.classList.remove('hidden');
     } else {
-      gpBtn.classList.remove('disabled');
       warning.classList.add('hidden');
     }
+    if (detail) detail.textContent = mode === 'auto'
+      ? `Auto is active: ${String(status.activeMode || 'gamepad').toUpperCase()} output. Recognized racing sims switch to Racepad; other apps use Gamepad.`
+      : `Manual ${mode.toUpperCase()} selection. Detected game: ${status.activeGame || 'none'}.`;
   }
 
   document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -307,7 +366,7 @@
     });
   });
 
-  socket.on('status-update', (status) => updateModeUI(status.mode, status.gamepadAvailable, status.gamepadError));
+  socket.on('status-update', updateModeUI);
   socket.on('error-msg', (msg) => showToast(msg, 'danger'));
 
   // ============================================
@@ -725,7 +784,8 @@
             <div class="vis-stick"><div class="vis-crosshair"></div><div class="vis-stick-dot" data-vis-stick="right"></div></div>
             <span class="vis-label">R Stick</span>
           </div>
-        </div>`;
+        </div>
+        <div class="vis-race-axes">${[['steering','Steering'],['throttle','Throttle'],['brake','Brake'],['clutch','Clutch'],['handbrake','Handbrake']].map(([key,label]) => `<div><span>${label}</span><i><b data-vis-axis="${key}"></b></i></div>`).join('')}</div>`;
       inputVisualizers.appendChild(card);
     });
     applyDashboardLayout(layoutSelect?.value || 'xbox');
@@ -750,6 +810,10 @@
     if (data.axes) {
       updateStickDot(card.querySelector('[data-vis-stick="left"]'), data.axes.leftX || 0, data.axes.leftY || 0);
       updateStickDot(card.querySelector('[data-vis-stick="right"]'), data.axes.rightX || 0, data.axes.rightY || 0);
+      for (const key of ['steering', 'throttle', 'brake', 'clutch', 'handbrake']) {
+        const axis = card.querySelector(`[data-vis-axis="${key}"]`);
+        if (axis) axis.style.width = `${Math.max(0, Math.min(1, (Number(data.axes[key]) || 0) * (key === 'steering' ? 0.5 : 1) + (key === 'steering' ? 0.5 : 0))) * 100}%`;
+      }
     }
   });
 

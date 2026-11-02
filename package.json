@@ -1,6 +1,6 @@
 {
   "name": "phantompad",
-  "version": "1.10.0",
+  "version": "1.12.0",
   "description": "Turn your phone into a wireless game controller for PC",
   "main": "electron/main.js",
   "scripts": {
@@ -29,6 +29,7 @@
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
+      "include": "build/installer.nsh",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "installerHeader": "build/installerHeader.bmp",

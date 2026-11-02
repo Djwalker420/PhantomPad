@@ -7,6 +7,7 @@ class GameMonitor extends EventEmitter {
     this.interval = options.interval || 3000;
     this.ps = null;
     this.activeProcess = null;
+    this.stdoutBuffer = '';
     this.timer = null;
     this.running = false;
 
@@ -31,10 +32,15 @@ class GameMonitor extends EventEmitter {
       this.ps.stdin.write(setupScript + '\n');
 
       this.ps.stdout.on('data', (data) => {
-        const output = data.toString().trim();
-        if (output && output !== this.activeProcess && output !== 'Antigravity' && output !== 'powershell') {
-          this.activeProcess = output;
-          this.emit('game-changed', output);
+        this.stdoutBuffer += data.toString();
+        const lines = this.stdoutBuffer.split(/\r?\n/);
+        this.stdoutBuffer = lines.pop() || '';
+        for (const line of lines) {
+          const processName = line.trim();
+          if (processName && !['antigravity', 'powershell'].includes(processName.toLowerCase()) && processName !== this.activeProcess) {
+            this.activeProcess = processName;
+            this.emit('game-changed', processName);
+          }
         }
       });
 

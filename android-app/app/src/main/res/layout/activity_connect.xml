@@ -3,15 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    android:clipToPadding="false"
     android:fillViewport="true"
     android:scrollbarStyle="outsideOverlay">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:gravity="center_horizontal"
+        android:orientation="vertical"
         android:paddingStart="22dp"
         android:paddingTop="26dp"
         android:paddingEnd="22dp"
@@ -40,7 +39,6 @@
                 android:layout_marginStart="13dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -48,7 +46,6 @@
                     android:textColor="@color/text"
                     android:textSize="22sp"
                     android:textStyle="bold" />
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -59,45 +56,6 @@
                     android:textSize="9sp"
                     android:textStyle="bold" />
             </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/status_badge_background"
-                android:paddingStart="10dp"
-                android:paddingTop="7dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="7dp"
-                android:text="READY TO PAIR"
-                android:textColor="@color/primary"
-                android:textSize="9sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/recent_section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxWidth="480dp"
-            android:orientation="vertical"
-            android:layout_marginBottom="18dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="RECENT PCS · TAP TO RECONNECT"
-                android:textColor="@color/label"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.12"
-                android:layout_marginBottom="10dp" />
-
-            <LinearLayout
-                android:id="@+id/recent_list"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
         </LinearLayout>
 
         <LinearLayout
@@ -121,114 +79,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Use the address shown in PhantomPad on Windows."
+                android:text="Connect your phone and PC to the same Wi-Fi or USB-tethered network. Nearby PhantomPad PCs will appear here."
                 android:textColor="@color/text_dim"
                 android:textSize="13sp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:layout_marginTop="22dp"
-                android:layout_marginBottom="7dp"
-                android:text="PC ADDRESS"
-                android:textColor="@color/label"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/ip_input"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:background="@drawable/input_background"
-                android:fontFamily="monospace"
-                android:gravity="center_vertical"
-                android:hint="192.168.1.100"
-                android:inputType="textUri"
-                android:importantForAutofill="no"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:singleLine="true"
-                android:textColor="@color/text"
-                android:textColorHint="@color/hint"
-                android:textSize="15sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="7dp"
-                android:text="PORT"
-                android:textColor="@color/label"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/port_input"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:background="@drawable/input_background"
-                android:fontFamily="monospace"
-                android:gravity="center_vertical"
-                android:hint="3000"
-                android:inputType="number"
-                android:importantForAutofill="no"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:singleLine="true"
-                android:text="3000"
-                android:textColor="@color/text"
-                android:textColorHint="@color/hint"
-                android:textSize="15sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="7dp"
-                android:text="PAIRING CODE"
-                android:textColor="@color/label"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/pairing_code_input"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:background="@drawable/input_background"
-                android:fontFamily="monospace"
-                android:gravity="center_vertical"
-                android:hint="8 digits for first pairing"
-                android:inputType="number"
-                android:maxLength="8"
-                android:importantForAutofill="no"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:singleLine="true"
-                android:textColor="@color/text"
-                android:textColorHint="@color/hint"
-                android:textSize="15sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="2dp"
-                android:layout_marginTop="8dp"
-                android:text="Already paired? Leave this blank. Your phone stays trusted for 30 days after a successful connection."
-                android:textColor="@color/text_dim"
-                android:textSize="11sp"
-                android:lineSpacingExtra="2dp" />
-
             <Button
-                android:id="@+id/connect_btn"
+                android:id="@+id/scan_btn"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
                 android:layout_marginTop="20dp"
                 android:background="@drawable/connect_button_background"
                 android:letterSpacing="0.08"
-                android:text="CONNECT"
+                android:text="SCAN FOR PCS"
                 android:textColor="@color/button_text"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -242,7 +104,29 @@
                 android:minHeight="20dp"
                 android:textColor="@color/text_dim"
                 android:textSize="12sp" />
-        </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/discovered_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="18dp"
+                android:visibility="gone">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="PHANTOMPAD PCS · TAP TO CONNECT"
+                    android:textColor="@color/label"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.12"
+                    android:layout_marginBottom="10dp" />
+                <LinearLayout
+                    android:id="@+id/discovered_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

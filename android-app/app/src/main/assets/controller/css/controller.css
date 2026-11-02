@@ -742,6 +742,22 @@ html, body {
   .latency-text { font-size: 9px; padding: 3px 4px; }
 }
 
+.racepad-deck { position: absolute; inset: 30px 14px 10px; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(48px, 0.7fr) minmax(62px, 1.2fr) auto auto; gap: 7px; }
+.racepad-deck.hidden { display: none; }
+#controller.racepad-active .zone, #controller.racepad-active .top-bar > .bumper-trigger-group { display: none; }
+.race-steering-touch { grid-column: 1 / -1; min-height: 44px; border: 1px solid #3a4b55; border-radius: 14px; background: linear-gradient(90deg, #202d35, #142028 50%, #202d35); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--primary); font: 700 11px system-ui; letter-spacing: 1px; touch-action: none; position: relative; }
+.race-steering-touch small { color: var(--text-dim); font-size: 9px; font-weight: 500; letter-spacing: 0; }
+.race-steering-touch i { position: absolute; top: 5px; bottom: 5px; left: 50%; width: 2px; background: var(--primary); opacity: .45; pointer-events: none; }
+.race-pedals { grid-column: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; touch-action: none; }
+.race-pedal { position: relative; overflow: hidden; display: flex; align-items: end; justify-content: center; min-width: 0; padding: 5px 2px; border: 1px solid #3a4b55; border-radius: 10px; background: #111a20; color: #dce5ea; font: 700 8px system-ui; touch-action: none; user-select: none; }
+.race-pedal i { position: absolute; inset: auto 0 0; height: var(--pedal-value, 0%); background: var(--primary); opacity: .45; pointer-events: none; }
+.race-pedal b { z-index: 1; writing-mode: vertical-rl; transform: rotate(180deg); text-shadow: 0 1px 3px #000; }
+.race-gear-controls { grid-column: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.race-gear-controls button, .race-wheel-buttons button { border: 1px solid #3a4b55; border-radius: 8px; background: #19252d; color: #e4edf1; font: 700 10px system-ui; touch-action: none; }
+.race-gear-controls button:active, .race-gear-controls button.pressed, .race-wheel-buttons button:active, .race-wheel-buttons button.pressed { border-color: var(--primary); background: var(--primary-dim); color: var(--primary); }
+.race-wheel-buttons { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+@media (max-height: 420px) { .racepad-deck { grid-template-rows: 38px minmax(50px, 1fr) 32px 32px; inset: 25px 10px 7px; } }
+
 @media (max-height: 320px) {
   .zone { gap: 4px; }
   .joystick-container { width: 80px; height: 80px; }
