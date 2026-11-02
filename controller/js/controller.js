@@ -294,6 +294,7 @@
     state.outputMode = mode;
     const controller = document.getElementById('controller');
     controller.classList.toggle('racepad-active', mode === 'racepad');
+    document.getElementById('racepad-deck').classList.toggle('hidden', mode !== 'racepad');
     document.querySelector('.controller-deck-label span:last-child').textContent = mode === 'racepad' ? 'RACEPAD' : 'WIRELESS GAMEPAD';
   }
 

@@ -523,7 +523,8 @@ try {
   $global:vjoyAck${id} = $false
   $global:vjoyFailure${id} = $false
   foreach ($axis in @(48,49,50,51,52)) { if ([PhantomPadVJoy]::HasAxis(${id}, $axis) -ne 1) { throw 'Enable vJoy axes X, Y, Z, Rx and Ry in Configure vJoy' } }
-  if ([PhantomPadVJoy]::ButtonCount(${id}) -lt 32) { throw 'Set vJoy to 32 buttons in Configure vJoy' }
+  $buttonCount = [PhantomPadVJoy]::ButtonCount(${id})
+  if ($buttonCount -lt 32) { throw "vJoy device ${id} has $buttonCount buttons. Open Configure vJoy, select device ${id}, set Buttons to at least 32, and click Apply." }
   [PhantomPadVJoy]::Reset(${id}) | Out-Null
   Write-PhantomPadMarker "VJOY_PLAYER_READY[${player.number}]"
 } catch {
