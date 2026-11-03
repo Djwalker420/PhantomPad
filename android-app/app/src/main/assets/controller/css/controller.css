@@ -968,3 +968,49 @@ html, body {
   .play-area { margin: 4px 6px 7px; padding: 18px 4px 7px; border-radius: 24px; }
   .center-zone { padding: 6px 8px; gap: 6px; }
 }
+
+/* Racepad touch targets scale with the usable screen, with phone-safe minimums. */
+#controller.racepad-active {
+  --race-round-size: clamp(52px, 7.8vmin, 84px);
+  --race-pad-cell: clamp(48px, 6.8vmin, 66px);
+}
+#controller.racepad-active .top-bar { min-height: 54px; padding-block: 5px; }
+#controller.racepad-active .status-bar { max-width: calc(100% - 148px); }
+#controller.racepad-active .racepad-shift-controls { right: max(8px, env(safe-area-inset-right)); gap: clamp(5px, 1vmin, 10px); }
+#controller.racepad-active .racepad-shift-controls button { min-width: clamp(60px, 8vmin, 88px); min-height: 44px; flex: 0 0 auto; font-size: clamp(9px, 1.5vmin, 13px); }
+.racepad-deck { inset: 24px max(7px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(7px, env(safe-area-inset-left)); grid-template-rows: minmax(0,1fr) clamp(112px,22vh,148px); gap: clamp(6px,1.3vmin,14px); padding: clamp(3px,.8vmin,10px); }
+.race-cockpit { grid-template-rows: minmax(0,1fr) clamp(24px,4vmin,34px) clamp(22px,3.5vmin,30px); gap: clamp(3px,.7vmin,8px); }
+.race-steering-gauge { width: min(100%,clamp(220px,38vmin,460px)); }
+.race-gauge-readout strong { font-size: clamp(36px,8vmin,84px); }
+.race-gauge-readout small, .race-gauge-left, .race-gauge-right { font-size: clamp(9px,1.35vmin,12px); }
+.race-center-mode { min-width: 0; width: min(84%,400px); font-size: clamp(10px,1.8vmin,15px); }
+.race-steering-mode { min-height: 25px; font-size: clamp(8px,1.25vmin,11px); }
+.race-gyro-hint { font-size: clamp(8px,1.1vmin,10px); }
+.race-bottom-controls { align-items: center; gap: clamp(6px,1.2vmin,14px); padding: 5px clamp(4px,1.1vw,16px) 0; }
+.race-bottom-left, .race-bottom-right { flex: 1 1 0; gap: clamp(5px,1.1vmin,14px); }
+.race-bottom-left { justify-content: flex-start; }
+.race-bottom-right { justify-content: flex-end; }
+.race-round-button { width: var(--race-round-size); height: var(--race-round-size); min-width: 48px; min-height: 48px; gap: 3px; }
+.race-round-button span { font-size: clamp(18px,2.7vmin,30px); }
+.race-round-button small { font-size: clamp(8px,1.1vmin,10px); letter-spacing: .35px; }
+.race-dpad { grid-template-columns: repeat(3,var(--race-pad-cell)); grid-template-rows: repeat(2,var(--race-pad-cell)); gap: clamp(3px,.7vmin,8px); }
+.race-dpad button { font-size: clamp(23px,3vmin,34px); }
+.race-face-pad { grid-template-columns: repeat(2,var(--race-pad-cell)); grid-template-rows: repeat(2,var(--race-pad-cell)); gap: clamp(4px,.8vmin,10px); }
+.race-face-pad button { font-size: clamp(18px,2.6vmin,28px); }
+.race-extras-grid { gap: clamp(7px,1.2vmin,13px); }
+.race-extras-grid button { min-height: clamp(44px,6vmin,60px); font-size: clamp(10px,1.5vmin,13px); }
+
+@media (max-aspect-ratio: 1/1) {
+  .racepad-deck { grid-template-rows: minmax(150px,22vh) minmax(150px,23vh) minmax(210px,30vh); align-content: space-between; }
+  .race-cockpit { grid-template-rows: minmax(0,1fr) 24px 22px; }
+  .race-steering-gauge { width: min(100%,clamp(210px,50vmin,360px)); max-height: 18vh; }
+  .race-pedal-rail { min-height: 150px; }
+  .race-bottom-controls { display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto; justify-items: stretch; align-content: space-evenly; gap: clamp(8px,1.6vh,16px); }
+  .race-bottom-left, .race-bottom-right { width: 100%; justify-content: space-evenly; }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .racepad-deck { grid-template-rows: minmax(0,1fr) clamp(104px,28vh,132px); }
+  .race-cockpit { grid-template-rows: minmax(0,1fr) 22px 20px; }
+  .race-steering-gauge { width: min(100%,clamp(200px,36vmin,320px)); }
+}
