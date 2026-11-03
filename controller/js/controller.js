@@ -531,9 +531,44 @@
   // ========================
   // Motion Controls
   // ========================
+  function updateRaceWheel(value) {
+    const steering = Math.max(-1, Math.min(1, Number(value) || 0));
+    const wheel = document.getElementById('race-steering');
+    const angle = Math.round(steering * 140);
+    document.getElementById('race-wheel-rotor').style.setProperty('--wheel-rotation', `${angle}deg`);
+    document.getElementById('race-steering-angle').textContent = `${angle > 0 ? '+' : ''}${angle}°`;
+    wheel.setAttribute('aria-valuenow', Math.round(steering * 100));
+  }
+
+  function updateRaceSteeringMode() {
+    const gyro = settings.motionMode === 'steering';
+    document.getElementById('racepad-deck').classList.toggle('gyro-on', gyro);
+    document.getElementById('race-gyro-toggle').setAttribute('aria-pressed', String(gyro));
+    document.getElementById('race-wheel-hint').textContent = gyro ? 'TILT PHONE TO STEER' : 'TOUCH & TURN';
+    document.getElementById('race-steering-mode-text').textContent = gyro ? 'GYRO ON · TAP TO DISABLE' : 'GYRO OFF · TAP TO ENABLE';
+    if (!gyro) {
+      state.axes.steering = 0;
+      state.axes.leftX = 0;
+      updateRaceWheel(0);
+    }
+  }
+
+  function setMotionMode(mode) {
+    settings.motionMode = mode;
+    document.getElementById('motion-select').value = mode;
+    updateRaceSteeringMode();
+    const indicator = document.getElementById('motion-indicator');
+    if (mode === 'off') indicator.classList.add('hidden');
+    else {
+      indicator.classList.remove('hidden');
+      requestMotionPermissions();
+    }
+    saveSettings();
+  }
+
   function initMotion() {
     window.addEventListener('deviceorientation', (e) => {
-      if (settings.motionMode === 'off' || !e.beta || !e.gamma) return;
+      if (settings.motionMode === 'off' || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
 
       if (!state.motionBase.set) {
         state.motionBase.beta = e.beta;
@@ -546,6 +581,7 @@
         const steering = Utils.normalizeSensor(tiltX, settings.raceSteeringRange || 35, settings.motionSens, settings.deadzone);
         state.axes.leftX = steering;
         state.axes.steering = steering;
+        updateRaceWheel(steering);
         return;
       }
 
@@ -619,15 +655,41 @@
   function initRacepadControls() {
     const steering = document.getElementById('race-steering');
     let steeringPointer = null;
-    const setSteering = (event) => {
+    let steeringStartAngle = 0;
+    let steeringStartValue = 0;
+    const pointerAngle = (event) => {
       const rect = steering.getBoundingClientRect();
-      state.axes.steering = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - 0.5) * 2));
+      return Math.atan2(event.clientY - rect.top - rect.height / 2, event.clientX - rect.left - rect.width / 2) * 180 / Math.PI;
     };
-    steering.addEventListener('pointerdown', (event) => { event.preventDefault(); steeringPointer = event.pointerId; steering.setPointerCapture(steeringPointer); setSteering(event); });
-    steering.addEventListener('pointermove', (event) => { if (event.pointerId === steeringPointer) setSteering(event); });
-    const releaseSteering = (event) => { if (event.pointerId !== steeringPointer) return; steeringPointer = null; state.axes.steering = 0; };
+    const setSteering = (value) => {
+      state.axes.steering = Math.max(-1, Math.min(1, value));
+      state.axes.leftX = state.axes.steering;
+      updateRaceWheel(state.axes.steering);
+    };
+    steering.addEventListener('pointerdown', (event) => {
+      if (settings.motionMode === 'steering') return;
+      event.preventDefault();
+      steeringPointer = event.pointerId;
+      steeringStartAngle = pointerAngle(event);
+      steeringStartValue = state.axes.steering;
+      steering.setPointerCapture(steeringPointer);
+    });
+    steering.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== steeringPointer) return;
+      let delta = pointerAngle(event) - steeringStartAngle;
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+      setSteering(steeringStartValue + delta / 125);
+    });
+    const releaseSteering = (event) => {
+      if (event.pointerId !== steeringPointer) return;
+      steeringPointer = null;
+      if (settings.motionMode !== 'steering') setSteering(0);
+    };
     steering.addEventListener('pointerup', releaseSteering);
     steering.addEventListener('pointercancel', releaseSteering);
+    steering.addEventListener('lostpointercapture', releaseSteering);
+    updateRaceSteeringMode();
 
     document.querySelectorAll('[data-pedal]').forEach((pedal) => {
       const axis = pedal.dataset.pedal;
@@ -774,15 +836,12 @@
       saveSettings();
     });
 
-    const motInd = document.getElementById('motion-indicator');
-    document.getElementById('motion-select').addEventListener('change', (e) => {
-      settings.motionMode = e.target.value;
-      if (settings.motionMode !== 'off') {
-        motInd.classList.remove('hidden');
-        requestMotionPermissions();
-      } else {
-        motInd.classList.add('hidden');
-      }
+    const motionSelect = document.getElementById('motion-select');
+    motionSelect.value = settings.motionMode;
+    document.getElementById('motion-indicator').classList.toggle('hidden', settings.motionMode === 'off');
+    motionSelect.addEventListener('change', (e) => setMotionMode(e.target.value));
+    document.getElementById('race-gyro-toggle').addEventListener('click', () => {
+      setMotionMode(settings.motionMode === 'steering' ? 'off' : 'steering');
     });
 
     const motSensSlider = document.getElementById('motion-sens-slider');
