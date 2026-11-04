@@ -10,6 +10,7 @@ Base branch: `main`
 - Reorganized Racepad to follow Gyropad's layout: gear paddles at the top edges, four pedals around the center gyro steering display, and grouped secondary/action controls along the bottom. Portrait mode stacks the lower groups so they fit on phone screens; touch targets scale up on larger displays.
 - Added a short ignition startup sequence when Racepad opens, with a tachometer sweep and dashboard indicator check. It is visual only and does not alter button IDs, input mappings, or their behavior.
 - Bumped Windows and Android versions to 1.13.0, Android `versionCode` to 17, CI artifact labels to v1.13.0, and the shared controller cache to v17. Mirrored shared controller files into Android assets.
+- Updated GitHub Actions to Node 24-compatible majors (`checkout@v7`, `setup-node@v7`, `setup-java@v6`, `setup-gradle@v6`, `upload-artifact@v7`) and moved the CI Node runtime from 20 to 24. The Android build still targets Java 17; only the deprecated `setup-java` action major changed.
 - No APK/installer build, automated test, or physical device display test has been performed. No commit or push has been made.
 
 ## Current local work (2026-11-02)
