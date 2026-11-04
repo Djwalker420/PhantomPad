@@ -1014,3 +1014,35 @@ html, body {
   .race-cockpit { grid-template-rows: minmax(0,1fr) 22px 20px; }
   .race-steering-gauge { width: min(100%,clamp(200px,36vmin,320px)); }
 }
+
+.racepad-startup { position: absolute; inset: 0; z-index: 15; display: grid; place-items: center; padding: 12px; background: rgba(5,9,12,.9); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; pointer-events: none; }
+.racepad-starting .racepad-startup { visibility: visible; animation: race-startup-screen 1650ms ease both; }
+.race-startup-card { width: min(88%,440px); display: grid; justify-items: center; gap: clamp(8px,1.5vmin,14px); padding: clamp(14px,3.5vmin,24px); border: 1px solid #3b4b54; border-radius: 22px; background: linear-gradient(150deg,#19242c,#0c1217); box-shadow: inset 0 1px rgba(255,255,255,.08),0 18px 60px rgba(0,0,0,.5); }
+.race-startup-brand { display: flex; align-items: center; gap: 8px; color: #dce6ea; font: 800 clamp(10px,1.8vmin,14px)/1 system-ui; letter-spacing: 1.5px; }
+.race-startup-brand img { width: 20px; height: 20px; }
+.race-startup-brand small { margin-left: 5px; color: var(--primary); font-size: .75em; }
+.race-startup-gauge { position: relative; width: min(100%,280px); }
+.race-startup-gauge svg { display: block; width: 100%; overflow: visible; }
+.race-startup-gauge path { fill: none; stroke: #48555d; stroke-width: 9; stroke-linecap: round; }
+.race-startup-needle { stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; transform-box: view-box; transform-origin: 110px 96px; filter: drop-shadow(0 0 5px var(--primary)); }
+.race-startup-gauge circle { fill: var(--primary); }
+.race-startup-gauge text { fill: #8b9aa2; font: 700 9px system-ui; }
+.race-startup-readout { position: absolute; left: 50%; top: 67%; display: grid; gap: 3px; text-align: center; transform: translate(-50%,-50%); white-space: nowrap; }
+.race-startup-readout b { color: #f1f5f6; font: 800 clamp(12px,2.2vmin,17px)/1 system-ui; letter-spacing: 1.8px; }
+.race-startup-readout small { color: #92a0a6; font: 700 8px system-ui; letter-spacing: 1px; }
+.race-startup-lights { display: flex; gap: 8px; }
+.race-startup-lights span { min-width: 34px; padding: 4px 7px; border: 1px solid #41484b; border-radius: 6px; color: #879196; font: 800 8px system-ui; text-align: center; }
+.racepad-starting .race-startup-lights span { animation: race-indicator-check 850ms ease both; }
+.racepad-starting .race-startup-lights span:nth-child(2) { animation-delay: 100ms; }
+.racepad-starting .race-startup-lights span:nth-child(3) { animation-delay: 200ms; }
+.race-startup-progress { width: min(80%,260px); height: 3px; overflow: hidden; border-radius: 4px; background: #303b41; }
+.race-startup-progress i { display: block; width: 100%; height: 100%; background: var(--primary); box-shadow: 0 0 9px var(--primary); transform: scaleX(0); transform-origin: left; }
+.racepad-starting .race-startup-progress i { animation: race-startup-progress 1150ms cubic-bezier(.2,.7,.2,1) 120ms both; }
+.race-startup-status { color: #78d6a3; font: 800 8px system-ui; letter-spacing: 1.5px; }
+.race-startup-status::before { content: ''; display: inline-block; width: 5px; height: 5px; margin: 0 7px 1px 0; border-radius: 50%; background: currentColor; box-shadow: 0 0 7px currentColor; }
+@keyframes race-startup-screen { 0% { opacity: 0; } 12% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes race-startup-sweep { 0% { transform: rotate(-112deg); } 56% { transform: rotate(104deg); } 82% { transform: rotate(-8deg); } 100% { transform: rotate(0); } }
+@keyframes race-startup-progress { to { transform: scaleX(1); } }
+@keyframes race-indicator-check { 0%,100% { border-color: #41484b; color: #879196; box-shadow: none; } 35%,70% { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 10px var(--primary-dim); } }
+.racepad-starting .race-startup-needle { animation: race-startup-sweep 1250ms cubic-bezier(.2,.75,.25,1) both; }
+@media (prefers-reduced-motion: reduce) { .racepad-starting .racepad-startup, .racepad-starting .race-startup-needle, .racepad-starting .race-startup-lights span, .racepad-starting .race-startup-progress i { animation: none; } .racepad-starting .racepad-startup { opacity: 1; } .racepad-starting .race-startup-progress i { transform: scaleX(1); } }

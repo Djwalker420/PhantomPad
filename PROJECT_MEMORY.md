@@ -1,10 +1,16 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-11-02
-Desktop source: 1.12.0; Android source: 1.12.0 (versionCode 16)
+Last updated: 2026-11-04
+Desktop source: 1.13.0; Android source: 1.13.0 (versionCode 17)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
+
+## Current local work (2026-11-04)
+- Reorganized Racepad to follow Gyropad's layout: gear paddles at the top edges, four pedals around the center gyro steering display, and grouped secondary/action controls along the bottom. Portrait mode stacks the lower groups so they fit on phone screens; touch targets scale up on larger displays.
+- Added a short ignition startup sequence when Racepad opens, with a tachometer sweep and dashboard indicator check. It is visual only and does not alter button IDs, input mappings, or their behavior.
+- Bumped Windows and Android versions to 1.13.0, Android `versionCode` to 17, CI artifact labels to v1.13.0, and the shared controller cache to v17. Mirrored shared controller files into Android assets.
+- No APK/installer build, automated test, or physical device display test has been performed. No commit or push has been made.
 
 ## Current local work (2026-11-02)
 - Added UDP local-network discovery so the Android connection screen can list PhantomPad PCs by name; scanning runs only while that screen is open.

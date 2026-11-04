@@ -289,6 +289,17 @@
     });
   }
 
+  let racepadStartupTimer = null;
+
+  function playRacepadStartup() {
+    const deck = document.getElementById('racepad-deck');
+    deck.classList.remove('racepad-starting');
+    void deck.offsetWidth;
+    deck.classList.add('racepad-starting');
+    clearTimeout(racepadStartupTimer);
+    racepadStartupTimer = setTimeout(() => deck.classList.remove('racepad-starting'), 1750);
+  }
+
   function setOutputMode(mode) {
     if (!['gamepad', 'racepad', 'keyboard'].includes(mode)) return;
     const enteringRacepad = mode === 'racepad' && state.outputMode !== 'racepad';
@@ -315,6 +326,7 @@
       updateRaceWheel(0);
     }
     updateRaceSteeringMode();
+    if (enteringRacepad) playRacepadStartup();
   }
 
   function updateConnUI(connected) {
