@@ -1,18 +1,24 @@
 # PhantomPad — Project Memory
 
 Last updated: 2026-11-04
-Desktop source: 1.13.1; Android source: 1.13.1 (versionCode 18)
+Desktop source: 1.14.0; Android source: 1.14.0 (versionCode 19)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
 
-## Current local work (2026-11-04)
+## Current local work (2026-11-04, v1.14.0)
+- Replaced the Windows QR/code connection card with a live session overview for mode, connected phones, driver readiness, approval requests, and trusted devices. Nearby Android discovery and the approval/revoke flow remain available.
+- Reworked Racepad to match the supplied Gyropad reference: gear down and power on the left, connect/latency in the center, gear up and gyro recenter on the right; four pedals, steering dial, Lights, Horn, D-pad, Y/X/A/B diamond, Camera, and Setup below. Removed the lock-like extra, orientation lock, and overflow menu with additional racing keys. The power icon pauses Racepad input; gyro recenter uses the existing calibration permission flow, and pedal labels/values follow the reference.
+- Bumped Windows and Android versions to 1.14.0, Android `versionCode` to 19, CI artifact labels to v1.14.0, and the shared controller cache to v19. Mirrored the shared controller files into Android assets.
+- No APK/installer build, automated test, physical phone-layout test, commit, or push has been performed for this update.
+
+## Previous local work (2026-11-04, v1.13.1)
 - Fixed the Racepad startup animation repeating: it is now a one-time ignition sweep and glow integrated into the Racepad surface; the full-screen animation overlay was removed, so controls remain visible and touchable.
 - Fixed Windows mode selection feedback: Gamepad/Racepad choices no longer silently ignore clicks when the required driver is unavailable; the dashboard shows the driver status and the server preserves the last usable selection when switching fails.
 - Bumped Windows and Android versions to 1.13.1, Android `versionCode` to 18, CI artifact labels to v1.13.1, and the shared controller cache to v18. Mirrored controller assets into the Android app.
 - No APK/installer build, automated tests, or physical-device test has been performed. No commit or push has been made.
 
-## Current local work (2026-11-04)
+## Previous local work (2026-11-04, v1.13.0)
 - Reorganized Racepad to follow Gyropad's layout: gear paddles at the top edges, four pedals around the center gyro steering display, and grouped secondary/action controls along the bottom. Portrait mode stacks the lower groups so they fit on phone screens; touch targets scale up on larger displays.
 - Added a short ignition startup sequence when Racepad opens, with a tachometer sweep and dashboard indicator check. It is visual only and does not alter button IDs, input mappings, or their behavior.
 - Bumped Windows and Android versions to 1.13.0, Android `versionCode` to 17, CI artifact labels to v1.13.0, and the shared controller cache to v17. Mirrored shared controller files into Android assets.

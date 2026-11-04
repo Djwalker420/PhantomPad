@@ -20,8 +20,6 @@
     });
   }
 
-  let allInterfaces = [];
-  let activeTab = 0;
   let mappingsData = { presets: {}, custom: {}, vkNames: {}, vk: {} };
   let currentMapping = null;
   let currentMappingName = 'default';
@@ -32,7 +30,7 @@
     play: {
       index: 'SESSION / 01',
       title: 'Play setup',
-      description: 'Connect phones, choose the input mode, and check each player.'
+      description: 'Choose the output mode, review live players, and tune controls.'
     },
     customize: {
       index: 'SETUP / 02',
@@ -62,111 +60,6 @@
   });
 
   // ============================================
-  //  Server Info
-  // ============================================
-  async function loadInfo() {
-    try {
-      const info = await fetch('/api/info').then(r => r.json());
-      allInterfaces = info.interfaces || [];
-      document.getElementById('port-display').textContent = info.port;
-      const pairing = await fetch('/api/pairing', { cache: 'no-store' }).then(r => {
-        if (!r.ok) throw new Error('Pairing code unavailable');
-        return r.json();
-      });
-      document.getElementById('pairing-code').textContent = pairing.pairingCode;
-      updateModeUI(info);
-      buildConnectionTabs();
-      if (allInterfaces.length > 0) selectTab(0);
-    } catch (e) {
-      console.error('Failed to load info:', e);
-    }
-  }
-  loadInfo();
-
-  // ============================================
-  //  Connection Tabs
-  // ============================================
-  function buildConnectionTabs() {
-    const container = document.getElementById('conn-tabs');
-    container.innerHTML = '';
-    allInterfaces.forEach((iface, i) => {
-      const tab = document.createElement('button');
-      tab.className = 'conn-tab' + (i === 0 ? ' active' : '');
-      tab.dataset.index = i;
-      let label = iface.name;
-      if (iface.type === 'usb-adb') label = 'USB / ADB';
-      else if (iface.type === 'usb') label = 'USB Tether';
-      const icon = document.createElement('span');
-      icon.className = 'tab-icon';
-      icon.textContent = iface.icon;
-      const name = document.createElement('span');
-      name.textContent = label;
-      const type = document.createElement('span');
-      type.className = 'tab-type';
-      type.textContent = iface.type;
-      tab.append(icon, name, type);
-      tab.addEventListener('click', () => selectTab(i));
-      container.appendChild(tab);
-    });
-  }
-
-  async function selectTab(index) {
-    activeTab = index;
-    const iface = allInterfaces[index];
-    if (!iface) return;
-    document.querySelectorAll('.conn-tab').forEach((t, i) => t.classList.toggle('active', i === index));
-    document.getElementById('controller-url').textContent = iface.url;
-    document.getElementById('ip-display').textContent = iface.ip;
-    document.getElementById('iface-display').textContent = iface.name;
-
-    const instrEl = document.getElementById('conn-instructions');
-    const instructions = {
-      wifi: 'Connect your phone to the same WiFi network as this PC, then scan the QR code or open the URL:',
-      usb: 'USB Tethering detected! Enable tethering on your phone, then open this URL in your phone\'s browser:',
-      'usb-adb': 'For the lowest latency wired connection, use ADB port forwarding. Follow the steps below:',
-      ethernet: 'Ethernet connection. Open the URL below on your phone (phone must be on same network):',
-    };
-    instrEl.textContent = instructions[iface.type] || 'Open the URL below in your phone\'s browser to connect:';
-
-    document.getElementById('adb-help').classList.toggle('hidden', iface.type !== 'usb-adb');
-    document.getElementById('usb-tether-help').classList.toggle('hidden', iface.type !== 'usb');
-
-    try {
-      const qrData = await fetch(`/api/qr?ip=${iface.ip}`).then(r => r.json());
-      const qrImg = document.getElementById('qr-code');
-      qrImg.src = qrData.qr;
-      document.getElementById('controller-url').textContent = qrData.url;
-      qrImg.onload = () => { document.getElementById('qr-loading').style.display = 'none'; };
-    } catch (e) { console.error('QR error:', e); }
-  }
-
-  // ============================================
-  //  Copy Buttons
-  // ============================================
-  document.getElementById('copy-url-btn').addEventListener('click', () => {
-    const url = document.getElementById('controller-url').textContent;
-    navigator.clipboard.writeText(url).then(() => flashBtn('copy-url-btn'));
-  });
-
-  document.getElementById('copy-pairing-code-btn').addEventListener('click', () => {
-    const code = document.getElementById('pairing-code').textContent;
-    navigator.clipboard.writeText(code).then(() => flashBtn('copy-pairing-code-btn'));
-  });
-
-  const adbBtn = document.getElementById('copy-adb-btn');
-  if (adbBtn) {
-    adbBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText('adb reverse tcp:3000 tcp:3000').then(() => flashBtn('copy-adb-btn'));
-    });
-  }
-
-  function flashBtn(id) {
-    const btn = document.getElementById(id);
-    btn.textContent = '✅';
-    setTimeout(() => { btn.textContent = '📋'; }, 1500);
-  }
-
-  // ============================================
   //  Players List
   // ============================================
   function getControllerStatus(player) {
@@ -186,6 +79,7 @@
     const list = document.getElementById('controllers-list');
     const count = document.getElementById('controller-count');
     count.textContent = players.length;
+    document.getElementById('session-player-count').textContent = players.length;
 
     if (players.length === 0) {
       if (!list.querySelector('.empty-state')) list.innerHTML = '<div class="empty-state">No controllers connected</div>';
@@ -243,6 +137,7 @@
   socket.on('trusted-devices', (devices) => {
     const list = document.getElementById('trusted-devices-list');
     if (!list) return;
+    document.getElementById('session-device-count').textContent = Array.isArray(devices) ? devices.length : 0;
     list.replaceChildren();
     if (!Array.isArray(devices) || devices.length === 0) {
       const empty = document.createElement('div');
@@ -287,6 +182,7 @@
     if (!panel || !list) return;
     list.replaceChildren();
     panel.hidden = !Array.isArray(requests) || requests.length === 0;
+    document.getElementById('session-pending-count').textContent = `${panel.hidden ? 0 : requests.length} waiting`;
     if (panel.hidden) return;
     requests.forEach((request) => {
       if (!request || typeof request.socketId !== 'string') return;
@@ -324,6 +220,7 @@
   // ============================================
   function updateModeUI(status) {
     const mode = status.mode || 'auto';
+    const activeMode = status.activeMode || 'gamepad';
     const gamepadAvailable = status.gamepadAvailable;
     const racepadAvailable = status.racepadAvailable;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -361,8 +258,14 @@
       warning.classList.add('hidden');
     }
     if (detail) detail.textContent = mode === 'auto'
-      ? `Auto is active: ${String(status.activeMode || 'gamepad').toUpperCase()} output. Recognized racing sims switch to Racepad; other apps use Gamepad.`
+      ? `Auto is active: ${String(activeMode).toUpperCase()} output. Recognized racing sims switch to Racepad; other apps use Gamepad.`
       : `Manual ${mode.toUpperCase()} selection. Detected game: ${status.activeGame || 'none'}.`;
+    document.getElementById('session-mode').textContent = mode === 'auto'
+      ? `AUTO · ${String(activeMode).toUpperCase()}` : mode.toUpperCase();
+    const driverStatus = document.getElementById('session-driver-status');
+    if (activeMode === 'keyboard') driverStatus.textContent = 'Keyboard ready';
+    else if (activeMode === 'racepad') driverStatus.textContent = racepadAvailable ? 'vJoy ready' : 'vJoy unavailable';
+    else driverStatus.textContent = gamepadAvailable ? 'ViGEm ready' : 'ViGEm unavailable';
   }
 
   document.querySelectorAll('.mode-btn').forEach(btn => {

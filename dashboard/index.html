@@ -29,7 +29,7 @@
       <div class="workspace-copy">
         <span class="workspace-eyebrow" id="workspace-eyebrow">SESSION / 01</span>
         <h2 id="workspace-title">Play setup</h2>
-        <p id="workspace-description">Connect phones, choose the input mode, and check each player.</p>
+        <p id="workspace-description">Choose the output mode, review live players, and tune controls.</p>
       </div>
       <nav class="workspace-nav" aria-label="PhantomPad workspace">
         <button class="workspace-tab active" type="button" data-workspace-target="play" aria-pressed="true">
@@ -43,73 +43,38 @@
 
     <!-- Main Grid -->
     <main class="main-grid">
-      <!-- Connection Card -->
-      <section class="card connection-card" id="connection-card" data-workspace="play">
+      <!-- Session Overview -->
+      <section class="card session-card" data-workspace="play">
         <div class="card-header">
-          <div><h2>Connect a phone</h2><p class="card-subtitle">Scan the code or enter this address in PhantomPad.</p></div>
+          <div><h2>Session overview</h2><p class="card-subtitle">Your PC is discoverable while PhantomPad is running.</p></div>
         </div>
         <div class="card-body">
-          <div class="conn-tabs" id="conn-tabs"></div>
-          <div class="connect-body">
-            <div class="qr-container">
-              <div class="qr-frame">
-                <img id="qr-code" alt="QR Code" class="qr-img">
-                <div class="qr-loading" id="qr-loading">Loading...</div>
+          <div class="session-overview">
+            <div class="session-hero">
+              <span class="session-live-dot" aria-hidden="true"></span>
+              <div><strong>Nearby phone discovery</strong><p>Open PhantomPad on your phone to look for this PC.</p></div>
+            </div>
+            <div class="session-metrics" aria-live="polite">
+              <div class="session-metric"><span>OUTPUT MODE</span><strong id="session-mode">Waiting</strong></div>
+              <div class="session-metric"><span>CONNECTED PHONES</span><strong id="session-player-count">0</strong></div>
+              <div class="session-metric"><span>VIRTUAL DRIVER</span><strong id="session-driver-status">Checking</strong></div>
+            </div>
+            <div class="trusted-devices-panel pairing-requests-panel" id="pairing-requests-panel" hidden>
+              <div class="trusted-devices-heading">
+                <strong>Phone approval requests</strong>
+                <span id="session-pending-count">0 waiting</span>
+              </div>
+              <div id="pairing-requests-list" class="trusted-devices-list"></div>
+            </div>
+            <div class="trusted-devices-panel">
+              <div class="trusted-devices-heading">
+                <strong>Remembered phones</strong>
+                <span><b id="session-device-count">0</b> · 30-day trust</span>
+              </div>
+              <div id="trusted-devices-list" class="trusted-devices-list">
+                <div class="empty-state">No phones remembered yet</div>
               </div>
             </div>
-            <div class="connect-info">
-              <div id="conn-instructions" class="conn-instructions"></div>
-              <div class="url-box">
-                <code id="controller-url">Loading...</code>
-                <button id="copy-url-btn" class="copy-btn" title="Copy URL">📋</button>
-              </div>
-              <div class="ip-info">
-                <span>Interface: <strong id="iface-display">—</strong></span>
-                <span>IP: <strong id="ip-display">—</strong></span>
-                <span>Port: <strong id="port-display">—</strong></span>
-              </div>
-              <div class="pairing-info">
-                <div><span class="pairing-label">8-DIGIT PAIRING CODE</span><code id="pairing-code">Loading…</code></div>
-                <button id="copy-pairing-code-btn" class="copy-btn" title="Copy pairing code">📋</button>
-                <small>Browser controllers use this code. New Android phones appear below for approval; approved phones stay trusted for 30 days after each successful connection.</small>
-              </div>
-              <div class="trusted-devices-panel">
-                <div class="trusted-devices-heading">
-                  <strong>Remembered Android phones</strong>
-                  <span>30-day rolling trust</span>
-                </div>
-                <div id="trusted-devices-list" class="trusted-devices-list">
-                  <div class="empty-state">No Android phones remembered yet</div>
-                </div>
-              </div>
-              <div class="trusted-devices-panel pairing-requests-panel" id="pairing-requests-panel" hidden>
-                <div class="trusted-devices-heading">
-                  <strong>New phone requests</strong>
-                  <span>Approve only phones you recognize</span>
-                </div>
-                <div id="pairing-requests-list" class="trusted-devices-list"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ADB Help -->
-          <div id="adb-help" class="adb-help hidden">
-            <div class="adb-step"><span class="step-num">1</span> Connect phone via USB cable</div>
-            <div class="adb-step"><span class="step-num">2</span> Enable USB Debugging on phone (Settings → Developer Options)</div>
-            <div class="adb-step"><span class="step-num">3</span> Run this command on your PC:</div>
-            <div class="adb-cmd">
-              <code>adb reverse tcp:3000 tcp:3000</code>
-              <button class="copy-btn" id="copy-adb-btn" title="Copy">📋</button>
-            </div>
-            <div class="adb-step"><span class="step-num">4</span> Open the copied controller URL in your phone's browser</div>
-            <div class="adb-step"><span class="step-num">5</span> For first Android pairing, enter <strong>127.0.0.1</strong>, port <strong>3000</strong>, and the 8-digit code. Later connections can leave the code blank for 30 days after each successful connection.</div>
-          </div>
-
-          <!-- USB Tether Help -->
-          <div id="usb-tether-help" class="adb-help hidden">
-            <div class="adb-step"><span class="step-num">1</span> Connect phone to PC via USB cable</div>
-            <div class="adb-step"><span class="step-num">2</span> Enable <strong>USB Tethering</strong> on phone (Settings → Hotspot & Tethering)</div>
-            <div class="adb-step"><span class="step-num">3</span> Open the URL shown above in phone's browser</div>
           </div>
         </div>
       </section>

@@ -152,9 +152,16 @@
         <button id="settings-btn" class="icon-btn" title="Settings">⚙</button>
         <button id="fullscreen-btn" class="icon-btn" title="Fullscreen">⛶</button>
       </div>
-      <div class="racepad-shift-controls" aria-label="Gear shifting">
-        <button data-btn="gearDown" data-layout-id="gearDown" aria-label="Gear down"><span>GEAR</span><b>⌄</b></button>
-        <button data-btn="gearUp" data-layout-id="gearUp" aria-label="Gear up"><span>GEAR</span><b>⌃</b></button>
+      <div class="racepad-system-group racepad-system-left" aria-label="Gear down and power">
+        <button class="racepad-gear-button" data-btn="gearDown" data-layout-id="gearDown" aria-label="Gear down"><span>GEAR</span><b>⌄</b></button>
+        <button type="button" id="racepad-power-toggle" class="racepad-icon-button" aria-label="Racepad power on" aria-pressed="true" title="Turn Racepad controls off"><span aria-hidden="true">⏻</span></button>
+      </div>
+      <button type="button" id="race-connect-btn" class="race-connect-btn" aria-label="Connect to Windows">
+        <span id="race-connect-label">CONNECT</span><small><span id="race-player-label">P1</span><i></i><span id="race-latency-display">NETWORK RTT: --</span></small>
+      </button>
+      <div class="racepad-system-group racepad-system-right" aria-label="Gear up and gyro recenter">
+        <button class="racepad-gear-button" data-btn="gearUp" data-layout-id="gearUp" aria-label="Gear up"><span>GEAR</span><b>⌃</b></button>
+        <button type="button" id="racepad-recenter-btn" class="racepad-icon-button" aria-label="Recenter gyro steering" title="Recenter gyro steering"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span></button>
       </div>
       <div class="bumper-trigger-group right">
         <button class="bumper-btn" id="rb" data-btn="rb" data-layout-id="rb">RB</button>
@@ -167,8 +174,8 @@
       <div class="controller-deck-label" aria-hidden="true"><img class="controller-brand-mark" src="icons/phantompad-mark-color.svg" alt=""><span>PHANTOMPAD</span><i></i><span>WIRELESS GAMEPAD</span></div>
       <div id="racepad-deck" class="racepad-deck hidden">
         <div class="race-pedal-rail race-pedal-rail-left" aria-label="Clutch and handbrake">
-          <div class="race-pedal" data-pedal="handbrake"><i></i><b>H-BRAKE</b></div>
-          <div class="race-pedal" data-pedal="clutch"><i></i><b>CLUTCH</b></div>
+          <div class="race-pedal" data-pedal="handbrake"><i></i><b>H-BRAKE</b><span class="race-pedal-value" data-pedal-value="handbrake">0</span></div>
+          <div class="race-pedal" data-pedal="clutch"><i></i><b>CLUTCH</b><span class="race-pedal-value" data-pedal-value="clutch">0</span></div>
         </div>
         <section class="race-cockpit" aria-label="Race controls">
           <div id="race-steering" class="race-steering-gauge" role="meter" aria-label="Gyro steering" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0">
@@ -183,14 +190,10 @@
             <span class="race-gauge-left">L</span><span class="race-gauge-right">R</span>
           </div>
           <div class="race-center-mode"><i></i><span>RACEPAD</span><i></i></div>
-          <div class="race-cockpit-footer">
-            <div class="race-steering-mode" aria-live="polite"><i></i><span id="race-steering-mode-text">GYRO STANDBY</span></div>
-            <span class="race-gyro-hint">RACEPAD GYRO</span>
-          </div>
         </section>
         <div class="race-pedal-rail race-pedal-rail-right" aria-label="Brake and throttle">
-          <div class="race-pedal" data-pedal="brake"><i></i><b>BRAKE</b></div>
-          <div class="race-pedal" data-pedal="throttle"><i></i><b>SPEED</b></div>
+          <div class="race-pedal" data-pedal="brake"><i></i><b>BRAKE</b><span class="race-pedal-value" data-pedal-value="brake">0</span></div>
+          <div class="race-pedal" data-pedal="throttle"><i></i><b>SPEED</b><span class="race-pedal-value" data-pedal-value="throttle">0</span></div>
         </div>
         <div class="race-bottom-controls">
           <div class="race-bottom-left">
@@ -207,37 +210,11 @@
             <div class="race-face-pad" aria-label="Action buttons">
               <button data-btn="Y" data-layout-id="raceY">Y</button>
               <button data-btn="X" data-layout-id="raceX">X</button>
-              <button data-btn="B" data-layout-id="raceB">B</button>
               <button data-btn="A" data-layout-id="raceA">A</button>
+              <button data-btn="B" data-layout-id="raceB">B</button>
             </div>
             <button class="race-round-button" data-btn="camera" data-layout-id="camera" aria-label="Camera"><span>◎</span><small>CAM</small></button>
-            <button type="button" id="race-more" class="race-round-button" aria-label="More racing controls"><span>•••</span><small>MORE</small></button>
-          </div>
-        </div>
-        <div id="race-extras" class="race-extras hidden" role="dialog" aria-modal="true" aria-labelledby="race-extras-title">
-          <div class="race-extras-panel">
-            <header><div><b id="race-extras-title">Racing controls</b><small>Tap and hold a control</small></div><button type="button" id="race-extras-close" aria-label="Close">×</button></header>
-            <div class="race-extras-grid">
-              <button data-btn="gearReverse" data-layout-id="gearReverse">REVERSE</button>
-              <button data-btn="gear1" data-layout-id="gear1">GEAR 1</button>
-              <button data-btn="gear2" data-layout-id="gear2">GEAR 2</button>
-              <button data-btn="gear3" data-layout-id="gear3">GEAR 3</button>
-              <button data-btn="gear4" data-layout-id="gear4">GEAR 4</button>
-              <button data-btn="gear5" data-layout-id="gear5">GEAR 5</button>
-              <button data-btn="gear6" data-layout-id="gear6">GEAR 6</button>
-              <button data-btn="lb" data-layout-id="raceLB">LB</button>
-              <button data-btn="rb" data-layout-id="raceRB">RB</button>
-              <button data-btn="back" data-layout-id="back">BACK</button>
-              <button data-btn="start" data-layout-id="start">MENU</button>
-              <button data-btn="home" data-layout-id="raceHome">HOME</button>
-              <button data-btn="ls" data-layout-id="raceL3">L3</button>
-              <button data-btn="rs" data-layout-id="raceR3">R3</button>
-              <button data-btn="pitLimiter" data-layout-id="pitLimiter">PIT LIMITER</button>
-              <button data-btn="wipers" data-layout-id="wipers">WIPERS</button>
-              <button data-btn="ignition" data-layout-id="ignition">IGNITION</button>
-              <button data-btn="absToggle" data-layout-id="absToggle">ABS</button>
-              <button data-btn="tractionToggle" data-layout-id="tractionToggle">TRACTION</button>
-            </div>
+            <button type="button" id="race-settings-btn" class="race-round-button" aria-label="Setup"><span>⚙</span><small>SETUP</small></button>
           </div>
         </div>
       </div>

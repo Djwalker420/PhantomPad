@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <img alt="Windows app version 1.13.1" src="https://img.shields.io/badge/Windows-1.13.1-4F46E5?style=for-the-badge">
-  <img alt="Android app version 1.13.1" src="https://img.shields.io/badge/Android-1.13.1-00BFA6?style=for-the-badge">
+  <img alt="Windows app version 1.14.0" src="https://img.shields.io/badge/Windows-1.14.0-4F46E5?style=for-the-badge">
+  <img alt="Android app version 1.14.0" src="https://img.shields.io/badge/Android-1.14.0-00BFA6?style=for-the-badge">
 </p>
 
 ## Download

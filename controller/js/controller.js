@@ -31,7 +31,7 @@
   const state = {
     socket: null, connected: false,
     buttons: {}, axes: { leftX: 0, leftY: 0, rightX: 0, rightY: 0, steering: 0, throttle: 0, brake: 0, clutch: 0, handbrake: 0 }, triggers: { lt: 0, rt: 0 },
-    isGamepad: false,
+    isGamepad: false, racepadPowered: true,
     outputMode: 'gamepad',
     motionBase: { beta: 0, gamma: 0, set: false },
     latency: null,
@@ -70,6 +70,7 @@
   function sendLoop(timestamp) {
     rafId = requestAnimationFrame(sendLoop);
     if (!state.connected) return;
+    if (state.outputMode === 'racepad' && !state.racepadPowered) return;
 
     if (timestamp - lastSendTime >= sendInterval) {
       lastSendTime = timestamp;
@@ -105,6 +106,7 @@
 
     document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
     document.querySelectorAll('[data-pedal]').forEach(el => el.style.setProperty('--pedal-value', '0%'));
+    document.querySelectorAll('[data-pedal-value]').forEach(el => { el.textContent = '0'; });
     joysticks.forEach(joystick => {
       joystick.active = false;
       joystick.touchId = null;
@@ -268,6 +270,11 @@
       num.style.borderColor = info.color;
       num.style.color = info.color;
       num.style.boxShadow = `0 0 10px ${info.color}40`;
+      const racePlayer = document.getElementById('race-player-label');
+      if (racePlayer) {
+        racePlayer.textContent = 'P' + info.number;
+        racePlayer.style.color = info.color;
+      }
     });
 
     // Latency response
@@ -332,6 +339,12 @@
     const txt = document.getElementById('connection-text');
     dot.className = 'conn-dot ' + (connected ? 'connected' : 'disconnected');
     txt.textContent = connected ? 'Connected' : 'Disconnected';
+    const raceConnect = document.getElementById('race-connect-btn');
+    if (raceConnect) {
+      raceConnect.classList.toggle('connected', connected);
+      document.getElementById('race-connect-label').textContent = connected ? 'CONNECTED' : 'CONNECT';
+      raceConnect.setAttribute('aria-label', connected ? 'Connected to Windows' : 'Reconnect to Windows');
+    }
   }
 
   // ========================
@@ -445,6 +458,13 @@
 
   function updateLatencyUI() {
     const el = document.getElementById('latency-display');
+    const raceEl = document.getElementById('race-latency-display');
+    const text = state.latency === null ? 'NETWORK RTT: --' : `NETWORK RTT: ${state.latency} ms`;
+    const quality = state.latency === null ? 'neutral' : state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad';
+    if (raceEl) {
+      raceEl.textContent = text;
+      raceEl.className = `race-latency-${quality}`;
+    }
     if (el) {
       el.textContent = state.latency === null ? 'Network RTT: --' : `Network RTT: ${state.latency} ms`;
       const quality = state.latency === null ? 'neutral' : state.latency < 20 ? 'good' : state.latency < 60 ? 'ok' : 'bad';
@@ -582,8 +602,6 @@
     deck.classList.toggle('gyro-on', active);
     deck.classList.toggle('gyro-waiting', active && !ready);
     document.getElementById('race-wheel-hint').textContent = ready ? 'GYRO STEERING' : active ? 'HOLD LEVEL' : 'GYRO STEERING';
-    document.getElementById('race-steering-mode-text').textContent = ready ? 'GYRO ACTIVE' : active ? 'GYRO STARTING' : 'GYRO STANDBY';
-    document.querySelector('.race-gyro-hint').textContent = ready ? 'TILT PHONE TO STEER' : active ? 'HOLD PHONE LEVEL' : 'RACEPAD GYRO';
   }
 
   function setMotionMode(mode) {
@@ -713,11 +731,23 @@
 
   function initRacepadControls() {
     updateRaceSteeringMode();
-
-    const extras = document.getElementById('race-extras');
-    document.getElementById('race-more').addEventListener('click', () => extras.classList.remove('hidden'));
-    document.getElementById('race-extras-close').addEventListener('click', () => extras.classList.add('hidden'));
-    extras.addEventListener('click', (event) => { if (event.target === extras) extras.classList.add('hidden'); });
+    document.getElementById('race-connect-btn').addEventListener('click', () => {
+      if (!state.connected) state.socket?.connect();
+    });
+    document.getElementById('racepad-recenter-btn').addEventListener('click', requestMotionPermissions);
+    const power = document.getElementById('racepad-power-toggle');
+    power.addEventListener('click', () => {
+      state.racepadPowered = !state.racepadPowered;
+      const enabled = state.racepadPowered;
+      document.getElementById('controller').classList.toggle('racepad-powered-off', !enabled);
+      power.setAttribute('aria-pressed', String(enabled));
+      power.setAttribute('aria-label', `Racepad power ${enabled ? 'on' : 'off'}`);
+      power.title = `Turn Racepad controls ${enabled ? 'off' : 'on'}`;
+      state.motionBase.set = false;
+      if (!enabled) resetInputState(true);
+      updateRaceSteeringMode();
+      haptic();
+    });
 
     document.querySelectorAll('[data-pedal]').forEach((pedal) => {
       const axis = pedal.dataset.pedal;
@@ -727,12 +757,13 @@
         const value = Math.max(0, Math.min(1, 1 - (event.clientY - rect.top) / rect.height));
         state.axes[axis] = Math.round(value * 1000) / 1000;
         pedal.style.setProperty('--pedal-value', `${value * 100}%`);
+        pedal.querySelector('[data-pedal-value]').textContent = Math.round(value * 100);
       };
       pedal.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = event.pointerId; pedal.setPointerCapture(pointer); update(event); });
       pedal.addEventListener('pointermove', (event) => { if (event.pointerId === pointer) update(event); });
       const release = (event) => {
         if (event.pointerId !== pointer) return;
-        pointer = null; state.axes[axis] = 0; pedal.style.setProperty('--pedal-value', '0%');
+        pointer = null; state.axes[axis] = 0; pedal.style.setProperty('--pedal-value', '0%'); pedal.querySelector('[data-pedal-value]').textContent = '0';
       };
       pedal.addEventListener('pointerup', release);
       pedal.addEventListener('pointercancel', release);
@@ -743,7 +774,9 @@
   // ========================
   function initSettings() {
     const overlay = document.getElementById('settings-overlay');
-    document.getElementById('settings-btn').addEventListener('click', () => overlay.classList.remove('hidden'));
+    const openSettings = () => overlay.classList.remove('hidden');
+    document.getElementById('settings-btn').addEventListener('click', openSettings);
+    document.getElementById('race-settings-btn').addEventListener('click', openSettings);
     document.getElementById('close-settings').addEventListener('click', () => { overlay.classList.add('hidden'); saveSettings(); });
     overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.classList.add('hidden'); saveSettings(); } });
 
@@ -974,11 +1007,6 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) resetInputState(true);
     });
-
-    // Lock landscape
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {});
-    }
 
     // Register Service Worker for PWA support
     if ('serviceWorker' in navigator && location.hostname !== 'appassets.androidplatform.net') {
