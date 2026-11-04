@@ -574,9 +574,9 @@ body::before {
 .mode-btn.active::before { opacity: 1; }
 
 .mode-btn.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  filter: grayscale(0.5);
+  opacity: 0.55;
+  cursor: help;
+  filter: grayscale(0.25);
 }
 
 .mode-icon { font-size: 28px; display: block; margin-bottom: 8px; }

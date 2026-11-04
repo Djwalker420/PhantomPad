@@ -289,15 +289,13 @@
     });
   }
 
-  let racepadStartupTimer = null;
+  let racepadStartupPlayed = false;
 
   function playRacepadStartup() {
+    if (racepadStartupPlayed) return;
+    racepadStartupPlayed = true;
     const deck = document.getElementById('racepad-deck');
-    deck.classList.remove('racepad-starting');
-    void deck.offsetWidth;
-    deck.classList.add('racepad-starting');
-    clearTimeout(racepadStartupTimer);
-    racepadStartupTimer = setTimeout(() => deck.classList.remove('racepad-starting'), 1750);
+    deck.classList.add('racepad-ignition');
   }
 
   function setOutputMode(mode) {

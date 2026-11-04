@@ -337,18 +337,24 @@
     const vjoyHelp = document.getElementById('vjoy-help');
     const vigemHelp = document.getElementById('vigem-help');
     const detail = document.getElementById('mode-detail');
-    gpBtn.classList.toggle('disabled', !gamepadAvailable);
-    rpBtn.classList.toggle('disabled', !racepadAvailable);
-    if (mode === 'auto' && status.autoGameMode === 'racepad' && !racepadAvailable) {
+    const gamepadUnavailable = gamepadAvailable === false;
+    const racepadUnavailable = racepadAvailable === false;
+    gpBtn.classList.toggle('disabled', gamepadUnavailable);
+    rpBtn.classList.toggle('disabled', racepadUnavailable);
+    gpBtn.setAttribute('aria-disabled', String(gamepadUnavailable));
+    rpBtn.setAttribute('aria-disabled', String(racepadUnavailable));
+    gpBtn.title = gamepadUnavailable ? (status.gamepadError || 'ViGEmBus is unavailable; select for details.') : '';
+    rpBtn.title = racepadUnavailable ? (status.racepadError || 'vJoy is unavailable; select for details.') : '';
+    if (mode === 'auto' && status.autoGameMode === 'racepad' && racepadUnavailable) {
       warningMessage.textContent = `Racing game detected, but vJoy is unavailable. Using Gamepad mode. ${status.racepadError || ''}`;
       vjoyHelp.hidden = false; vigemHelp.hidden = true; warning.classList.remove('hidden');
-    } else if (mode === 'racepad' && !racepadAvailable) {
+    } else if (mode === 'racepad' && racepadUnavailable) {
       warningMessage.textContent = status.racepadError || 'Install vJoy and enable X/Y/Z/Rx/Ry axes and 32 buttons.';
       vjoyHelp.hidden = false; vigemHelp.hidden = true; warning.classList.remove('hidden');
-    } else if (mode === 'gamepad' && !gamepadAvailable) {
+    } else if (mode === 'gamepad' && gamepadUnavailable) {
       warningMessage.textContent = status.gamepadError || 'ViGEmBus is unavailable.';
       vjoyHelp.hidden = true; vigemHelp.hidden = false; warning.classList.remove('hidden');
-    } else if (mode === 'auto' && status.activeMode === 'gamepad' && !gamepadAvailable) {
+    } else if (mode === 'auto' && status.activeMode === 'gamepad' && gamepadUnavailable) {
       warningMessage.textContent = status.gamepadError || 'ViGEmBus is unavailable; Gamepad output cannot start.';
       vjoyHelp.hidden = true; vigemHelp.hidden = false; warning.classList.remove('hidden');
     } else {
@@ -361,7 +367,6 @@
 
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.classList.contains('disabled')) return;
       socket.emit('set-mode', btn.dataset.mode);
     });
   });

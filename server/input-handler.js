@@ -757,9 +757,11 @@ if ($c) {
   setMode(selection) {
     if (!['auto', 'gamepad', 'racepad', 'keyboard'].includes(selection)) return false;
     if (selection === 'racepad' && !this.racepadAvailable) return false;
+    const previousSelection = this.modeSelection;
     this.modeSelection = selection;
-    if (selection === 'auto') return this._switchMode(this.autoGameMode);
-    return this._switchMode(selection);
+    const switched = this._switchMode(selection === 'auto' ? this.autoGameMode : selection);
+    if (!switched) this.modeSelection = previousSelection;
+    return switched;
   }
 
   _switchMode(mode) {
