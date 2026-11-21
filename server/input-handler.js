@@ -98,25 +98,25 @@ function global:Write-PhantomPadMarker([string]$Message) {
     [Console]::Out.Flush()
 }
 
-function global:Send-XboxReport([int]$pid) {
-    $c = $global:xctrls[$pid]
+function global:Send-XboxReport([int]$playerNum) {
+    $c = $global:xctrls[$playerNum]
     if ($c) {
         try {
             $c.SubmitReport()
-            if (-not $global:inputAck.ContainsKey($pid)) {
-                $global:inputAck[$pid] = $true
-                Write-PhantomPadMarker "VIGEM_INPUT_REPORT[$pid]"
+            if (-not $global:inputAck.ContainsKey($playerNum)) {
+                $global:inputAck[$playerNum] = $true
+                Write-PhantomPadMarker "VIGEM_INPUT_REPORT[$playerNum]"
             }
         } catch {
-            if (-not $global:inputFailureReported.ContainsKey($pid)) {
-                $global:inputFailureReported[$pid] = $true
-                Write-PhantomPadMarker "VIGEM_INPUT_FAILED[$pid]: $_"
+            if (-not $global:inputFailureReported.ContainsKey($playerNum)) {
+                $global:inputFailureReported[$playerNum] = $true
+                Write-PhantomPadMarker "VIGEM_INPUT_FAILED[$playerNum]: $_"
             }
         }
     } else {
-        if (-not $global:inputFailureReported.ContainsKey($pid)) {
-            $global:inputFailureReported[$pid] = $true
-            Write-PhantomPadMarker "VIGEM_INPUT_FAILED[$pid]: virtual controller target missing"
+        if (-not $global:inputFailureReported.ContainsKey($playerNum)) {
+            $global:inputFailureReported[$playerNum] = $true
+            Write-PhantomPadMarker "VIGEM_INPUT_FAILED[$playerNum]: virtual controller target missing"
         }
     }
 }
@@ -419,29 +419,9 @@ try {
   try {
     $c.Connect()
   } catch {
-    # Xbox360Controller.Connect() first plugs the target into the bus, then
-    # registers its optional vibration callback. The bundled ViGEm.NET
-    # wrapper can throw a generic Win32Exception (The operation completed
-    # successfully) for that second step. Trust the wrapper's own connected
-    # state so a successfully plugged-in controller remains usable.
-    $targetConnected = $false
-    $targetType = $c.GetType()
-    $connectedField = $null
-    $bindingFlags = [System.Reflection.BindingFlags]::Instance -bor [System.Reflection.BindingFlags]::NonPublic
-    while ($targetType -and -not $connectedField) {
-      $connectedField = $targetType.GetField('_isConnected', $bindingFlags)
-      $targetType = $targetType.BaseType
-    }
-    if ($connectedField) { $targetConnected = [bool]$connectedField.GetValue($c) }
-    if (-not $targetConnected) { throw }
-    Write-PhantomPadMarker "VIGEM_PLAYER_NOTICE[${number}]: vibration feedback registration was unavailable"
+    if ($c.NativeHandle -eq [IntPtr]::Zero) { throw }
+    Write-PhantomPadMarker "VIGEM_PLAYER_NOTICE[${number}]: controller target connected; notification setup optional"
   }
-  try {
-    $c.add_FeedbackReceived({
-      param($sender, $args)
-      Write-PhantomPadMarker "VIGEM_VIBRATE[${number}]:$($args.LargeMotor):$($args.SmallMotor)"
-    })
-  } catch {}
   $global:xctrls[${number}] = $c
   Write-PhantomPadMarker "VIGEM_PLAYER_READY[${number}]"
 } catch {
@@ -497,8 +477,8 @@ try {
 
   _handleGamepadInput(player, data) {
     if (!this.ps || !this.ps.stdin.writable) return;
-    const pid = player.number;
-    let cmds = `$c = $global:xctrls[${pid}]; if ($c) { `;
+    const pnum = player.number;
+    let cmds = `$c = $global:xctrls[${pnum}]; if ($c) { `;
     
     if (data.axes) {
       if (data.axes.leftX !== undefined) {
@@ -539,7 +519,7 @@ try {
       }
     }
     
-    cmds += `}; Send-XboxReport ${pid}\n`;
+    cmds += `}; Send-XboxReport ${pnum}\n`;
     this._writePowerShell(cmds);
   }
 
@@ -614,9 +594,9 @@ try {
     if ((!player.hasController && !player.controllerRequested) || !this.ps || !this.ps.stdin.writable) return;
 
 
-    const pid = player.number;
+    const pnum = player.number;
     this._writePowerShell(`
-$c = $global:xctrls[${pid}]
+$c = $global:xctrls[${pnum}]
 if ($c) {
   $c.SetAxisValue($global:XA::LeftThumbX, [int16]0)
   $c.SetAxisValue($global:XA::LeftThumbY, [int16]0)
