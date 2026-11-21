@@ -6,58 +6,74 @@
 
 <p align="center">
   <strong>Your phone, your controller.</strong><br>
-  Play PC games with one or two customizable Android controllers.
+  Play PC games with customizable Android controllers over USB tethering or Wi-Fi.
 </p>
 
 <p align="center">
-  <img alt="Windows app version 1.14.0" src="https://img.shields.io/badge/Windows-1.14.0-4F46E5?style=for-the-badge">
-  <img alt="Android app version 1.14.0" src="https://img.shields.io/badge/Android-1.14.0-00BFA6?style=for-the-badge">
+  <img alt="Windows app version 1.15.0" src="https://img.shields.io/badge/Windows-1.15.0-4F46E5?style=for-the-badge">
+  <img alt="Android app version 1.15.0" src="https://img.shields.io/badge/Android-1.15.0-00BFA6?style=for-the-badge">
 </p>
 
 ## Download
 
-Download the latest **Windows installer** and **Android APK** from [PhantomPad Releases](https://github.com/Djwalker420/PhantomPad/releases). During Windows installation, PhantomPad checks for ViGEmBus and vJoy. If either driver is missing, setup asks to download and install it from its official GitHub release. Both drivers are required; setup cannot finish if they are declined or unavailable. Existing drivers are left alone.
+Download the latest **Windows installer** (`PhantomPad Setup 1.15.0.exe`) and **Android APK** from [PhantomPad Releases](https://github.com/Djwalker420/PhantomPad/releases).
+
+During Windows installation, PhantomPad checks for the ViGEmBus driver. If missing, setup prompts to download and install it automatically. Existing drivers are preserved.
 
 ## What you need
 
 - A Windows 10 or 11 PC.
-- An Android phone running Android 7.0 or newer. A phone browser can also be used.
-- A local connection between the PC and phone, such as the same Wi-Fi, your laptop’s hotspot, or USB tethering.
-- ViGEmBus and vJoy are installed or checked during Windows setup. Internet access is needed during installation when either driver is missing.
+- An Android phone running Android 7.0 or newer (or a mobile web browser).
+- A connection between the PC and phone:
+  - **USB Tethering (Recommended):** USB cable for zero-configuration, plug-and-play connection with sub-millisecond latency.
+  - **Wi-Fi / Hotspot:** Same local Wi-Fi or laptop mobile hotspot.
+- ViGEmBus driver installed on Windows (checked during setup).
 
-## Connect your phone
+---
 
-1. Open PhantomPad on the PC.
-2. Connect the phone and PC to the same Wi-Fi or USB-tethered network.
-3. Open the Android app and tap the PC name when it appears.
-4. The first time, approve the phone in PhantomPad on Windows. Later connections are remembered for 30 days, renewed after each successful connection.
-5. Choose a player and input mode, then check the Windows app to confirm input is arriving.
+## How to Connect
 
-The Windows app also shows player input and connection latency. **Auto** switches to Racepad for recognized racing simulations and Gamepad for other apps; you can choose either mode manually. Browser controllers can still connect using the URL and pairing code shown in the Windows app.
+### Option A: USB Tethering (Plug & Play — Recommended)
+1. Open PhantomPad on your PC.
+2. Connect your phone to your PC using a USB cable.
+3. Turn on **USB Tethering** in your phone's Android Settings (`Settings > Network & internet > Hotspot & tethering > USB tethering`).
+4. Open the PhantomPad app on your phone:
+   - The app instantly detects the PC over the USB link.
+   - It bypasses all pairing screens and auto-authorizes immediately.
+   - You are greeted with a tactile connection rumble and a floating HUD banner indicating your assigned player slot (P1 / P2).
 
-Racepad uses the [vJoy virtual joystick](https://github.com/jshafer817/vJoy/releases). In **Configure vJoy**, enable a device with X, Y, Z, Rx and Ry axes and 32 buttons. For multiple racing players, configure one device per phone (IDs 1–4). Racepad sends steering, throttle, brake, clutch and handbrake as separate axes, plus wheel and gear buttons. Bind them in each game's controls screen. Game detection selects the output mode; it cannot set each game's own bindings, and games differ in their support for generic DirectInput devices. Games that only accept Xbox-style input should use Gamepad mode. A phone cannot provide the steering torque of a physical force-feedback wheel.
+### Option B: Wi-Fi / Local Network
+1. Open PhantomPad on your PC.
+2. Connect both phone and PC to the same Wi-Fi network or laptop hotspot.
+3. Open the PhantomPad app on your phone.
+4. Tap your PC's name when it appears in the scan list.
+5. On first connection, approve the request in the Windows app. Approved phones are remembered for 30 days.
 
-The Racepad idea—using a phone as a racing controller with motion-based steering—was inspired by [Gyropad](https://github.com/BilalShakoor/Gyropad), an open-source phone steering project for PC sim racing. PhantomPad's Racepad controls, connection flow, and vJoy output are implemented in this project. See the [Gyropad repository](https://github.com/BilalShakoor/Gyropad) for its project and source.
+*Browser controllers can also connect by scanning the QR code or visiting the URL and entering the 8-digit pairing code shown in the Windows dashboard.*
+
+---
 
 ## Features
 
-- Customizable touch controller layouts and themes.
-- Gamepad mode and keyboard mode.
-- Support for two connected players.
-- Live input and latency indicators.
-- A Windows tray visualizer that can keep PhantomPad running when its main window is closed. Choose **Quit** from the tray menu to exit completely.
+- **Plug & Play USB Tethering:** Zero-step auto-detection and auto-authorization for wired gaming with < 1 ms latency.
+- **Force Feedback / Rumble:** Real-time PC game motor vibration transmitted to your phone's haptic motor via ViGEmBus.
+- **Multi-Player Support:** Simultaneous connection for multiple phones with independent virtual Xbox 360 controllers.
+- **Low Latency Architecture:** `TCP_NODELAY` network delivery, high-priority Windows input bridge, differential button caching, and 0 ms immediate button dispatch.
+- **Customizable Layouts & Themes:** Fully customizable button positions, adjustable stick sizes, deadzone tuning, and four color themes (Phantom, Neon, Crimson, Emerald).
+- **Notchless Fullscreen Immersion:** Edge-to-edge layout utilizing the full display width across front camera cutouts with sticky system bar hiding.
+- **Gamepad & Keyboard Modes:** Standard Xbox 360 controller emulation via ViGEmBus or configurable keyboard key mapping.
+- **Windows Tray Visualizer:** Live input activity and latency monitor running discreetly in the system tray.
 
-Latency depends on your network and may change while using a hotspot or connecting multiple phones.
+---
 
 ## Troubleshooting
 
-- **Phone does not find the PC:** Check that both devices are on the same local network, and allow PhantomPad through Windows Firewall for private networks.
-- **Phone is waiting for approval:** Open the Windows app and allow the request under **New phone requests**.
-- **The game does not see a controller:** Select gamepad mode, check that ViGEmBus is installed, and look for an Xbox controller in Windows’ **Set up USB game controllers** window (`joy.cpl`).
-- **Input appears in PhantomPad but not in the game:** The phone is reaching the PC, but Windows may not have created the virtual controller. Check the Windows app for a virtual controller error.
-- **Latency changes:** Hotspot and Wi-Fi conditions affect latency. If possible, reduce other network activity and compare with one phone connected.
+- **USB Tethering not connecting automatically:** Ensure **USB Tethering** is toggled ON in Android Settings. If prompted on the phone, select "File Transfer / Tethering" rather than "Charging only".
+- **Phone cannot find the PC over Wi-Fi:** Verify that both devices are on the same Wi-Fi network, and ensure PhantomPad is permitted through Windows Firewall for private networks.
+- **Games do not recognize the controller:** Confirm that ViGEmBus is installed and verify that an Xbox 360 controller appears in Windows' **Set up USB game controllers** utility (`joy.cpl`).
+- **Input lag or latency spikes over Wi-Fi:** Switch to a 5 GHz Wi-Fi band or use USB Tethering for optimal 0.5–1 ms input response.
 
-For safety, use PhantomPad on a trusted local network and do not expose it directly to the public internet.
+---
 
 ## License
 

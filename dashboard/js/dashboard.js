@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const socket = io({ transports: ['websocket', 'polling'] });
+  const socket = io({ transports: ['websocket'], upgrade: false });
   socket.emit('register-dashboard');
 
   const traySetting = document.getElementById('tray-setting');
@@ -64,7 +64,7 @@
   // ============================================
   function getControllerStatus(player) {
     const error = String(player.controllerError || 'details unavailable').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-    const driver = player.controllerType === 'racepad' ? 'vJoy Racepad' : 'ViGEm gamepad';
+    const driver = 'ViGEm gamepad';
     return {
       waiting: ['Waiting for driver', 'controller-waiting'],
       connecting: [player.controllerStage || 'Creating virtual pad', 'controller-connecting'],
@@ -97,7 +97,7 @@
             <div class="player-avatar" style="background:${p.color}20;border:2px solid ${p.color};color:${p.color}">P${p.number}</div>
             <div class="player-details">
               <div class="player-name-row">
-                <div class="player-name">Player ${p.number}</div>
+                <div class="player-name">Player ${p.number} ${p.isUsb ? '<span class="usb-tag" title="Connected via USB Tethering (Plug & Play)">🔌 USB</span>' : ''}</div>
                 <span class="player-latency"></span>
               </div>
               <div class="controller-status"></div>
@@ -222,49 +222,35 @@
     const mode = status.mode || 'auto';
     const activeMode = status.activeMode || 'gamepad';
     const gamepadAvailable = status.gamepadAvailable;
-    const racepadAvailable = status.racepadAvailable;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById('mode-' + mode);
     if (activeBtn) activeBtn.classList.add('active');
 
     const gpBtn = document.getElementById('mode-gamepad');
-    const rpBtn = document.getElementById('mode-racepad');
     const warning = document.getElementById('gamepad-warning');
     const warningMessage = document.getElementById('gamepad-warning-message');
-    const vjoyHelp = document.getElementById('vjoy-help');
     const vigemHelp = document.getElementById('vigem-help');
     const detail = document.getElementById('mode-detail');
     const gamepadUnavailable = gamepadAvailable === false;
-    const racepadUnavailable = racepadAvailable === false;
     gpBtn.classList.toggle('disabled', gamepadUnavailable);
-    rpBtn.classList.toggle('disabled', racepadUnavailable);
     gpBtn.setAttribute('aria-disabled', String(gamepadUnavailable));
-    rpBtn.setAttribute('aria-disabled', String(racepadUnavailable));
     gpBtn.title = gamepadUnavailable ? (status.gamepadError || 'ViGEmBus is unavailable; select for details.') : '';
-    rpBtn.title = racepadUnavailable ? (status.racepadError || 'vJoy is unavailable; select for details.') : '';
-    if (mode === 'auto' && status.autoGameMode === 'racepad' && racepadUnavailable) {
-      warningMessage.textContent = `Racing game detected, but vJoy is unavailable. Using Gamepad mode. ${status.racepadError || ''}`;
-      vjoyHelp.hidden = false; vigemHelp.hidden = true; warning.classList.remove('hidden');
-    } else if (mode === 'racepad' && racepadUnavailable) {
-      warningMessage.textContent = status.racepadError || 'Install vJoy and enable X/Y/Z/Rx/Ry axes and 32 buttons.';
-      vjoyHelp.hidden = false; vigemHelp.hidden = true; warning.classList.remove('hidden');
-    } else if (mode === 'gamepad' && gamepadUnavailable) {
+    if (mode === 'gamepad' && gamepadUnavailable) {
       warningMessage.textContent = status.gamepadError || 'ViGEmBus is unavailable.';
-      vjoyHelp.hidden = true; vigemHelp.hidden = false; warning.classList.remove('hidden');
+      vigemHelp.hidden = false; warning.classList.remove('hidden');
     } else if (mode === 'auto' && status.activeMode === 'gamepad' && gamepadUnavailable) {
       warningMessage.textContent = status.gamepadError || 'ViGEmBus is unavailable; Gamepad output cannot start.';
-      vjoyHelp.hidden = true; vigemHelp.hidden = false; warning.classList.remove('hidden');
+      vigemHelp.hidden = false; warning.classList.remove('hidden');
     } else {
       warning.classList.add('hidden');
     }
     if (detail) detail.textContent = mode === 'auto'
-      ? `Auto is active: ${String(activeMode).toUpperCase()} output. Recognized racing sims switch to Racepad; other apps use Gamepad.`
+      ? `Auto is active: ${String(activeMode).toUpperCase()} output. Gamepad is used for detected games.`
       : `Manual ${mode.toUpperCase()} selection. Detected game: ${status.activeGame || 'none'}.`;
     document.getElementById('session-mode').textContent = mode === 'auto'
       ? `AUTO · ${String(activeMode).toUpperCase()}` : mode.toUpperCase();
     const driverStatus = document.getElementById('session-driver-status');
     if (activeMode === 'keyboard') driverStatus.textContent = 'Keyboard ready';
-    else if (activeMode === 'racepad') driverStatus.textContent = racepadAvailable ? 'vJoy ready' : 'vJoy unavailable';
     else driverStatus.textContent = gamepadAvailable ? 'ViGEm ready' : 'ViGEm unavailable';
   }
 
@@ -692,8 +678,7 @@
             <div class="vis-stick"><div class="vis-crosshair"></div><div class="vis-stick-dot" data-vis-stick="right"></div></div>
             <span class="vis-label">R Stick</span>
           </div>
-        </div>
-        <div class="vis-race-axes">${[['steering','Steering'],['throttle','Throttle'],['brake','Brake'],['clutch','Clutch'],['handbrake','Handbrake']].map(([key,label]) => `<div><span>${label}</span><i><b data-vis-axis="${key}"></b></i></div>`).join('')}</div>`;
+        </div>`;
       inputVisualizers.appendChild(card);
     });
     applyDashboardLayout(layoutSelect?.value || 'xbox');
@@ -718,10 +703,6 @@
     if (data.axes) {
       updateStickDot(card.querySelector('[data-vis-stick="left"]'), data.axes.leftX || 0, data.axes.leftY || 0);
       updateStickDot(card.querySelector('[data-vis-stick="right"]'), data.axes.rightX || 0, data.axes.rightY || 0);
-      for (const key of ['steering', 'throttle', 'brake', 'clutch', 'handbrake']) {
-        const axis = card.querySelector(`[data-vis-axis="${key}"]`);
-        if (axis) axis.style.width = `${Math.max(0, Math.min(1, (Number(data.axes[key]) || 0) * (key === 'steering' ? 0.5 : 1) + (key === 'steering' ? 0.5 : 0))) * 100}%`;
-      }
     }
   });
 

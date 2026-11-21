@@ -161,10 +161,12 @@ public class MainActivity extends AppCompatActivity {
         // Load the controller UI from this APK; only controller traffic goes to Windows.
         String serverUrl = getIntent().getStringExtra("server_url");
         String pairingCode = getIntent().getStringExtra("pairing_code");
+        boolean isUsb = getIntent().getBooleanExtra("is_usb", false);
         if (isValidServerUrl(serverUrl) && pairingCode != null &&
                 (pairingCode.isEmpty() || pairingCode.matches("[0-9]{8}"))) {
             String localControllerUrl = "https://appassets.androidplatform.net/assets/controller/index.html?serverUrl="
-                    + Uri.encode(serverUrl) + "&pairingCode=" + Uri.encode(pairingCode);
+                    + Uri.encode(serverUrl) + "&pairingCode=" + Uri.encode(pairingCode)
+                    + (isUsb ? "&isUsb=1" : "");
             webView.loadUrl(localControllerUrl);
         } else {
             // No URL provided, go back to connect
@@ -195,6 +197,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void hideSystemUI() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            getWindow().getAttributes().layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
             WindowInsetsController controller = getWindow().getInsetsController();
@@ -284,9 +290,22 @@ public class MainActivity extends AppCompatActivity {
         @SuppressWarnings("unused")
         @JavascriptInterface
         public void vibrate(int ms) {
+            vibrateWithIntensity(ms, 255);
+        }
+
+        @SuppressWarnings("unused")
+        @JavascriptInterface
+        public void vibrateWithIntensity(int ms, int amplitude) {
             if (vibrator == null || !vibrator.hasVibrator()) return;
             int safeDuration = Math.max(1, Math.min(ms, 500));
+            int safeAmp = Math.max(1, Math.min(amplitude, 255));
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    if (vibrator.hasAmplitudeControl()) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(safeDuration, safeAmp));
+                        return;
+                    }
+                } catch (Exception ignored) {}
                 vibrator.vibrate(VibrationEffect.createOneShot(safeDuration, VibrationEffect.DEFAULT_AMPLITUDE));
             } else {
                 vibrator.vibrate(safeDuration);

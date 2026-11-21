@@ -5,10 +5,9 @@
 
   const settings = {
     haptic: true, hapticMs: 20, deadzone: 0.15, stickSize: 50, opacity: 0.85,
-    theme: 'phantom', layout: 'xbox', sendRate: 60,
+    theme: 'phantom', layout: 'xbox', sendRate: 120,
     motionMode: 'off',
     motionSens: 1.0,
-    raceSteeringRange: 35,
     controllerScale: 100,
     controllerLayout: 'standard',
     controllerPositions: {}
@@ -30,8 +29,8 @@
   // --- State ---
   const state = {
     socket: null, connected: false,
-    buttons: {}, axes: { leftX: 0, leftY: 0, rightX: 0, rightY: 0, steering: 0, throttle: 0, brake: 0, clutch: 0, handbrake: 0 }, triggers: { lt: 0, rt: 0 },
-    isGamepad: false, racepadPowered: true,
+    buttons: {}, axes: { leftX: 0, leftY: 0, rightX: 0, rightY: 0 }, triggers: { lt: 0, rt: 0 },
+    isGamepad: false,
     outputMode: 'gamepad',
     motionBase: { beta: 0, gamma: 0, set: false },
     latency: null,
@@ -67,11 +66,21 @@
     return true;
   }
 
+  function sendImmediateInput() {
+    if (!state.connected || !state.socket) return;
+    const input = {
+      buttons: { ...state.buttons },
+      axes: { ...state.axes },
+      triggers: { ...state.triggers }
+    };
+    state.socket.volatile.emit('input', input);
+    lastSentInput = input;
+    lastPacketTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  }
+
   function sendLoop(timestamp) {
     rafId = requestAnimationFrame(sendLoop);
     if (!state.connected) return;
-    if (state.outputMode === 'racepad' && !state.racepadPowered) return;
-
     if (timestamp - lastSendTime >= sendInterval) {
       lastSendTime = timestamp;
 
@@ -101,12 +110,9 @@
     // Preserve known button keys so the server receives explicit releases.
     for (const key of Object.keys(state.buttons)) state.buttons[key] = false;
     state.axes.leftX = state.axes.leftY = state.axes.rightX = state.axes.rightY = 0;
-    state.axes.steering = state.axes.throttle = state.axes.brake = state.axes.clutch = state.axes.handbrake = 0;
     state.triggers.lt = state.triggers.rt = 0;
 
     document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
-    document.querySelectorAll('[data-pedal]').forEach(el => el.style.setProperty('--pedal-value', '0%'));
-    document.querySelectorAll('[data-pedal-value]').forEach(el => { el.textContent = '0'; });
     joysticks.forEach(joystick => {
       joystick.active = false;
       joystick.touchId = null;
@@ -127,15 +133,15 @@
   async function initSocket() {
     const socketOptions = {
       reconnection: true,
-      reconnectionDelay: 500,
+      reconnectionDelay: 300,
       reconnectionAttempts: Infinity,
-      // Start with polling and upgrade to WebSocket. This keeps clients
-      // connected when a hotspot or firewall blocks the initial WebSocket.
-      transports: ['polling', 'websocket']
+      transports: ['websocket'],
+      upgrade: false
     };
     const params = new URLSearchParams(window.location.search);
     const serverUrl = params.get('serverUrl');
     let pairingCode = params.get('pairingCode') || '';
+    const isUsb = params.get('isUsb') === '1';
     let pairingRejected = false;
     const native = window.PhantomPadNative;
     let deviceIdentity = null;
@@ -156,19 +162,29 @@
 
     socketOptions.auth = (callback) => {
       const makeAuth = async () => {
+        if (isUsb) {
+          return {
+            isController: true,
+            isUsb: true,
+            deviceId: deviceIdentity ? deviceIdentity.deviceId : undefined,
+            publicKey: deviceIdentity ? deviceIdentity.publicKey : undefined,
+            deviceName: deviceIdentity ? deviceIdentity.deviceName : undefined
+          };
+        }
         if (!deviceIdentity) {
           // Browser/PWA clients keep using the pairing code. The Android app
           // uses its Keystore identity for 30-day remembered trust.
-          return { pairingCode };
+          return { isController: true, pairingCode };
         }
         if (/^[0-9]{8}$/.test(pairingCode)) {
-          return { pairingCode, deviceId: deviceIdentity.deviceId, publicKey: deviceIdentity.publicKey };
+          return { isController: true, pairingCode, deviceId: deviceIdentity.deviceId, publicKey: deviceIdentity.publicKey };
         }
 
         const challengeUrl = new URL('/api/device-challenge', serverUrl || window.location.origin);
         challengeUrl.searchParams.set('deviceId', deviceIdentity.deviceId);
         const response = await fetch(challengeUrl, { cache: 'no-store' });
         if (response.status === 401) return {
+          isController: true,
           pairingRequest: true,
           deviceId: deviceIdentity.deviceId,
           publicKey: deviceIdentity.publicKey,
@@ -178,7 +194,7 @@
         const challengeData = await response.json();
         const signature = native.signDeviceChallenge(challengeData.challenge || '');
         if (!signature) throw new Error('The phone could not sign its secure connection request.');
-        return { deviceId: deviceIdentity.deviceId, challenge: challengeData.challenge, signature };
+        return { isController: true, deviceId: deviceIdentity.deviceId, challenge: challengeData.challenge, signature };
       };
 
       makeAuth().then(callback).catch((error) => {
@@ -259,7 +275,13 @@
     });
 
     state.socket.on('vibrate', (d) => {
-      haptic(d.duration || 50);
+      const duration = d.duration || 50;
+      const amplitude = d.largeMotor !== undefined ? Math.max(d.largeMotor, d.smallMotor || 0) : 255;
+      if (window.PhantomPadNative?.vibrateWithIntensity) {
+        window.PhantomPadNative.vibrateWithIntensity(duration, amplitude);
+      } else {
+        haptic(duration);
+      }
     });
 
     state.socket.on('player-assigned', (info) => {
@@ -270,11 +292,13 @@
       num.style.borderColor = info.color;
       num.style.color = info.color;
       num.style.boxShadow = `0 0 10px ${info.color}40`;
-      const racePlayer = document.getElementById('race-player-label');
-      if (racePlayer) {
-        racePlayer.textContent = 'P' + info.number;
-        racePlayer.style.color = info.color;
-      }
+
+      // Gamepad connection greeting: double tactile rumble pulse
+      haptic(35);
+      setTimeout(() => haptic(55), 90);
+
+      // Show immersive Gamepad HUD Banner
+      showGamepadHud(info);
     });
 
     // Latency response
@@ -296,42 +320,14 @@
     });
   }
 
-  let racepadStartupPlayed = false;
-
-  function playRacepadStartup() {
-    if (racepadStartupPlayed) return;
-    racepadStartupPlayed = true;
-    const deck = document.getElementById('racepad-deck');
-    deck.classList.add('racepad-ignition');
-  }
-
   function setOutputMode(mode) {
-    if (!['gamepad', 'racepad', 'keyboard'].includes(mode)) return;
-    const enteringRacepad = mode === 'racepad' && state.outputMode !== 'racepad';
-    const leavingRacepad = mode !== 'racepad' && state.outputMode === 'racepad';
+    if (!['gamepad', 'keyboard'].includes(mode)) return;
     state.outputMode = mode;
-    const controller = document.getElementById('controller');
-    controller.classList.toggle('racepad-active', mode === 'racepad');
-    document.getElementById('racepad-deck').classList.toggle('hidden', mode !== 'racepad');
-    document.querySelector('.controller-deck-label span:last-child').textContent = mode === 'racepad' ? 'RACEPAD' : 'WIRELESS GAMEPAD';
     const motionSelect = document.getElementById('motion-select');
     if (motionSelect) {
-      motionSelect.disabled = mode === 'racepad';
-      motionSelect.value = mode === 'racepad' ? 'steering' : settings.motionMode;
+      motionSelect.value = settings.motionMode;
     }
-    document.getElementById('motion-indicator')?.classList.toggle('hidden', mode !== 'racepad' && settings.motionMode === 'off');
-    if (enteringRacepad) {
-      state.motionBase.set = false;
-      state.axes.steering = state.axes.leftX = 0;
-      updateRaceWheel(0);
-    }
-    if (leavingRacepad) {
-      state.motionBase.set = false;
-      state.axes.steering = state.axes.leftX = 0;
-      updateRaceWheel(0);
-    }
-    updateRaceSteeringMode();
-    if (enteringRacepad) playRacepadStartup();
+    document.getElementById('motion-indicator')?.classList.toggle('hidden', settings.motionMode === 'off');
   }
 
   function updateConnUI(connected) {
@@ -339,12 +335,27 @@
     const txt = document.getElementById('connection-text');
     dot.className = 'conn-dot ' + (connected ? 'connected' : 'disconnected');
     txt.textContent = connected ? 'Connected' : 'Disconnected';
-    const raceConnect = document.getElementById('race-connect-btn');
-    if (raceConnect) {
-      raceConnect.classList.toggle('connected', connected);
-      document.getElementById('race-connect-label').textContent = connected ? 'CONNECTED' : 'CONNECT';
-      raceConnect.setAttribute('aria-label', connected ? 'Connected to Windows' : 'Reconnect to Windows');
-    }
+  }
+
+  function showGamepadHud(info) {
+    const banner = document.getElementById('gamepad-hud-banner');
+    const title = document.getElementById('hud-title');
+    const subtitle = document.getElementById('hud-subtitle');
+    if (!banner || !title || !subtitle) return;
+
+    title.textContent = `Player ${info.number} Connected`;
+    title.style.color = info.color || '#00f5d4';
+    const isUsbConn = Boolean(info.isUsb || (new URLSearchParams(window.location.search)).get('isUsb') === '1');
+    subtitle.textContent = isUsbConn ? 'Plug & Play · Ultra-Low Latency' : 'Wireless Gamepad · Ready';
+    banner.style.borderColor = info.color || '#00f5d4';
+    banner.style.boxShadow = `0 4px 24px rgba(0, 0, 0, 0.75), 0 0 18px ${info.color || '#00f5d4'}50`;
+    banner.classList.remove('hidden', 'fade-out');
+
+    clearTimeout(banner._hideTimer);
+    banner._hideTimer = setTimeout(() => {
+      banner.classList.add('fade-out');
+      setTimeout(() => banner.classList.add('hidden'), 400);
+    }, 2200);
   }
 
   // ========================
@@ -550,6 +561,7 @@
       this.thumb.style.transform = 'translate(-50%, -50%)';
       state.axes[this.axisX] = 0;
       state.axes[this.axisY] = 0;
+      sendImmediateInput();
     }
 
     _update(cx, cy) {
@@ -580,38 +592,13 @@
   // ========================
   // Motion Controls
   // ========================
-  function updateRaceWheel(value) {
-    const steering = Math.max(-1, Math.min(1, Number(value) || 0));
-    const wheel = document.getElementById('race-steering');
-    const angle = Math.round(steering * 90);
-    const radians = steering * Math.PI / 2;
-    const x = 110 + 88 * Math.sin(radians);
-    const y = 118 - 88 * Math.cos(radians);
-    document.getElementById('race-gauge-needle').setAttribute('x2', x.toFixed(1));
-    document.getElementById('race-gauge-needle').setAttribute('y2', y.toFixed(1));
-    document.getElementById('race-gauge-marker').setAttribute('cx', x.toFixed(1));
-    document.getElementById('race-gauge-marker').setAttribute('cy', y.toFixed(1));
-    document.getElementById('race-steering-angle').textContent = `${angle > 0 ? '+' : ''}${angle}°`;
-    wheel.setAttribute('aria-valuenow', Math.round(steering * 100));
-  }
 
-  function updateRaceSteeringMode() {
-    const active = state.outputMode === 'racepad';
-    const ready = active && state.motionBase.set;
-    const deck = document.getElementById('racepad-deck');
-    deck.classList.toggle('gyro-on', active);
-    deck.classList.toggle('gyro-waiting', active && !ready);
-    document.getElementById('race-wheel-hint').textContent = ready ? 'GYRO STEERING' : active ? 'HOLD LEVEL' : 'GYRO STEERING';
-  }
+
+
 
   function setMotionMode(mode) {
-    if (state.outputMode === 'racepad') {
-      document.getElementById('motion-select').value = 'steering';
-      return;
-    }
     settings.motionMode = mode;
     document.getElementById('motion-select').value = mode;
-    updateRaceSteeringMode();
     const indicator = document.getElementById('motion-indicator');
     if (mode === 'off') indicator.classList.add('hidden');
     else {
@@ -622,38 +609,24 @@
   }
 
   function initMotion() {
-    window.addEventListener('orientationchange', () => {
-      if (state.outputMode !== 'racepad') return;
-      state.motionBase.set = false;
-      state.axes.steering = state.axes.leftX = 0;
-      updateRaceWheel(0);
-      updateRaceSteeringMode();
-    }, { passive: true });
     window.addEventListener('deviceorientation', (e) => {
-      const racepad = state.outputMode === 'racepad';
-      const mode = racepad ? 'steering' : settings.motionMode;
+      const mode = settings.motionMode;
       if (mode === 'off' || !Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;
 
       if (!state.motionBase.set) {
         state.motionBase.beta = e.beta;
         state.motionBase.gamma = e.gamma;
         state.motionBase.set = true;
-        if (racepad) updateRaceSteeringMode();
       }
 
       const delta = (angle, base) => ((angle - base + 540) % 360) - 180;
       const beta = delta(e.beta, state.motionBase.beta);
       const gamma = delta(e.gamma, state.motionBase.gamma);
       if (mode === 'steering') {
-        let tiltX = gamma;
-        if (racepad) {
-          const orientation = ((screen.orientation?.angle ?? window.orientation ?? 0) + 360) % 360 * Math.PI / 180;
-          tiltX = gamma * Math.cos(orientation) + beta * Math.sin(orientation);
-        }
-        const steering = Utils.normalizeSensor(tiltX, settings.raceSteeringRange || 35, settings.motionSens, settings.deadzone);
+        const tiltX = gamma;
+        const steering = Utils.normalizeSensor(tiltX, 35, settings.motionSens, settings.deadzone);
         state.axes.leftX = steering;
         state.axes.steering = steering;
-        updateRaceWheel(steering);
         return;
       }
 
@@ -668,11 +641,6 @@
 
   function calibrateMotion() {
     state.motionBase.set = false;
-    if (state.outputMode === 'racepad') {
-      state.axes.steering = state.axes.leftX = 0;
-      updateRaceWheel(0);
-      updateRaceSteeringMode();
-    }
     const btn = document.getElementById('calibrate-btn');
     const oldText = btn.textContent;
     btn.textContent = '✓ Calibrated!';
@@ -713,6 +681,7 @@
         if (trigger) state.triggers[key] = 1;
         btn.classList.add('pressed');
         haptic();
+        sendImmediateInput();
       });
       const release = (e) => {
         if (!pointers.has(e.pointerId)) return;
@@ -722,6 +691,7 @@
         state.buttons[key] = pressed;
         if (trigger) state.triggers[key] = pressed ? 1 : 0;
         btn.classList.toggle('pressed', pressed);
+        sendImmediateInput();
       };
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointercancel', release);
@@ -729,46 +699,6 @@
     });
   }
 
-  function initRacepadControls() {
-    updateRaceSteeringMode();
-    document.getElementById('race-connect-btn').addEventListener('click', () => {
-      if (!state.connected) state.socket?.connect();
-    });
-    document.getElementById('racepad-recenter-btn').addEventListener('click', requestMotionPermissions);
-    const power = document.getElementById('racepad-power-toggle');
-    power.addEventListener('click', () => {
-      state.racepadPowered = !state.racepadPowered;
-      const enabled = state.racepadPowered;
-      document.getElementById('controller').classList.toggle('racepad-powered-off', !enabled);
-      power.setAttribute('aria-pressed', String(enabled));
-      power.setAttribute('aria-label', `Racepad power ${enabled ? 'on' : 'off'}`);
-      power.title = `Turn Racepad controls ${enabled ? 'off' : 'on'}`;
-      state.motionBase.set = false;
-      if (!enabled) resetInputState(true);
-      updateRaceSteeringMode();
-      haptic();
-    });
-
-    document.querySelectorAll('[data-pedal]').forEach((pedal) => {
-      const axis = pedal.dataset.pedal;
-      let pointer = null;
-      const update = (event) => {
-        const rect = pedal.getBoundingClientRect();
-        const value = Math.max(0, Math.min(1, 1 - (event.clientY - rect.top) / rect.height));
-        state.axes[axis] = Math.round(value * 1000) / 1000;
-        pedal.style.setProperty('--pedal-value', `${value * 100}%`);
-        pedal.querySelector('[data-pedal-value]').textContent = Math.round(value * 100);
-      };
-      pedal.addEventListener('pointerdown', (event) => { event.preventDefault(); pointer = event.pointerId; pedal.setPointerCapture(pointer); update(event); });
-      pedal.addEventListener('pointermove', (event) => { if (event.pointerId === pointer) update(event); });
-      const release = (event) => {
-        if (event.pointerId !== pointer) return;
-        pointer = null; state.axes[axis] = 0; pedal.style.setProperty('--pedal-value', '0%'); pedal.querySelector('[data-pedal-value]').textContent = '0';
-      };
-      pedal.addEventListener('pointerup', release);
-      pedal.addEventListener('pointercancel', release);
-    });
-  }
   // ========================
   // Settings UI
   // ========================
@@ -776,7 +706,6 @@
     const overlay = document.getElementById('settings-overlay');
     const openSettings = () => overlay.classList.remove('hidden');
     document.getElementById('settings-btn').addEventListener('click', openSettings);
-    document.getElementById('race-settings-btn').addEventListener('click', openSettings);
     document.getElementById('close-settings').addEventListener('click', () => { overlay.classList.add('hidden'); saveSettings(); });
     overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.classList.add('hidden'); saveSettings(); } });
 
@@ -898,9 +827,8 @@
     });
 
     const motionSelect = document.getElementById('motion-select');
-    motionSelect.disabled = state.outputMode === 'racepad';
-    motionSelect.value = state.outputMode === 'racepad' ? 'steering' : settings.motionMode;
-    document.getElementById('motion-indicator').classList.toggle('hidden', state.outputMode !== 'racepad' && settings.motionMode === 'off');
+    motionSelect.value = settings.motionMode;
+    document.getElementById('motion-indicator').classList.toggle('hidden', settings.motionMode === 'off');
     motionSelect.addEventListener('change', (e) => setMotionMode(e.target.value));
 
     const motSensSlider = document.getElementById('motion-sens-slider');
@@ -911,14 +839,7 @@
       document.getElementById('motion-sens-value').textContent = settings.motionSens.toFixed(1) + 'x';
     });
 
-    const raceRange = document.getElementById('race-steering-range');
-    raceRange.value = settings.raceSteeringRange || 35;
-    document.getElementById('race-steering-range-value').textContent = `${raceRange.value}°`;
-    raceRange.addEventListener('input', (e) => {
-      settings.raceSteeringRange = parseInt(e.target.value, 10);
-      document.getElementById('race-steering-range-value').textContent = `${settings.raceSteeringRange}°`;
-      saveSettings();
-    });
+
 
     document.getElementById('calibrate-btn').addEventListener('click', requestMotionPermissions);
 
@@ -980,7 +901,6 @@
   function init() {
     initSocket();
     initButtons();
-    initRacepadControls();
     initMotion();
 
     joysticks.push(new VirtualJoystick(

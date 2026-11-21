@@ -45,6 +45,12 @@
   --radius-sm: 8px;
 }
 
+.theme-phantom {
+  --primary: #00f5d4; --primary-dim: rgba(0,245,212,0.13); --primary-glow: rgba(0,245,212,0.35);
+  --secondary: #4f46e5; --secondary-dim: rgba(79,70,229,0.15); --secondary-glow: rgba(79,70,229,0.3);
+  --bg: #0a0f14; --bg-grad: radial-gradient(ellipse at 50% 45%, #151e26 0%, #0a0f14 74%);
+}
+
 .theme-neon {
   --primary: #ff00ff; --primary-dim: rgba(255,0,255,0.1); --primary-glow: rgba(255,0,255,0.35);
   --secondary: #00ffff; --secondary-dim: rgba(0,255,255,0.1); --secondary-glow: rgba(0,255,255,0.3);
@@ -742,82 +748,6 @@ html, body {
   .latency-text { font-size: 9px; padding: 3px 4px; }
 }
 
-.racepad-system-group, .race-connect-btn { display: none; }
-#controller.racepad-active .top-bar { display: grid; grid-template-columns: minmax(90px,1fr) minmax(90px,1.3fr) minmax(90px,1fr); gap: 5px; min-height: 58px; padding: 5px max(7px,env(safe-area-inset-right)) 5px max(7px,env(safe-area-inset-left)); }
-#controller.racepad-active .top-bar > .bumper-trigger-group, #controller.racepad-active .top-bar > .status-bar { display: none; }
-#controller.racepad-active .controller-deck-label { display: none; }
-#controller.racepad-active .racepad-system-group, #controller.racepad-active .race-connect-btn { display: flex; }
-.racepad-system-group { align-items: center; gap: clamp(3px,1vmin,9px); min-width: 0; }
-.racepad-system-right { justify-content: flex-end; }
-.racepad-gear-button { display: flex; align-items: center; justify-content: center; gap: clamp(3px,.8vmin,8px); min-width: clamp(52px,8vmin,86px); min-height: 44px; padding: 0 8px; border: 1px solid #303234; border-radius: 999px; background: #050607; color: #c9cbcc; font: 700 clamp(9px,1.6vmin,14px) system-ui; touch-action: none; }
-.racepad-gear-button b { color: #c9cbcc; font-size: clamp(15px,2.4vmin,22px); }
-.racepad-gear-button:active, .racepad-gear-button.pressed, .racepad-icon-button:active { border-color: var(--primary); background: var(--primary-dim); color: var(--primary); }
-.racepad-icon-button { display: grid; place-items: center; width: clamp(36px,6vmin,52px); height: clamp(40px,7.5vmin,54px); flex: none; border: 1px solid #303234; border-radius: 999px; background: #050607; color: #c4c6c7; font: 600 clamp(19px,3.3vmin,27px)/1 system-ui; }
-.racepad-icon-button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.race-connect-btn { flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 48px; border: 1px solid #bd73ff; border-radius: 999px; background: rgba(127,55,185,.16); color: #d49cff; font: 700 clamp(11px,1.8vmin,16px) system-ui; letter-spacing: .7px; }
-.race-connect-btn small { display: flex; align-items: center; gap: 6px; color: #9c84af; font: 600 clamp(7px,1.1vmin,9px) var(--mono); letter-spacing: .25px; }
-.race-connect-btn small i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
-.race-connect-btn small .race-latency-good { color: var(--success); }
-.race-connect-btn small .race-latency-ok { color: var(--warning); }
-.race-connect-btn small .race-latency-bad { color: var(--danger); }
-.race-connect-btn.connected { border-color: rgba(0,230,118,.42); background: rgba(0,230,118,.07); color: var(--success); }
-.race-connect-btn.connected small { color: var(--success); }
-#race-latency-display.race-latency-good { color: var(--success); }
-#race-latency-display.race-latency-ok { color: var(--warning); }
-#race-latency-display.race-latency-bad { color: var(--danger); }
-#controller.racepad-powered-off #racepad-power-toggle { border-color: var(--danger); color: var(--danger); }
-#controller.racepad-powered-off .racepad-deck { opacity: .38; pointer-events: none; filter: grayscale(.5); }
-#controller.racepad-powered-off .racepad-gear-button { opacity: .4; pointer-events: none; }
-.racepad-deck { position: absolute; inset: 4px max(7px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left)); z-index: 2; display: grid; grid-template-columns: minmax(74px,.88fr) minmax(160px,1.05fr) minmax(74px,.88fr); grid-template-rows: minmax(0,1fr) clamp(72px,19vh,116px); grid-template-areas: 'left cockpit right' 'bottom bottom bottom'; gap: 7px; padding: 4px; }
-.racepad-deck.hidden { display: none; }
-#controller.racepad-active .zone { display: none; }
-.race-pedal-rail { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: clamp(4px,1vw,8px); min-height: 0; padding: 6px 1px; }
-.race-pedal-rail-left { grid-area: left; }
-.race-pedal-rail-right { grid-area: right; }
-.race-pedal { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; padding: 5px 2px; border: 1px solid #30383c; border-radius: 28px 28px 22px 22px; background: linear-gradient(180deg,#090a0b,#0d0f10); color: #aeb1b3; font: 700 clamp(8px,1.25vw,13px) system-ui; letter-spacing: 1.4px; touch-action: none; user-select: none; }
-.race-pedal::before { content: ''; position: absolute; inset: 17% 12px auto; height: 3px; border-radius: 4px; background: repeating-linear-gradient(90deg,#565a5c 0 8px,transparent 8px 13px); opacity: .6; }
-.race-pedal i { position: absolute; inset: auto 0 0; height: var(--pedal-value,0%); background: linear-gradient(0deg,var(--primary-dim),rgba(0,245,212,.08)); border-top: 2px solid var(--primary); pointer-events: none; transition: height 35ms linear; }
-.race-pedal b { position: absolute; top: 7%; z-index: 1; font-size: clamp(9px,1.25vw,15px); letter-spacing: clamp(.5px,.2vmin,2px); text-shadow: 0 1px 3px #000; }
-.race-pedal-value { z-index: 1; color: #74787a; font: 400 clamp(22px,4.5vh,44px)/1 system-ui; font-variant-numeric: tabular-nums; pointer-events: none; }
-.race-cockpit { grid-area: cockpit; min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0,1fr) clamp(24px,4vmin,34px); gap: 4px; align-items: center; }
-.race-steering-gauge { position: relative; width: min(100%,290px); aspect-ratio: 11 / 7; max-height: 100%; justify-self: center; pointer-events: none; user-select: none; }
-.race-gauge-svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.race-gauge-track { fill: none; stroke: #292b2d; stroke-width: 14; stroke-linecap: round; }
-.race-gauge-inner { fill: none; stroke: #3b3d40; stroke-width: 1; opacity: .72; }
-.race-gauge-center { stroke: #e6e7e8; stroke-width: 2; opacity: .75; }
-.race-gauge-needle { stroke: var(--primary); stroke-width: 2; stroke-linecap: round; opacity: .9; }
-.race-gauge-marker { fill: #f5f5f5; stroke: var(--primary); stroke-width: 2; }
-.race-gauge-readout { position: absolute; top: 52%; left: 50%; display: flex; align-items: baseline; gap: 6px; transform: translate(-50%,-20%); white-space: nowrap; pointer-events: none; }
-.race-gauge-readout strong { color: #f3f4f4; font: 400 clamp(30px,7vh,60px)/1 system-ui; font-variant-numeric: tabular-nums; }
-.race-gauge-readout small, .race-gauge-left, .race-gauge-right { color: #85898b; font: 600 9px system-ui; }
-.race-gauge-left, .race-gauge-right { position: absolute; top: 70%; }
-.race-gauge-left { left: 12%; }
-.race-gauge-right { right: 12%; }
-.race-center-mode { display: flex; align-items: center; justify-content: center; gap: 9px; min-width: 130px; width: 78%; height: 100%; justify-self: center; border: 1px solid #292b2d; border-radius: 999px; color: #a8aaac; font: 700 10px system-ui; letter-spacing: 2px; }
-.race-center-mode i { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
-.race-bottom-controls { grid-area: bottom; display: flex; align-items: center; justify-content: space-between; min-width: 0; gap: 8px; padding: 4px 2px 0; border-top: 1px solid rgba(160,166,169,.12); }
-.race-bottom-left, .race-bottom-right { display: flex; align-items: center; justify-content: center; gap: clamp(4px,1vw,12px); min-width: 0; }
-.race-round-button { display: flex; flex: 0 0 auto; width: clamp(40px,6.5vw,62px); height: clamp(43px,9vh,72px); flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 1px solid #303234; border-radius: 50%; background: #050607; color: #c4c6c7; touch-action: none; }
-.race-round-button span { font: 700 clamp(14px,2.3vh,21px)/1 system-ui; }
-.race-round-button small { color: #818587; font: 700 6px system-ui; letter-spacing: .5px; }
-.race-round-button:active, .race-round-button.pressed { border-color: var(--primary); color: var(--primary); background: var(--primary-dim); }
-.race-dpad { display: grid; grid-template-columns: repeat(3,clamp(25px,4.8vh,38px)); grid-template-rows: repeat(2,clamp(25px,4.8vh,38px)); gap: 2px; }
-.race-dpad button, .race-face-pad button { border: 1px solid #303234; background: #050607; color: #c9cbcc; touch-action: none; }
-.race-dpad button { border-radius: 50%; font: 700 19px/1 system-ui; }
-.race-dpad button:nth-child(1) { grid-area: 1 / 2; }
-.race-dpad button:nth-child(2) { grid-area: 2 / 1; }
-.race-dpad button:nth-child(3) { grid-area: 2 / 2; }
-.race-dpad button:nth-child(4) { grid-area: 2 / 3; }
-.race-face-pad { display: grid; grid-template-columns: repeat(3,clamp(25px,4.6vh,38px)); grid-template-rows: repeat(2,clamp(25px,4.6vh,38px)); gap: 3px; }
-.race-face-pad button { border-radius: 50%; font: 700 14px system-ui; }
-.race-face-pad button:nth-child(1) { grid-area: 1 / 2; }
-.race-face-pad button:nth-child(2) { grid-area: 2 / 1; }
-.race-face-pad button:nth-child(3) { grid-area: 2 / 2; }
-.race-face-pad button:nth-child(4) { grid-area: 2 / 3; }
-.race-dpad button:active, .race-dpad button.pressed, .race-face-pad button:active, .race-face-pad button.pressed { border-color: var(--primary); color: var(--primary); background: var(--primary-dim); }
-@media (max-width: 600px) { .racepad-deck { grid-template-columns: minmax(58px,.8fr) minmax(132px,1fr) minmax(58px,.8fr); gap: 4px; padding: 2px; } .race-pedal-rail { gap: 3px; } .race-pedal { font-size: 7px; letter-spacing: .5px; border-radius: 20px; } .race-round-button { width: clamp(36px,8vw,50px); height: clamp(40px,9vh,58px); } .race-dpad { grid-template-columns: repeat(3,clamp(22px,4.6vh,32px)); grid-template-rows: repeat(2,clamp(22px,4.6vh,32px)); } .race-face-pad { grid-template-columns: repeat(3,clamp(22px,4.4vh,32px)); grid-template-rows: repeat(2,clamp(22px,4.4vh,32px)); } }
-@media (max-height: 440px) and (orientation: landscape) { #controller.racepad-active .top-bar { min-height: 48px; } .racepad-deck { grid-template-rows: minmax(0,1fr) 66px; gap: 4px; } .race-cockpit { grid-template-rows: minmax(0,1fr) 22px; gap: 2px; } .race-steering-gauge { width: min(100%,225px); } .race-pedal-rail { padding: 3px 1px; } .race-round-button { height: 48px; width: clamp(36px,5vw,48px); } .race-dpad { grid-template-columns: repeat(3,25px); grid-template-rows: repeat(2,25px); } .race-face-pad { grid-template-columns: repeat(3,25px); grid-template-rows: repeat(2,25px); } }
-@media (max-aspect-ratio: 1/1) { .racepad-deck { grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: minmax(110px,22vh) minmax(112px,23vh) minmax(90px,auto); grid-template-areas: 'cockpit cockpit' 'left right' 'bottom bottom'; gap: 5px; overflow-y: auto; align-content: start; } .race-cockpit { grid-template-rows: minmax(0,1fr) 20px; } .race-steering-gauge { width: min(100%,270px); max-height: 18vh; } .race-pedal-rail { min-height: 112px; gap: 5px; padding: 2px; } .race-bottom-controls { justify-content: space-around; gap: 3px; padding: 3px 0; } .race-bottom-left, .race-bottom-right { gap: 3px; } .race-round-button { width: clamp(34px,10vw,46px); height: clamp(38px,7vh,52px); } .race-dpad { grid-template-columns: repeat(3,clamp(22px,7vw,30px)); grid-template-rows: repeat(2,clamp(22px,7vw,30px)); } .race-face-pad { grid-template-columns: repeat(3,clamp(22px,7vw,30px)); grid-template-rows: repeat(2,clamp(22px,7vw,30px)); } }
 @media (max-height: 320px) {
   .zone { gap: 4px; }
   .joystick-container { width: 80px; height: 80px; }
@@ -871,20 +801,25 @@ html, body {
   --radius: 14px;
   --radius-sm: 10px;
 }
+.theme-phantom {
+  --primary: #00f5d4; --primary-dim: rgba(0,245,212,0.13); --primary-glow: rgba(0,245,212,0.25);
+  --secondary: #4f46e5; --secondary-dim: rgba(79,70,229,0.15); --secondary-glow: rgba(79,70,229,0.25);
+  --bg: #0a0f14; --bg-grad: radial-gradient(ellipse at 50% 45%, #151e26 0%, #0a0f14 74%);
+}
 .theme-neon {
-  --primary: #72c4e8; --primary-dim: rgba(114,196,232,0.14); --primary-glow: rgba(114,196,232,0.2);
-  --secondary: #9ba7bf; --secondary-dim: rgba(155,167,191,0.15); --secondary-glow: rgba(155,167,191,0.2);
-  --bg: #0b1016; --bg-grad: radial-gradient(ellipse at 50% 45%, #18212b 0%, #0b1016 74%);
+  --primary: #ff00ff; --primary-dim: rgba(255,0,255,0.14); --primary-glow: rgba(255,0,255,0.35);
+  --secondary: #00ffff; --secondary-dim: rgba(0,255,255,0.14); --secondary-glow: rgba(0,255,255,0.3);
+  --bg: #04040a; --bg-grad: radial-gradient(ellipse at 50% 50%, #08081a 0%, #04040a 70%);
 }
 .theme-crimson {
-  --primary: #f28c83; --primary-dim: rgba(242,140,131,0.14); --primary-glow: rgba(242,140,131,0.2);
-  --secondary: #d2a078; --secondary-dim: rgba(210,160,120,0.14); --secondary-glow: rgba(210,160,120,0.2);
-  --bg: #120e10; --bg-grad: radial-gradient(ellipse at 50% 45%, #24191b 0%, #120e10 74%);
+  --primary: #ff4444; --primary-dim: rgba(255,68,68,0.14); --primary-glow: rgba(255,68,68,0.35);
+  --secondary: #ff8800; --secondary-dim: rgba(255,136,0,0.14); --secondary-glow: rgba(255,136,0,0.3);
+  --bg: #0a0404; --bg-grad: radial-gradient(ellipse at 50% 50%, #150606 0%, #0a0404 70%);
 }
 .theme-emerald {
-  --primary: #7acba2; --primary-dim: rgba(122,203,162,0.14); --primary-glow: rgba(122,203,162,0.2);
-  --secondary: #91b9ac; --secondary-dim: rgba(145,185,172,0.14); --secondary-glow: rgba(145,185,172,0.2);
-  --bg: #0b1210; --bg-grad: radial-gradient(ellipse at 50% 45%, #17231e 0%, #0b1210 74%);
+  --primary: #00ff88; --primary-dim: rgba(0,255,136,0.14); --primary-glow: rgba(0,255,136,0.35);
+  --secondary: #00cc99; --secondary-dim: rgba(0,204,153,0.14); --secondary-glow: rgba(0,204,153,0.3);
+  --bg: #040a06; --bg-grad: radial-gradient(ellipse at 50% 50%, #08150e 0%, #040a06 70%);
 }
 .controller { background: var(--bg-grad); }
 .controller::before { opacity: 0.18; }
@@ -969,59 +904,62 @@ html, body {
   .center-zone { padding: 6px 8px; gap: 6px; }
 }
 
-/* Racepad touch targets scale with the usable screen, with phone-safe minimums. */
-#controller.racepad-active {
-  --race-round-size: clamp(52px, 7.8vmin, 84px);
-  --race-pad-cell: clamp(48px, 6.8vmin, 66px);
+/* Immersive Gamepad HUD Banner */
+.gamepad-hud-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: rgba(11, 18, 24, 0.94);
+  border: 1.5px solid var(--primary, #00f5d4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75), 0 0 16px var(--primary-dim, rgba(0, 245, 212, 0.3));
+  border-radius: 999px;
+  padding: 6px 18px 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  pointer-events: none;
+  animation: hudSlideDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
-#controller.racepad-active .top-bar { min-height: clamp(56px,9vh,76px); }
-#controller.racepad-active .play-area { padding: 4px; }
-.racepad-deck { inset: 4px max(7px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(7px, env(safe-area-inset-left)); grid-template-rows: minmax(0,1fr) clamp(112px,22vh,148px); gap: clamp(6px,1.3vmin,14px); padding: clamp(3px,.8vmin,10px); }
-.race-cockpit { grid-template-rows: minmax(0,1fr) clamp(24px,4vmin,34px); gap: clamp(3px,.7vmin,8px); }
-.race-steering-gauge { width: min(100%,clamp(220px,38vmin,460px)); }
-.race-gauge-readout strong { font-size: clamp(36px,8vmin,84px); }
-.race-gauge-readout small, .race-gauge-left, .race-gauge-right { font-size: clamp(9px,1.35vmin,12px); }
-.race-center-mode { min-width: 0; width: min(84%,400px); font-size: clamp(10px,1.8vmin,15px); }
-.race-bottom-controls { align-items: center; gap: clamp(6px,1.2vmin,14px); padding: 5px clamp(4px,1.1vw,16px) 0; }
-.race-bottom-left, .race-bottom-right { flex: 1 1 0; gap: clamp(5px,1.1vmin,14px); }
-.race-bottom-left { justify-content: flex-start; }
-.race-bottom-right { justify-content: flex-end; }
-.race-round-button { width: var(--race-round-size); height: var(--race-round-size); min-width: 48px; min-height: 48px; gap: 3px; }
-.race-round-button span { font-size: clamp(18px,2.7vmin,30px); }
-.race-round-button small { font-size: clamp(8px,1.1vmin,10px); letter-spacing: .35px; }
-.race-dpad { grid-template-columns: repeat(3,var(--race-pad-cell)); grid-template-rows: repeat(2,var(--race-pad-cell)); gap: clamp(3px,.7vmin,8px); }
-.race-dpad button { font-size: clamp(23px,3vmin,34px); }
-.race-face-pad { grid-template-columns: repeat(3,var(--race-pad-cell)); grid-template-rows: repeat(2,var(--race-pad-cell)); gap: clamp(4px,.8vmin,10px); }
-.race-face-pad button { font-size: clamp(18px,2.6vmin,28px); }
-
-@media (max-aspect-ratio: 1/1) {
-  .racepad-deck { grid-template-rows: minmax(150px,22vh) minmax(150px,23vh) minmax(210px,30vh); align-content: space-between; }
-  .race-cockpit { grid-template-rows: minmax(0,1fr) 24px; }
-  .race-steering-gauge { width: min(100%,clamp(210px,50vmin,360px)); max-height: 18vh; }
-  .race-pedal-rail { min-height: 150px; }
-  .race-bottom-controls { display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto; justify-items: stretch; align-content: space-evenly; gap: clamp(8px,1.6vh,16px); }
-  .race-bottom-left, .race-bottom-right { width: 100%; justify-content: space-evenly; }
+.gamepad-hud-banner.hidden {
+  display: none !important;
+}
+.gamepad-hud-banner.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-14px);
+}
+.hud-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.hud-content {
+  display: flex;
+  flex-direction: column;
+}
+.hud-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--primary, #00f5d4);
+  line-height: 1.2;
+}
+.hud-subtitle {
+  font-size: 10px;
+  color: var(--text-dim, #788994);
+  letter-spacing: 0.3px;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
-@media (max-height: 560px) and (orientation: landscape) {
-  .racepad-deck { grid-template-rows: minmax(0,1fr) clamp(104px,28vh,132px); }
-  .race-cockpit { grid-template-rows: minmax(0,1fr) 22px; }
-  .race-steering-gauge { width: min(100%,clamp(200px,36vmin,320px)); }
+@keyframes hudSlideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
-
-.racepad-deck { isolation: isolate; }
-.racepad-deck::before { content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; background: radial-gradient(ellipse at 50% 48%,rgba(0,245,212,.18),transparent 58%),linear-gradient(112deg,transparent 38%,rgba(0,245,212,.12) 50%,transparent 62%); opacity: 0; pointer-events: none; }
-.racepad-deck > * { position: relative; z-index: 1; }
-.racepad-deck.racepad-ignition::before { animation: racepad-ignition-glow 1450ms ease-out both; }
-.racepad-ignition .race-gauge-needle { transform-box: view-box; transform-origin: 110px 118px; animation: racepad-ignition-sweep 1250ms cubic-bezier(.2,.75,.25,1) both; }
-.racepad-ignition .race-center-mode { animation: racepad-ignition-pulse 900ms ease-out 180ms both; }
-.racepad-ignition .race-pedal { animation: racepad-control-check 650ms ease-out both; }
-.racepad-ignition .race-pedal-rail-right .race-pedal:first-child { animation-delay: 100ms; }
-.racepad-ignition .race-pedal-rail-left .race-pedal:last-child { animation-delay: 180ms; }
-.racepad-ignition .race-pedal-rail-right .race-pedal:last-child { animation-delay: 260ms; }
-.racepad-ignition .race-round-button { animation: racepad-control-check 700ms ease-out 300ms both; }
-@keyframes racepad-ignition-glow { 0% { opacity: 0; transform: scale(.97); } 18% { opacity: .9; } 72% { opacity: .25; } 100% { opacity: 0; transform: scale(1.02); } }
-@keyframes racepad-ignition-sweep { 0% { transform: rotate(-112deg); } 56% { transform: rotate(104deg); } 82% { transform: rotate(-8deg); } 100% { transform: rotate(0); } }
-@keyframes racepad-ignition-pulse { 0% { filter: brightness(1); } 30% { filter: brightness(1.9); } 100% { filter: brightness(1); } }
-@keyframes racepad-control-check { 0% { filter: brightness(1); } 35% { filter: brightness(1.8); } 100% { filter: brightness(1); } }
-@media (prefers-reduced-motion: reduce) { .racepad-ignition::before, .racepad-ignition .race-gauge-needle, .racepad-ignition .race-center-mode, .racepad-ignition .race-pedal, .racepad-ignition .race-round-button { animation: none; } }

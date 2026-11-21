@@ -13,12 +13,15 @@ const { createInputWatchdog } = require('./input-watchdog');
 const { MacroHandler } = require('./macro-handler');
 const { GameMonitor } = require('./game-monitor');
 const { DeviceTrustStore } = require('./device-trust');
-const { startDiscovery } = require('./discovery');
+const { startDiscovery, isUsbConnection } = require('./discovery');
 const config = require('./config');
 
 const app = express();
 app.use(express.json()); // Body parser (B12)
 const httpServer = createServer(app);
+httpServer.on('connection', (socket) => {
+  socket.setNoDelay(true);
+});
 const pairingCode = crypto.randomInt(0, 100_000_000).toString().padStart(8, '0');
 const pairingAttempts = new Map();
 const pendingDeviceChallenges = new Map();
@@ -75,9 +78,8 @@ function isValidInputPacket(data) {
   }
   if (data.buttons && Object.entries(data.buttons).some(([key, value]) => key.length > 32 || typeof value !== 'boolean')) return false;
   if (data.axes && Object.entries(data.axes).some(([key, value]) =>
-    !['leftX', 'leftY', 'rightX', 'rightY', 'steering', 'throttle', 'brake', 'clutch', 'handbrake'].includes(key) ||
-    typeof value !== 'number' || !Number.isFinite(value) || value < -1 || value > 1 ||
-    (['throttle', 'brake', 'clutch', 'handbrake'].includes(key) && value < 0)
+    !['leftX', 'leftY', 'rightX', 'rightY'].includes(key) ||
+    typeof value !== 'number' || !Number.isFinite(value) || value < -1 || value > 1
   )) return false;
   if (data.triggers && Object.entries(data.triggers).some(([key, value]) =>
     !['lt', 'rt'].includes(key) || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1
@@ -93,15 +95,37 @@ const io = new Server(httpServer, {
       else callback(new Error('Blocked by CORS'));
     }
   },
-  pingInterval: 2000,
-  pingTimeout: 5000,
-  transports: ['websocket', 'polling']
+  pingInterval: 5000,
+  pingTimeout: 10000,
+  transports: ['websocket'],
+  allowUpgrades: false,
+  perMessageDeflate: false
 });
 
 io.use((socket, next) => {
   const auth = socket.handshake.auth || {};
-  if (isLoopbackAddress(socket.handshake.address) && !auth.pairingCode && !auth.challenge && !auth.pairingRequest) {
+  const remoteAddr = socket.handshake.address;
+  const isUsb = isUsbConnection(remoteAddr);
+
+  if (isLoopbackAddress(remoteAddr) && !auth.isController && !auth.pairingCode && !auth.challenge && !auth.pairingRequest) {
     socket.data.role = 'dashboard';
+    return next();
+  }
+
+  // Plug & Play USB Auto-Authorization:
+  // When connected via physical USB (USB tethering RNDIS/NCM or ADB port forwarding),
+  // physical possession is guaranteed. Auto-authorize the controller immediately.
+  if (isUsb && (auth.isController || auth.isUsb || auth.deviceId || auth.pairingRequest || !auth.pairingCode)) {
+    socket.data.role = 'controller';
+    socket.data.isUsb = true;
+    if (auth.deviceId && auth.publicKey) {
+      try {
+        const parsedKey = deviceTrustStore.parsePublicKey(auth.publicKey);
+        deviceTrustStore.trust(auth.deviceId, parsedKey.der, cleanName(auth.deviceName) || 'Plug & Play USB Phone');
+        socket.data.pendingDeviceId = auth.deviceId;
+      } catch (_) {}
+    }
+    console.log(`  🔌 Plug & Play USB Controller connected from ${remoteAddr} — auto-authorized.`);
     return next();
   }
 
@@ -179,6 +203,13 @@ inputHandler.onStatusChange = (status) => {
   io.emit('status-update', { ...status, activeGame });
   io.to('dashboard').emit('players-update', inputHandler.getPlayersInfo());
 };
+inputHandler.onVibrate = (socketId, { largeMotor, smallMotor }) => {
+  const maxIntensity = Math.max(largeMotor || 0, smallMotor || 0);
+  if (maxIntensity > 0) {
+    const duration = Math.min(250, Math.max(35, Math.round((maxIntensity / 255) * 180)));
+    io.to(socketId).emit('vibrate', { duration, largeMotor, smallMotor });
+  }
+};
 const macroHandler = new MacroHandler(inputHandler);
 const gameMonitor = new GameMonitor({ interval: 1000 });
 
@@ -203,8 +234,7 @@ let activeGame = null;
 gameMonitor.on('game-changed', (processName) => {
   activeGame = processName;
   console.log(`  🎮 Game Detected: ${processName}`);
-  const detectedMode = config.isRacingProcess(processName) ? 'racepad' : 'gamepad';
-  inputHandler.setDetectedMode(detectedMode);
+  inputHandler.setDetectedMode('gamepad');
   io.emit('status-update', { ...inputHandler.getStatus(), activeGame });
   
   const presetKey = config.processMappings[processName];
@@ -374,7 +404,9 @@ app.get('/api/macros', requireLocalDashboard, (req, res) => res.json(macroHandle
 // --- Socket.IO ---
 io.on('connection', (socket) => {
   let lastInputTime = 0;
-  const RATE_LIMIT_MS = 8; // ~125Hz max (B6)
+  let lastVisualizeTime = 0;
+  const RATE_LIMIT_MS = 4; // ~250Hz max (B6)
+  const VISUALIZE_THROTTLE_MS = 32; // ~30Hz dashboard visualization cap
   const inputWatchdog = createInputWatchdog(socket.id, inputHandler, 300);
   let pairingTimer = socket.data.role === 'pending-controller'
     ? setTimeout(() => {
@@ -404,6 +436,7 @@ io.on('connection', (socket) => {
     if (socket.data.role !== 'controller') return socket.disconnect(true);
     const player = inputHandler.addPlayer(socket.id);
     if (!player) { socket.emit('error-msg', 'Max 4 players'); return; }
+    if (socket.data.isUsb) player.isUsb = true;
     if (socket.data.pendingPublicKey) {
       try {
         const trusted = deviceTrustStore.add(socket.data.pendingPublicKey);
@@ -445,7 +478,7 @@ io.on('connection', (socket) => {
       socket.data.expiresAt = trusted.expiresAt;
     }
     console.log(`  ✓ P${player.number} connected: ${socket.id}`);
-    socket.emit('player-assigned', { number: player.number, color: player.color });
+    socket.emit('player-assigned', { number: player.number, color: player.color, isUsb: Boolean(socket.data.isUsb) });
     if (socket.data.deviceId) {
       socket.emit('device-trust-confirmed', { deviceId: socket.data.deviceId, expiresAt: socket.data.expiresAt });
       io.to('dashboard').emit('trusted-devices', deviceTrustStore.list());
@@ -551,7 +584,10 @@ io.on('connection', (socket) => {
     });
     if (inputHandler.players.has(socket.id)) inputWatchdog.refresh();
     if (macroHandler.recording) macroHandler.recordInput(data);
-    io.to('dashboard').emit('input-visualize', { playerId: socket.id, ...data });
+    if (now - lastVisualizeTime >= VISUALIZE_THROTTLE_MS) {
+      lastVisualizeTime = now;
+      io.to('dashboard').emit('input-visualize', { playerId: socket.id, ...data });
+    }
   });
 
   // ---- Mode switching ----
@@ -559,7 +595,7 @@ io.on('connection', (socket) => {
     if (socket.data.role !== 'dashboard' || !socket.rooms.has('dashboard')) return;
     const ok = inputHandler.setMode(mode);
     io.emit('status-update', { ...inputHandler.getStatus(), activeGame });
-    if (!ok) socket.emit('error-msg', mode === 'racepad' ? 'Racepad mode needs vJoy installed, enabled, and configured.' : 'Gamepad mode requires ViGEmBus driver');
+    if (!ok) socket.emit('error-msg', 'Gamepad mode requires ViGEmBus driver');
   });
 
   // ---- Preset switching ----
@@ -608,7 +644,7 @@ io.on('connection', (socket) => {
     const name = cleanName(data.name);
     if (!name || ['__proto__', 'constructor', 'prototype'].includes(name.toLowerCase())) return;
     if (data.mapping !== undefined && !isPlainObject(data.mapping)) return;
-    if (data.mode !== undefined && !['auto', 'gamepad', 'racepad', 'keyboard'].includes(data.mode)) return;
+    if (data.mode !== undefined && !['auto', 'gamepad', 'keyboard'].includes(data.mode)) return;
     profiles[name] = { mapping: data.mapping, mode: data.mode, created: Date.now() };
     saveProfiles();
     io.emit('profiles-updated', profiles);
@@ -739,8 +775,6 @@ function getTrayStatus() {
     activeMode: inputHandler.getActiveMode(),
     gamepadAvailable: inputHandler.gamepadAvailable,
     gamepadError: inputHandler.gamepadError,
-    racepadAvailable: inputHandler.racepadAvailable,
-    racepadError: inputHandler.racepadError,
     players: inputHandler.getPlayersInfo().map((player) => ({
       number: player.number,
       color: player.color,

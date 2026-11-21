@@ -45,6 +45,12 @@ const sanitizeNumber = (val, min, max) => {
   return (Number.isFinite(n)) ? Math.max(min, Math.min(max, n)) : 0;
 };
 
+const XBOX_BUTTON_MAP = {
+  A: 'A', B: 'B', X: 'X', Y: 'Y', lb: 'LeftShoulder', rb: 'RightShoulder',
+  back: 'Back', start: 'Start', home: 'Guide', ls: 'LeftThumb', rs: 'RightThumb',
+  dpadUp: 'Up', dpadDown: 'Down', dpadLeft: 'Left', dpadRight: 'Right'
+};
+
 class InputHandler {
   constructor(cfg) {
     this.mode = cfg.defaultMode || 'keyboard';
@@ -55,8 +61,6 @@ class InputHandler {
     this.ps = null;
     this.gamepadAvailable = false;
     this.gamepadError = 'Checking ViGEmBus availability';
-    this.racepadAvailable = false;
-    this.racepadError = 'Checking vJoy availability';
     this.onStatusChange = null;
     this.keyboardAvailable = false;
     this.psOutputBuffer = '';
@@ -85,9 +89,36 @@ class InputHandler {
         : path.join(__dirname, 'lib', 'Nefarius.ViGEm.Client.dll');
       const psDllPath = packagedDllPath.replace(/'/g, "''");
       const psScript = `
+try {
+    [System.Diagnostics.Process]::GetCurrentProcess().PriorityClass = [System.Diagnostics.ProcessPriorityClass]::High
+} catch {}
+
 function global:Write-PhantomPadMarker([string]$Message) {
     [Console]::Out.WriteLine($Message)
     [Console]::Out.Flush()
+}
+
+function global:Send-XboxReport([int]$pid) {
+    $c = $global:xctrls[$pid]
+    if ($c) {
+        try {
+            $c.SubmitReport()
+            if (-not $global:inputAck.ContainsKey($pid)) {
+                $global:inputAck[$pid] = $true
+                Write-PhantomPadMarker "VIGEM_INPUT_REPORT[$pid]"
+            }
+        } catch {
+            if (-not $global:inputFailureReported.ContainsKey($pid)) {
+                $global:inputFailureReported[$pid] = $true
+                Write-PhantomPadMarker "VIGEM_INPUT_FAILED[$pid]: $_"
+            }
+        }
+    } else {
+        if (-not $global:inputFailureReported.ContainsKey($pid)) {
+            $global:inputFailureReported[$pid] = $true
+            Write-PhantomPadMarker "VIGEM_INPUT_FAILED[$pid]: virtual controller target missing"
+        }
+    }
 }
 
 Add-Type @"
@@ -117,31 +148,6 @@ try {
     Write-PhantomPadMarker "VIGEM_FAILED: $_"
 }
 
-try {
-    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
-    $vJoyDll = @("$env:ProgramFiles\\vJoy\\x64\\vJoyInterface.dll", "$env:ProgramFiles\\vJoy\\vJoyInterface.dll", "$programFilesX86\\vJoy\\x86\\vJoyInterface.dll") | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $vJoyDll) { throw 'vJoy is not installed' }
-    $env:PATH = (Split-Path $vJoyDll) + ';' + $env:PATH
-    Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public static class PhantomPadVJoy {
-  [DllImport("vJoyInterface.dll", EntryPoint="vJoyEnabled", CallingConvention=CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool Enabled();
-  [DllImport("vJoyInterface.dll", EntryPoint="GetVJDStatus", CallingConvention=CallingConvention.Cdecl)] public static extern int Status(uint id);
-  [DllImport("vJoyInterface.dll", EntryPoint="GetVJDButtonNumber", CallingConvention=CallingConvention.Cdecl)] public static extern int ButtonCount(uint id);
-  [DllImport("vJoyInterface.dll", EntryPoint="GetVJDAxisExist", CallingConvention=CallingConvention.Cdecl)] public static extern uint HasAxis(uint id, uint axis);
-  [DllImport("vJoyInterface.dll", EntryPoint="AcquireVJD", CallingConvention=CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool Acquire(uint id);
-  [DllImport("vJoyInterface.dll", EntryPoint="RelinquishVJD", CallingConvention=CallingConvention.Cdecl)] public static extern void Relinquish(uint id);
-  [DllImport("vJoyInterface.dll", EntryPoint="ResetVJD", CallingConvention=CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool Reset(uint id);
-  [DllImport("vJoyInterface.dll", EntryPoint="SetAxis", CallingConvention=CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool SetAxis(int value, uint id, uint axis);
-  [DllImport("vJoyInterface.dll", EntryPoint="SetBtn", CallingConvention=CallingConvention.Cdecl)] [return: MarshalAs(UnmanagedType.Bool)] public static extern bool SetButton([MarshalAs(UnmanagedType.Bool)] bool value, uint id, byte button);
-}
-"@
-    if (-not [PhantomPadVJoy]::Enabled()) { throw 'vJoy driver is disabled' }
-    Write-PhantomPadMarker "VJOY_READY"
-} catch {
-    Write-PhantomPadMarker "VJOY_FAILED: $_"
-}
 Write-PhantomPadMarker "KB_READY"
 `;
       this.ps.stdout.on('data', (data) => {
@@ -161,18 +167,7 @@ Write-PhantomPadMarker "KB_READY"
           for (const player of this.players.values()) this._createPlayerController(player);
           this.onStatusChange?.(this.getStatus());
         }
-        if (output.includes('VJOY_READY')) {
-          this.racepadAvailable = true;
-          this.racepadError = null;
-          if (this.mode === 'racepad') for (const player of this.players.values()) this._createRacepadController(player);
-          this.onStatusChange?.(this.getStatus());
-        }
-        const racepadFailure = output.match(/VJOY_FAILED:\s*([^\r\n]+)/);
-        if (racepadFailure) {
-          this.racepadAvailable = false;
-          this.racepadError = racepadFailure[1];
-          this.onStatusChange?.(this.getStatus());
-        }
+
         const playerStarted = output.match(/VIGEM_PLAYER_START\[(\d+)\]/);
         if (playerStarted) {
           const player = [...this.players.values()].find((entry) => entry.number === Number(playerStarted[1]));
@@ -180,11 +175,6 @@ Write-PhantomPadMarker "KB_READY"
             player.controllerStage = 'PowerShell received the request';
             this._notifyStatusChange();
           }
-        }
-        const racepadStarted = output.match(/VJOY_PLAYER_START\[(\d+)\]/);
-        if (racepadStarted) {
-          const player = [...this.players.values()].find((entry) => entry.number === Number(racepadStarted[1]));
-          if (player) { player.controllerStage = 'Connecting to vJoy'; this._notifyStatusChange(); }
         }
         const playerAllocated = output.match(/VIGEM_PLAYER_ALLOCATED\[(\d+)\]/);
         if (playerAllocated) {
@@ -235,40 +225,15 @@ Write-PhantomPadMarker "KB_READY"
             this._notifyStatusChange();
           }
           console.error(`  ✗ ViGEm could not create player ${failedNumber}:`, playerFailure[2]);
-        }
-        const racepadReady = output.match(/VJOY_PLAYER_READY\[(\d+)\]/);
-        if (racepadReady) {
-          const player = [...this.players.values()].find((entry) => entry.number === Number(racepadReady[1]));
-          if (player) {
-            clearTimeout(player.controllerTimeout);
-            player.hasController = true;
-            player.controllerType = 'racepad';
-            player.controllerStatus = 'ready';
-            player.controllerStage = null;
-            player.controllerError = null;
-            this._notifyStatusChange();
+        }        const vibrateMatch = output.match(/VIGEM_VIBRATE\[(\d+)\]:(\d+):(\d+)/);
+        if (vibrateMatch) {
+          const pNum = Number(vibrateMatch[1]);
+          const largeMotor = Number(vibrateMatch[2]);
+          const smallMotor = Number(vibrateMatch[3]);
+          const player = [...this.players.values()].find((entry) => entry.number === pNum);
+          if (player && this.onVibrate) {
+            this.onVibrate(player.socketId, { largeMotor, smallMotor });
           }
-        }
-        const racepadFailed = output.match(/VJOY_PLAYER_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
-        if (racepadFailed) {
-          const player = [...this.players.values()].find((entry) => entry.number === Number(racepadFailed[1]));
-          if (player) {
-            clearTimeout(player.controllerTimeout);
-            player.controllerStatus = 'error';
-            player.controllerStage = null;
-            player.controllerError = racepadFailed[2];
-            this._notifyStatusChange();
-          }
-        }
-        const racepadInput = output.match(/VJOY_INPUT_REPORT\[(\d+)\]/);
-        if (racepadInput) {
-          const player = [...this.players.values()].find((entry) => entry.number === Number(racepadInput[1]));
-          if (player) { player.controllerStatus = 'active'; player.controllerError = null; this._notifyStatusChange(); }
-        }
-        const racepadInputFailure = output.match(/VJOY_INPUT_FAILED\[(\d+)\]:\s*([^\r\n]+)/);
-        if (racepadInputFailure) {
-          const player = [...this.players.values()].find((entry) => entry.number === Number(racepadInputFailure[1]));
-          if (player) { player.hasController = false; player.controllerStatus = 'error'; player.controllerError = racepadInputFailure[2]; this._notifyStatusChange(); }
         }
         const inputReported = output.match(/VIGEM_INPUT_REPORT\[(\d+)\]/);
         if (inputReported) {
@@ -356,8 +321,7 @@ Write-PhantomPadMarker "KB_READY"
       hasController: false,
       controllerRequested: false,
       controllerType: null,
-      vJoyId: num,
-      controllerStatus: this.mode === 'racepad' || (this.mode === 'gamepad' && this.gamepadAvailable) ? 'connecting' : 'waiting',
+      controllerStatus: (this.mode === 'gamepad' && this.gamepadAvailable) ? 'connecting' : 'waiting',
       controllerStage: null,
       controllerError: null
     };
@@ -391,6 +355,7 @@ Write-PhantomPadMarker "KB_READY"
   getPlayersInfo() {
     return [...this.players.values()].map(p => ({
       id: p.id, number: p.number, color: p.color, latency: p.latency,
+      isUsb: Boolean(p.isUsb),
       controllerType: p.controllerType,
       controllerStatus: p.controllerStatus, controllerStage: p.controllerStage,
       controllerError: p.controllerError
@@ -471,6 +436,12 @@ try {
     if (-not $targetConnected) { throw }
     Write-PhantomPadMarker "VIGEM_PLAYER_NOTICE[${number}]: vibration feedback registration was unavailable"
   }
+  try {
+    $c.add_FeedbackReceived({
+      param($sender, $args)
+      Write-PhantomPadMarker "VIGEM_VIBRATE[${number}]:$($args.LargeMotor):$($args.SmallMotor)"
+    })
+  } catch {}
   $global:xctrls[${number}] = $c
   Write-PhantomPadMarker "VIGEM_PLAYER_READY[${number}]"
 } catch {
@@ -494,7 +465,6 @@ try {
   }
 
   _createActiveController(player) {
-    if (this.mode === 'racepad') return this._createRacepadController(player);
     if (this.mode === 'gamepad') return this._createPlayerController(player);
     player.controllerStatus = this.mode === 'keyboard' ? 'keyboard' : 'ready';
     player.controllerType = null;
@@ -502,52 +472,11 @@ try {
     return true;
   }
 
-  _createRacepadController(player) {
-    if (this.mode !== 'racepad' || player.racepadRequested) return false;
-    if (!this.racepadAvailable) {
-      player.controllerStatus = 'error';
-      player.controllerError = this.racepadError || 'Install and enable vJoy to use Racepad mode.';
-      this._notifyStatusChange();
-      return false;
-    }
-    if (!this.ps?.stdin?.writable) return false;
-    player.racepadRequested = true;
-    player.controllerStatus = 'connecting';
-    player.controllerStage = 'Connecting to vJoy';
-    player.controllerError = null;
-    const id = player.vJoyId;
-    this._writePowerShell(`
-try {
-  Write-PhantomPadMarker "VJOY_PLAYER_START[${player.number}]"
-  if (-not [PhantomPadVJoy]::Acquire(${id})) { throw "vJoy device ${id} is disabled or already in use" }
-  $global:vjoyAck${id} = $false
-  $global:vjoyFailure${id} = $false
-  foreach ($axis in @(48,49,50,51,52)) { if ([PhantomPadVJoy]::HasAxis(${id}, $axis) -ne 1) { throw 'Enable vJoy axes X, Y, Z, Rx and Ry in Configure vJoy' } }
-  $buttonCount = [PhantomPadVJoy]::ButtonCount(${id})
-  if ($buttonCount -lt 32) { throw "vJoy device ${id} has $buttonCount buttons. Open Configure vJoy, select device ${id}, set Buttons to at least 32, and click Apply." }
-  [PhantomPadVJoy]::Reset(${id}) | Out-Null
-  Write-PhantomPadMarker "VJOY_PLAYER_READY[${player.number}]"
-} catch {
-  Write-PhantomPadMarker "VJOY_PLAYER_FAILED[${player.number}]: $_"
-  try { [PhantomPadVJoy]::Relinquish(${id}) } catch { }
-}`);
-    player.controllerTimeout = setTimeout(() => {
-      if (player.controllerStatus !== 'connecting') return;
-      player.controllerStatus = 'error';
-      player.controllerStage = null;
-      player.controllerError = 'Timed out while creating the vJoy Racepad device.';
-      this._notifyStatusChange();
-    }, 15000);
-    return true;
-  }
-
   _destroyPlayerController(player) {
     if (this.ps?.stdin?.writable) {
       if (player.controllerRequested) this._writePowerShell(`try { $c = $global:xctrls[${player.number}]; if ($c) { $c.Disconnect(); $global:xctrls.Remove(${player.number}) } } catch { }`);
-      if (player.racepadRequested) this._writePowerShell(`try { [PhantomPadVJoy]::Reset(${player.vJoyId}) | Out-Null; [PhantomPadVJoy]::Relinquish(${player.vJoyId}) } catch { }`);
     }
     player.controllerRequested = false;
-    player.racepadRequested = false;
     player.hasController = false;
     player.controllerType = null;
     clearTimeout(player.controllerTimeout);
@@ -561,10 +490,6 @@ try {
       if (player.hasController) this._handleGamepadInput(player, data);
       return;
     }
-    if (this.mode === 'racepad') {
-      if (player.hasController && player.racepadRequested) this._handleRacepadInput(player, data);
-      return;
-    }
     if (this.keyboardAvailable) {
       this._handleKeyboardInput(player, data);
     }
@@ -573,7 +498,7 @@ try {
   _handleGamepadInput(player, data) {
     if (!this.ps || !this.ps.stdin.writable) return;
     const pid = player.number;
-    let cmds = `$c = $global:xctrls[${pid}]; if($c) { try { `;
+    let cmds = `$c = $global:xctrls[${pid}]; if ($c) { `;
     
     if (data.axes) {
       if (data.axes.leftX !== undefined) {
@@ -604,38 +529,18 @@ try {
       }
     }
     if (data.buttons) {
-      const map = { A:'A', B:'B', X:'X', Y:'Y', lb:'LeftShoulder', rb:'RightShoulder',
-        back:'Back', start:'Start', home:'Guide', ls:'LeftThumb', rs:'RightThumb',
-        dpadUp:'Up', dpadDown:'Down', dpadLeft:'Left', dpadRight:'Right' };
+      if (!player.lastButtons) player.lastButtons = {};
       for (const [k, v] of Object.entries(data.buttons)) {
-        if (map[k]) cmds += `$c.SetButtonState($global:XB::${map[k]}, $${v ? 'true' : 'false'}); `;
+        if (player.lastButtons[k] !== v) {
+          player.lastButtons[k] = v;
+          const targetBtn = XBOX_BUTTON_MAP[k];
+          if (targetBtn) cmds += `$c.SetButtonState($global:XB::${targetBtn}, $${v ? 'true' : 'false'}); `;
+        }
       }
     }
     
-    cmds += `$c.SubmitReport(); if (-not $global:inputAck.ContainsKey(${pid})) { $global:inputAck[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_REPORT[${pid}]" } } catch { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_FAILED[${pid}]: $_" } } } else { if (-not $global:inputFailureReported.ContainsKey(${pid})) { $global:inputFailureReported[${pid}] = $true; Write-PhantomPadMarker "VIGEM_INPUT_FAILED[${pid}]: virtual controller target missing" } }\n`;
-      this._writePowerShell(cmds);
-  }
-
-  _handleRacepadInput(player, data) {
-    if (!this.ps?.stdin?.writable) return;
-    const id = player.vJoyId;
-    const axes = data.axes || {};
-    const axisValue = (value, signed = false) => Math.round(signed ? (sanitizeNumber(value, -1, 1) + 1) * 16383.5 : sanitizeNumber(value, 0, 1) * 32767);
-    const axisMap = { steering: [48, true], throttle: [49], brake: [50], clutch: [51], handbrake: [52] };
-    let script = `try { `;
-    for (const [name, [usage, signed]] of Object.entries(axisMap)) {
-      script += `if (-not [PhantomPadVJoy]::SetAxis(${axisValue(axes[name], signed)}, ${id}, ${usage})) { throw 'vJoy rejected ${name}' }; `;
-    }
-    const buttonMap = { A: 1, B: 2, X: 3, Y: 4, lb: 5, rb: 6, back: 7, start: 8, home: 9, ls: 10, rs: 11,
-      dpadUp: 12, dpadDown: 13, dpadLeft: 14, dpadRight: 15, gearUp: 16, gearDown: 17,
-      gear1: 18, gear2: 19, gear3: 20, gear4: 21, gear5: 22, gear6: 23, gearReverse: 24,
-      pitLimiter: 25, headlights: 26, wipers: 27, horn: 28, camera: 29, ignition: 30,
-      absToggle: 31, tractionToggle: 32 };
-    for (const [name, index] of Object.entries(buttonMap)) {
-      if (data.buttons?.[name] !== undefined) script += `if (-not [PhantomPadVJoy]::SetButton($${data.buttons[name] ? 'true' : 'false'}, ${id}, [byte]${index})) { throw 'vJoy rejected button ${index}' }; `;
-    }
-    script += `if (-not $global:vjoyAck${id}) { $global:vjoyAck${id} = $true; Write-PhantomPadMarker "VJOY_INPUT_REPORT[${player.number}]" } } catch { try { [PhantomPadVJoy]::Reset(${id}) | Out-Null } catch { }; if (-not $global:vjoyFailure${id}) { $global:vjoyFailure${id} = $true; Write-PhantomPadMarker "VJOY_INPUT_FAILED[${player.number}]: $_" } }`;
-    this._writePowerShell(script);
+    cmds += `}; Send-XboxReport ${pid}\n`;
+    this._writePowerShell(cmds);
   }
 
   _handleKeyboardInput(player, data) {
@@ -705,12 +610,9 @@ try {
 
   _releasePlayerInput(player) {
     this._releasePlayer(player);
-    if (!player.hasController || !this.ps || !this.ps.stdin.writable) return;
+    player.lastButtons = {};
+    if ((!player.hasController && !player.controllerRequested) || !this.ps || !this.ps.stdin.writable) return;
 
-    if (player.controllerType === 'racepad') {
-      this._writePowerShell(`[PhantomPadVJoy]::Reset(${player.vJoyId}) | Out-Null`);
-      return;
-    }
 
     const pid = player.number;
     this._writePowerShell(`
@@ -750,13 +652,12 @@ if ($c) {
   }
 
   setDetectedMode(mode) {
-    this.autoGameMode = mode === 'racepad' ? 'racepad' : 'gamepad';
+    this.autoGameMode = 'gamepad';
     return this.modeSelection === 'auto' ? this._switchMode(this.autoGameMode) : true;
   }
 
   setMode(selection) {
-    if (!['auto', 'gamepad', 'racepad', 'keyboard'].includes(selection)) return false;
-    if (selection === 'racepad' && !this.racepadAvailable) return false;
+    if (!['auto', 'gamepad', 'keyboard'].includes(selection)) return false;
     const previousSelection = this.modeSelection;
     this.modeSelection = selection;
     const switched = this._switchMode(selection === 'auto' ? this.autoGameMode : selection);
@@ -765,9 +666,8 @@ if ($c) {
   }
 
   _switchMode(mode) {
-    const target = mode === 'racepad' && !this.racepadAvailable ? 'gamepad' : mode;
+    const target = mode;
     if (target === 'gamepad' && !this.gamepadAvailable) return false;
-    if (target === 'racepad' && !this.racepadAvailable) return false;
     if (target === this.mode) return true;
     this.players.forEach((player) => {
       this._releasePlayerInput(player);
@@ -803,7 +703,6 @@ if ($c) {
   getStatus() {
     return { mode: this.modeSelection, activeMode: this.mode, autoGameMode: this.autoGameMode,
       gamepadAvailable: this.gamepadAvailable, gamepadError: this.gamepadError,
-      racepadAvailable: this.racepadAvailable, racepadError: this.racepadError,
       keyboardAvailable: this.keyboardAvailable,
       players: this.getPlayersInfo() };
   }

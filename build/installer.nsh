@@ -1,10 +1,8 @@
 !macro customInstall
   ${ifNot} ${isUpdated}
     ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Services\ViGEmBus" "ImagePath"
-    ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Services\vjoy" "ImagePath"
     ${if} $0 == ""
-    ${orIf} $1 == ""
-      MessageBox MB_YESNO|MB_ICONEXCLAMATION "PhantomPad requires both ViGEmBus and vJoy drivers. Setup will download any missing driver from its official GitHub release and open its installer. Internet access is required. Continue?" IDYES installDrivers
+      MessageBox MB_YESNO|MB_ICONEXCLAMATION "PhantomPad requires the ViGEmBus driver for virtual gamepad emulation. Setup will download the driver from its official GitHub release and open its installer. Internet access is required. Continue?" IDYES installDrivers
       Abort "Required PhantomPad drivers were not approved."
       installDrivers:
       SetOutPath "$PLUGINSDIR"

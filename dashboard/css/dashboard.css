@@ -268,7 +268,18 @@ body::before {
 }
 
 .player-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
-.player-details .player-name { font-weight: 700; font-size: 14px; }
+.player-details .player-name { font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; }
+.usb-tag {
+  font-size: 10px;
+  background: rgba(0, 245, 212, 0.12);
+  border: 1px solid rgba(0, 245, 212, 0.35);
+  color: #00f5d4;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
 .controller-status { font-size: 10px; margin-top: 3px; max-width: 420px; overflow-wrap: anywhere; }
 .controller-waiting, .controller-connecting { color: var(--text-dim); }
 .controller-ready { color: var(--success); }
@@ -1042,8 +1053,4 @@ body::before { display: none; }
 @media (max-width: 720px) {
   .mode-toggle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.vis-race-axes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.vis-race-axes > div { display: grid; gap: 5px; color: var(--text-dim); font: 600 9px var(--mono); text-transform: uppercase; }
-.vis-race-axes i { height: 6px; overflow: hidden; border-radius: 10px; background: var(--bg-elevated); }
-.vis-race-axes b { display: block; width: 50%; height: 100%; border-radius: inherit; background: var(--player-color); transition: width 50ms linear; }
-@media (max-width: 700px) { .vis-race-axes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+

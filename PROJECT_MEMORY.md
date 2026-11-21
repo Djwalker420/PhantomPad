@@ -1,12 +1,37 @@
 # PhantomPad — Project Memory
 
-Last updated: 2026-11-04
-Desktop source: 1.14.0; Android source: 1.14.0 (versionCode 19)
+Last updated: 2026-11-19
+Desktop source: 1.15.0; Android source: 1.15.0 (versionCode 20)
 Working branch: `main`
 Pull request: https://github.com/Djwalker420/PhantomPad/pull/1 (draft)
 Base branch: `main`
 
-## Current local work (2026-11-04, v1.14.0)
+## Current local work (2026-11-21, v1.15.0)
+- Implemented zero-configuration Plug & Play for USB Tethering & direct USB connections:
+  - Android `ConnectActivity`: Auto-detects USB tethering/RNDIS/NCM interfaces and ADB loopback (`127.0.0.1`), fast-probes candidate host gateway IPs with UDP discover and direct HTTP `/api/info`, and automatically transitions into `MainActivity` with zero user taps.
+  - Windows Server (`server/index.js` & `server/discovery.js`): Physical USB presence auto-authorizes incoming controllers with no pairing codes or dashboard approval popups required, permanently remembering them in `deviceTrustStore`.
+  - Gamepad Immersion & Feedback:
+    - Added ViGEm force-feedback / rumble listener in PowerShell and input-handler (`VIGEM_VIBRATE`), piping real-time motor rumble from PC games to phone vibration (`vibrateWithIntensity`).
+    - Added tactile double-pulse rumble greeting on controller assignment and a sleek Xbox-style connection HUD banner showing Player slot and connection type.
+    - Android `MainActivity`: Enabled `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` for edge-to-edge notchless fullscreen immersion, `FLAG_KEEP_SCREEN_ON`, and sticky system navigation hiding.
+- Cleanly removed the experimental Racepad mode and vJoy dependencies from server, client, dashboard, tray visualizer, and Windows NSIS installer/driver checks. Retained full dual/multi-device Xbox 360 gamepad and keyboard emulation via ViGEmBus.
+- Multi-device low latency optimization:
+  - Added immediate 0ms button event dispatching (`sendImmediateInput`) on `pointerdown` and `pointerup` to bypass tick quantization while preserving 120Hz smooth stick tracking.
+  - Enabled `TCP_NODELAY` on server HTTP/Socket.IO connections to disable Nagle's algorithm.
+  - Elevated PowerShell controller bridge process priority to `High`.
+  - Implemented differential button state caching (`player.lastButtons`) to reduce stdin IPC payload volume by >75%.
+  - Added native `Send-XboxReport` helper in PowerShell backend for high-throughput multi-device controller updates.
+- Restored theme customization styles and ensured Phantom, Neon, Crimson, and Emerald themes display cleanly and are immediately visible in controller settings.
+- Repository cleanup & optimization:
+  - Deleted legacy debug dump files: `vigem_def.txt`, `vigem_members.txt`, and `android-app/build.txt`.
+  - Deleted obsolete single-use script `convert.js`.
+  - Removed duplicate installer header/sidebar bitmaps in `electron/build/` (already present in `build/`).
+  - Purged intermediate build unpack folder `dist/electron/win-unpacked` and Android Gradle compiler caches, saving ~390 MB of disk space.
+  - Removed unused optional dependency `"vigemclient"` from `package.json`.
+  - Updated `.gitignore` to prevent `.vs/`, `.idea/`, and IDE cache state from polluting the repository.
+- Bumped Windows and Android versions to 1.15.0, Android `versionCode` to 20, CI artifact labels to v1.15.0, and the shared controller cache to v20. Mirrored the shared controller files into Android assets.
+
+## Previous local work (2026-11-04, v1.14.0)
 - Replaced the Windows QR/code connection card with a live session overview for mode, connected phones, driver readiness, approval requests, and trusted devices. Nearby Android discovery and the approval/revoke flow remain available.
 - Reworked Racepad to match the supplied Gyropad reference: gear down and power on the left, connect/latency in the center, gear up and gyro recenter on the right; four pedals, steering dial, Lights, Horn, D-pad, Y/X/A/B diamond, Camera, and Setup below. Removed the lock-like extra, orientation lock, and overflow menu with additional racing keys. The power icon pauses Racepad input; gyro recenter uses the existing calibration permission flow, and pedal labels/values follow the reference.
 - Bumped Windows and Android versions to 1.14.0, Android `versionCode` to 19, CI artifact labels to v1.14.0, and the shared controller cache to v19. Mirrored the shared controller files into Android assets.

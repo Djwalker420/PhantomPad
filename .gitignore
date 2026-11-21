@@ -15,10 +15,17 @@ mobile-app/node_modules/
 android-app/.gradle/
 android-app/build/
 android-app/*/build/
+android-app/app/release/
 android-app/local.properties
 android-app/.idea/
+*.apk
+*.aab
 
 # Editor configs
 .vscode/
+.vs/
+.idea/
+*.suo
+*.user
 
 custom-mappings.json

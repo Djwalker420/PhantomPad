@@ -34,14 +34,9 @@ try {
         $setup = Get-LatestSetup 'nefarius/ViGEmBus' 'ViGEmBus.*\.(exe|msi)$' (Join-Path $temporary 'vigem-setup')
         Install-Setup $setup
     }
-    if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\vjoy')) {
-        $setup = Get-LatestSetup 'jshafer817/vJoy' 'vjoy.*setup.*\.exe$' (Join-Path $temporary 'vjoy-setup.exe')
-        Install-Setup $setup
-    }
 
-    if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ViGEmBus') -or
-        -not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\vjoy')) {
-        throw 'Windows did not register both required driver services after installation.'
+    if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Services\ViGEmBus')) {
+        throw 'Windows did not register the required ViGEmBus driver service after installation.'
     }
     Remove-Item -LiteralPath $temporary -Recurse -Force
     exit 0
