@@ -21,6 +21,13 @@
     "directories": {
       "output": "dist/electron"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Djwalker420",
+        "repo": "PhantomPad"
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "electron/icon.png"
@@ -41,6 +48,7 @@
     ]
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "express": "^4.21.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.0"

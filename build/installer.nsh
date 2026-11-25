@@ -1,4 +1,10 @@
 !macro customInstall
+  ; Remove any leftover per-user PhantomPad installation so two copies never coexist
+  ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTALL_APP_KEY}" "UninstallString"
+  ${if} $0 != ""
+    ExecWait '$0 /S'
+  ${endIf}
+
   ${ifNot} ${isUpdated}
     ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Services\ViGEmBus" "ImagePath"
     ${if} $0 == ""

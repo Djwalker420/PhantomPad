@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, screen, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 
@@ -163,6 +164,7 @@ function createTray() {
     { label: 'Open Dashboard', click: showDashboard },
     { label: 'Open in Browser', click: () => shell.openExternal(`http://localhost:${server.activePort}`) },
     { label: 'Copy Controller URL', click: () => require('electron').clipboard.writeText(server.getControllerUrl()) },
+    { label: 'Check for Updates…', click: () => checkForUpdates(true) },
     { type: 'separator' },
     { label: 'Quit PhantomPad', click: () => { app.isQuitting = true; app.quit(); } }
   ]));
@@ -211,12 +213,111 @@ function startServer() {
   }
 }
 
+let manualUpdateCheck = false;
+let updaterConfigured = false;
+
+function setupAutoUpdater() {
+  if (updaterConfigured || !app.isPackaged) return;
+  updaterConfigured = true;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    logApp('Checking for PhantomPad updates...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    logApp(`Update available: v${info.version}. Downloading in background...`);
+    if (manualUpdateCheck) {
+      manualUpdateCheck = false;
+      dialog.showMessageBox(mainWindow || null, {
+        type: 'info',
+        title: 'PhantomPad Update Available',
+        message: `PhantomPad v${info.version} is downloading in the background.`,
+        detail: 'You will be prompted to restart and install once the download completes.'
+      }).catch(() => {});
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    logApp('PhantomPad is up to date.');
+    if (manualUpdateCheck) {
+      manualUpdateCheck = false;
+      dialog.showMessageBox(mainWindow || null, {
+        type: 'info',
+        title: 'No Updates Available',
+        message: `You are running the latest version of PhantomPad (v${app.getVersion()}).`
+      }).catch(() => {});
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    logApp(`Update downloaded: v${info.version}`);
+    dialog.showMessageBox(mainWindow || null, {
+      type: 'info',
+      title: 'PhantomPad Update Ready',
+      message: `PhantomPad v${info.version} has been downloaded.`,
+      detail: 'Restart PhantomPad now to install the update automatically, or choose Later to install when you quit.',
+      buttons: ['Restart & Install', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    }).then(({ response }) => {
+      if (response === 0) {
+        app.isQuitting = true;
+        if (server?.shutdown) server.shutdown();
+        destroyTray();
+        autoUpdater.quitAndInstall(false, true);
+      }
+    }).catch((err) => logApp(`Update prompt error: ${err.message}`));
+  });
+
+  autoUpdater.on('error', (error) => {
+    logApp(`Auto-updater error: ${error?.message || error}`);
+    if (manualUpdateCheck) {
+      manualUpdateCheck = false;
+      dialog.showMessageBox(mainWindow || null, {
+        type: 'warning',
+        title: 'Update Check Failed',
+        message: 'Could not check for updates right now.',
+        detail: error?.message || 'Check your internet connection and try again.'
+      }).catch(() => {});
+    }
+  });
+}
+
+function checkForUpdates(manual = false) {
+  if (!app.isPackaged) {
+    if (manual) {
+      dialog.showMessageBox(mainWindow || null, {
+        type: 'info',
+        title: 'Development Build',
+        message: 'Auto-updates only run in the packaged Windows app.'
+      }).catch(() => {});
+    }
+    return;
+  }
+  setupAutoUpdater();
+  manualUpdateCheck = manual;
+  autoUpdater.checkForUpdates().catch((err) => logApp(`checkForUpdates failed: ${err.message}`));
+}
+
 logApp('--- APP SCRIPT STARTED ---');
-app.whenReady().then(() => {
-  readSettings();
-  registerIpcHandlers();
-  startServer();
-});
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  logApp('Another PhantomPad instance is already running; focusing existing window and exiting.');
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    showDashboard();
+  });
+
+  app.whenReady().then(() => {
+    readSettings();
+    registerIpcHandlers();
+    startServer();
+    setTimeout(() => checkForUpdates(false), 4000);
+  });
+}
 
 app.on('window-all-closed', () => {
   if (!trayEnabled) app.quit();
