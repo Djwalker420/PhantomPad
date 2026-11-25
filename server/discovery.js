@@ -21,9 +21,8 @@ function getInterfaceInfo(remoteAddress) {
       if ((ipNumber(addr.address) & mask) === (ipNumber(remote) & mask)) {
         const n = name.toLowerCase();
         const isUsb = n.includes('usb') || n.includes('rndis') || n.includes('tether') ||
-                      n.includes('ncm') || n.includes('gadget') ||
-                      addr.address.startsWith('192.168.42.') || addr.address.startsWith('192.168.43.') ||
-                      addr.address.startsWith('192.168.137.') || addr.address.startsWith('172.20.10.');
+                      n.includes('ncm') || n.includes('gadget') || n.includes('apple mobile device') ||
+                      addr.address.startsWith('192.168.42.');
         return { ip: addr.address, isUsb };
       }
     }

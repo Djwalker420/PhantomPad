@@ -222,6 +222,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void goBackToConnect() {
         Intent intent = new Intent(this, ConnectActivity.class);
+        intent.putExtra(ConnectActivity.EXTRA_AUTO_CONNECT_USB, false);
         startActivity(intent);
         finish();
     }

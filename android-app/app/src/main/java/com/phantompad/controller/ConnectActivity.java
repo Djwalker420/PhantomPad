@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ConnectActivity extends AppCompatActivity {
+    public static final String EXTRA_AUTO_CONNECT_USB = "auto_connect_usb";
     private static final int DISCOVERY_PORT = 31980;
     private static final int DEFAULT_SERVER_PORT = 3000;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -46,6 +47,7 @@ public class ConnectActivity extends AppCompatActivity {
     private volatile DatagramSocket discoverySocket;
     private volatile int scanGeneration;
     private boolean launching;
+    private boolean autoConnectUsb = true;
     private TextView statusText;
     private LinearLayout discoveredList;
     private ConnectivityManager connectivityManager;
@@ -56,6 +58,7 @@ public class ConnectActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_connect);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        autoConnectUsb = getIntent().getBooleanExtra(EXTRA_AUTO_CONNECT_USB, true);
         statusText = findViewById(R.id.status_text);
         discoveredList = findViewById(R.id.discovered_list);
         findViewById(R.id.scan_btn).setOnClickListener(v -> restartScan());
@@ -109,6 +112,8 @@ public class ConnectActivity extends AppCompatActivity {
         if (scanning) return;
         scanning = true;
         int generation = ++scanGeneration;
+        discoveredList.removeAllViews();
+        findViewById(R.id.discovered_section).setVisibility(View.GONE);
         statusText.setText("Looking for PhantomPad PC…");
         executor.execute(() -> scanNetwork(generation));
     }
@@ -129,8 +134,7 @@ public class ConnectActivity extends AppCompatActivity {
         if (name.contains("rndis") || name.contains("usb") || name.contains("ncm") || name.contains("gadget")) {
             return true;
         }
-        return ip.startsWith("192.168.42.") || ip.startsWith("192.168.43.") ||
-               ip.startsWith("192.168.137.") || ip.startsWith("172.20.10.");
+        return ip.startsWith("192.168.42.");
     }
 
     private void scanNetwork(int generation) {
@@ -165,11 +169,11 @@ public class ConnectActivity extends AppCompatActivity {
                     if (port < 1 || port > 65535 || !found.add(key)) continue;
 
                     main.post(() -> {
-                        if (isUsb) {
+                        if (isUsb && autoConnectUsb) {
                             // Plug & Play: Immediately auto-launch on USB tethering without extra steps
                             connectTo(ip, port, true);
                         } else {
-                            addServer(name, ip, port, false);
+                            addServer(name, ip, port, isUsb);
                         }
                     });
                 } catch (java.net.SocketTimeoutException ignored) {
@@ -286,10 +290,10 @@ public class ConnectActivity extends AppCompatActivity {
                     if (found.add(ip + ":" + p)) {
                         String name = "PhantomPad PC";
                         main.post(() -> {
-                            if (isUsb) {
+                            if (isUsb && autoConnectUsb) {
                                 connectTo(ip, p, true);
                             } else {
-                                addServer(name, ip, p, false);
+                                addServer(name, ip, p, isUsb);
                             }
                         });
                     }
