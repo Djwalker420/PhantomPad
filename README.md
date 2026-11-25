@@ -10,13 +10,13 @@
 </p>
 
 <p align="center">
-  <img alt="Windows app version 1.15.0" src="https://img.shields.io/badge/Windows-1.15.0-4F46E5?style=for-the-badge">
-  <img alt="Android app version 1.15.0" src="https://img.shields.io/badge/Android-1.15.0-00BFA6?style=for-the-badge">
+  <img alt="Windows app version 1.16.0" src="https://img.shields.io/badge/Windows-1.16.0-4F46E5?style=for-the-badge">
+  <img alt="Android app version 1.16.0" src="https://img.shields.io/badge/Android-1.16.0-00BFA6?style=for-the-badge">
 </p>
 
 ## Download
 
-Download the latest **Windows installer** (`PhantomPad Setup 1.15.0.exe`) and **Android APK** from [PhantomPad Releases](https://github.com/Djwalker420/PhantomPad/releases).
+Download the latest **Windows installer** (`PhantomPad Setup 1.16.0.exe`) and **Android APK** from [PhantomPad Releases](https://github.com/Djwalker420/PhantomPad/releases).
 
 During Windows installation, PhantomPad checks for the ViGEmBus driver. If missing, setup prompts to download and install it automatically. Existing drivers are preserved.
 
