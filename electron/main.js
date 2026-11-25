@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, screen, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, screen, dialog, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -77,6 +77,9 @@ function createWindow() {
   const activePort = server ? server.activePort : DEFAULT_PORT;
   mainWindow.loadURL(`http://localhost:${activePort}/dashboard`).catch((error) => {
     logApp(`Dashboard load failed: ${error.message}`);
+  });
+  mainWindow.webContents.on('did-finish-load', () => {
+    broadcastUpdateState();
   });
 
   mainWindow.on('close', (event) => {
@@ -194,6 +197,19 @@ function registerIpcHandlers() {
   ipcMain.handle('get-tray-status', () => server?.getTrayStatus?.() || {
     mode: 'gamepad', gamepadAvailable: false, gamepadError: 'Starting PhantomPad…', players: []
   });
+  ipcMain.handle('get-update-state', () => updateState);
+  ipcMain.handle('check-for-updates', () => {
+    checkForUpdates(true);
+    return updateState;
+  });
+  ipcMain.handle('update-download', () => {
+    startUpdateDownload();
+    return updateState;
+  });
+  ipcMain.handle('update-install', () => {
+    installDownloadedUpdate();
+    return true;
+  });
 }
 
 function startServer() {
@@ -213,34 +229,99 @@ function startServer() {
   }
 }
 
+const UPDATE_POLL_INTERVAL_MS = 15 * 60 * 1000;
 let manualUpdateCheck = false;
 let updaterConfigured = false;
+let updatePollTimer = null;
+let lastNotifiedVersion = null;
+let updateState = {
+  status: 'idle',
+  version: null,
+  percent: 0,
+  error: null
+};
+
+function broadcastUpdateState() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-state', updateState);
+  }
+}
+
+function setUpdateState(next) {
+  updateState = { ...updateState, ...next };
+  broadcastUpdateState();
+}
+
+function showDesktopUpdateNotification(title, body) {
+  try {
+    if (!Notification.isSupported()) return;
+    const notification = new Notification({
+      title,
+      body,
+      icon: path.join(__dirname, 'icon.png')
+    });
+    notification.on('click', () => showDashboard());
+    notification.show();
+  } catch (error) {
+    logApp(`Desktop notification error: ${error.message}`);
+  }
+}
+
+function startUpdateDownload() {
+  if (!app.isPackaged) return;
+  if (updateState.status === 'downloading' || updateState.status === 'downloaded') return;
+  setUpdateState({ status: 'downloading', percent: 0, error: null });
+  autoUpdater.downloadUpdate().catch((error) => {
+    logApp(`Update download failed: ${error?.message || error}`);
+    setUpdateState({ status: 'error', error: error?.message || 'Download failed' });
+  });
+}
+
+function installDownloadedUpdate() {
+  if (!app.isPackaged) return;
+  app.isQuitting = true;
+  if (server?.shutdown) server.shutdown();
+  destroyTray();
+  autoUpdater.quitAndInstall(false, true);
+}
 
 function setupAutoUpdater() {
   if (updaterConfigured || !app.isPackaged) return;
   updaterConfigured = true;
-  autoUpdater.autoDownload = true;
+  autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('checking-for-update', () => {
     logApp('Checking for PhantomPad updates...');
+    if (updateState.status === 'idle' || updateState.status === 'error') {
+      setUpdateState({ status: 'checking', error: null });
+    }
   });
 
   autoUpdater.on('update-available', (info) => {
-    logApp(`Update available: v${info.version}. Downloading in background...`);
+    logApp(`Update available: v${info.version}`);
+    if (updateState.status === 'downloading' || updateState.status === 'downloaded') return;
+    setUpdateState({ status: 'available', version: info.version, percent: 0, error: null });
+
+    if (lastNotifiedVersion !== info.version) {
+      lastNotifiedVersion = info.version;
+      showDesktopUpdateNotification(
+        `PhantomPad v${info.version} Available`,
+        'Open PhantomPad to download the update in the background.'
+      );
+    }
+
     if (manualUpdateCheck) {
       manualUpdateCheck = false;
-      dialog.showMessageBox(mainWindow || null, {
-        type: 'info',
-        title: 'PhantomPad Update Available',
-        message: `PhantomPad v${info.version} is downloading in the background.`,
-        detail: 'You will be prompted to restart and install once the download completes.'
-      }).catch(() => {});
+      showDashboard();
     }
   });
 
   autoUpdater.on('update-not-available', () => {
     logApp('PhantomPad is up to date.');
+    if (updateState.status === 'checking') {
+      setUpdateState({ status: 'idle', error: null });
+    }
     if (manualUpdateCheck) {
       manualUpdateCheck = false;
       dialog.showMessageBox(mainWindow || null, {
@@ -251,28 +332,27 @@ function setupAutoUpdater() {
     }
   });
 
+  autoUpdater.on('download-progress', (progress) => {
+    const percent = Math.max(0, Math.min(100, Math.round(progress?.percent || 0)));
+    setUpdateState({ status: 'downloading', percent, error: null });
+  });
+
   autoUpdater.on('update-downloaded', (info) => {
     logApp(`Update downloaded: v${info.version}`);
-    dialog.showMessageBox(mainWindow || null, {
-      type: 'info',
-      title: 'PhantomPad Update Ready',
-      message: `PhantomPad v${info.version} has been downloaded.`,
-      detail: 'Restart PhantomPad now to install the update automatically, or choose Later to install when you quit.',
-      buttons: ['Restart & Install', 'Later'],
-      defaultId: 0,
-      cancelId: 1
-    }).then(({ response }) => {
-      if (response === 0) {
-        app.isQuitting = true;
-        if (server?.shutdown) server.shutdown();
-        destroyTray();
-        autoUpdater.quitAndInstall(false, true);
-      }
-    }).catch((err) => logApp(`Update prompt error: ${err.message}`));
+    setUpdateState({ status: 'downloaded', version: info.version, percent: 100, error: null });
+    showDesktopUpdateNotification(
+      `PhantomPad v${info.version} Ready`,
+      'Update downloaded. Click to restart and install automatically.'
+    );
   });
 
   autoUpdater.on('error', (error) => {
     logApp(`Auto-updater error: ${error?.message || error}`);
+    if (updateState.status === 'downloading') {
+      setUpdateState({ status: 'error', error: error?.message || 'Download failed' });
+    } else if (updateState.status === 'checking') {
+      setUpdateState({ status: 'idle', error: null });
+    }
     if (manualUpdateCheck) {
       manualUpdateCheck = false;
       dialog.showMessageBox(mainWindow || null, {
@@ -316,6 +396,8 @@ if (!gotSingleInstanceLock) {
     registerIpcHandlers();
     startServer();
     setTimeout(() => checkForUpdates(false), 4000);
+    updatePollTimer = setInterval(() => checkForUpdates(false), UPDATE_POLL_INTERVAL_MS);
+    updatePollTimer.unref?.();
   });
 }
 

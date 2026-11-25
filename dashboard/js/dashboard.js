@@ -20,6 +20,94 @@
     });
   }
 
+  const updateBanner = document.getElementById('update-banner');
+  const updateBadge = document.getElementById('update-badge');
+  const updateTitle = document.getElementById('update-title');
+  const updateSubtitle = document.getElementById('update-subtitle');
+  const updateProgress = document.getElementById('update-progress');
+  const updateProgressBar = document.getElementById('update-progress-bar');
+  const updatePrimaryBtn = document.getElementById('update-primary-btn');
+  const updateDismissBtn = document.getElementById('update-dismiss-btn');
+  let dismissedUpdateVersion = null;
+  let currentUpdateState = { status: 'idle' };
+
+  function renderUpdateBanner(state) {
+    if (!updateBanner || !state) return;
+    currentUpdateState = state;
+    const status = state.status;
+    const version = state.version ? `v${state.version}` : 'new version';
+
+    if (status === 'available') {
+      if (dismissedUpdateVersion && dismissedUpdateVersion === state.version) {
+        updateBanner.hidden = true;
+        return;
+      }
+      updateBadge.textContent = 'UPDATE';
+      updateTitle.textContent = `PhantomPad ${version} is available`;
+      updateSubtitle.textContent = 'Download it in the background while you keep playing?';
+      updateProgress.hidden = true;
+      updatePrimaryBtn.hidden = false;
+      updatePrimaryBtn.disabled = false;
+      updatePrimaryBtn.textContent = 'Download in background';
+      updateDismissBtn.hidden = false;
+      updateDismissBtn.textContent = 'Later';
+      updateBanner.hidden = false;
+    } else if (status === 'downloading') {
+      const pct = Number.isFinite(state.percent) ? state.percent : 0;
+      updateBadge.textContent = 'DOWNLOADING';
+      updateTitle.textContent = `Downloading PhantomPad ${version}… ${pct}%`;
+      updateSubtitle.textContent = 'Downloading in the background — your controller session will not be interrupted.';
+      updateProgress.hidden = false;
+      updateProgressBar.style.width = `${pct}%`;
+      updatePrimaryBtn.hidden = true;
+      updateDismissBtn.hidden = true;
+      updateBanner.hidden = false;
+    } else if (status === 'downloaded') {
+      updateBadge.textContent = 'READY';
+      updateTitle.textContent = `PhantomPad ${version} is ready to install`;
+      updateSubtitle.textContent = 'Upgrades in-place without uninstalling or creating duplicate apps.';
+      updateProgress.hidden = true;
+      updatePrimaryBtn.hidden = false;
+      updatePrimaryBtn.disabled = false;
+      updatePrimaryBtn.textContent = 'Restart & Install';
+      updateDismissBtn.hidden = false;
+      updateDismissBtn.textContent = 'On Quit';
+      updateBanner.hidden = false;
+    } else if (status === 'error') {
+      updateBadge.textContent = 'UPDATE ERROR';
+      updateTitle.textContent = 'Update download failed';
+      updateSubtitle.textContent = state.error || 'Check your internet connection and try again.';
+      updateProgress.hidden = true;
+      updatePrimaryBtn.hidden = false;
+      updatePrimaryBtn.disabled = false;
+      updatePrimaryBtn.textContent = 'Retry download';
+      updateDismissBtn.hidden = false;
+      updateDismissBtn.textContent = 'Dismiss';
+      updateBanner.hidden = false;
+    } else {
+      updateBanner.hidden = true;
+    }
+  }
+
+  if (window.phantompad?.isElectron && window.phantompad.onUpdateState) {
+    window.phantompad.getUpdateState?.().then(renderUpdateBanner).catch(() => {});
+    window.phantompad.onUpdateState(renderUpdateBanner);
+    updatePrimaryBtn?.addEventListener('click', () => {
+      if (currentUpdateState.status === 'downloaded') {
+        window.phantompad.installUpdate?.();
+      } else {
+        dismissedUpdateVersion = null;
+        window.phantompad.downloadUpdate?.();
+      }
+    });
+    updateDismissBtn?.addEventListener('click', () => {
+      if (currentUpdateState.status === 'available' || currentUpdateState.status === 'downloaded') {
+        dismissedUpdateVersion = currentUpdateState.version;
+      }
+      updateBanner.hidden = true;
+    });
+  }
+
   let mappingsData = { presets: {}, custom: {}, vkNames: {}, vk: {} };
   let currentMapping = null;
   let currentMappingName = 'default';

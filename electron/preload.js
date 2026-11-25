@@ -12,5 +12,14 @@ contextBridge.exposeInMainWorld('phantompad', {
   setTrayEnabled: (enabled) => ipcRenderer.invoke('set-tray-enabled', Boolean(enabled)),
   getTrayStatus: () => ipcRenderer.invoke('get-tray-status'),
   hideTrayVisualizer: () => ipcRenderer.send('tray-visualizer-hide'),
-  openDashboard: () => ipcRenderer.send('dashboard-show')
+  openDashboard: () => ipcRenderer.send('dashboard-show'),
+  getUpdateState: () => ipcRenderer.invoke('get-update-state'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('update-download'),
+  installUpdate: () => ipcRenderer.invoke('update-install'),
+  onUpdateState: (callback) => {
+    const handler = (_event, state) => callback(state);
+    ipcRenderer.on('update-state', handler);
+    return () => ipcRenderer.removeListener('update-state', handler);
+  }
 });

@@ -1054,3 +1054,101 @@ body::before { display: none; }
   .mode-toggle { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* In-app update notification banner */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(0, 245, 212, 0.08), rgba(79, 70, 229, 0.1));
+  border: 1px solid rgba(0, 245, 212, 0.28);
+  box-shadow: var(--shadow);
+  animation: workspace-enter 0.22s ease-out;
+}
+.update-banner[hidden] { display: none; }
+.update-banner-copy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.update-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--primary-dim);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.update-text {
+  flex: 1;
+  min-width: 0;
+}
+.update-text strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+}
+.update-text p {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.update-progress {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 320px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.update-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 0.2s ease;
+}
+.update-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.update-btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.update-btn-primary {
+  background: var(--primary);
+  color: #06060c;
+}
+.update-btn-primary:hover {
+  filter: brightness(1.08);
+}
+.update-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+.update-btn-ghost:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.09);
+}
+@media (max-width: 700px) {
+  .update-banner { flex-direction: column; align-items: stretch; }
+  .update-actions { justify-content: flex-end; }
+}
+

@@ -25,6 +25,24 @@
       </div>
     </header>
 
+    <!-- In-App Update Notification Banner -->
+    <div class="update-banner" id="update-banner" role="status" aria-live="polite" hidden>
+      <div class="update-banner-copy">
+        <span class="update-badge" id="update-badge">UPDATE</span>
+        <div class="update-text">
+          <strong id="update-title">Update available</strong>
+          <p id="update-subtitle">A new version of PhantomPad is available on GitHub.</p>
+          <div class="update-progress" id="update-progress" hidden>
+            <div class="update-progress-bar" id="update-progress-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="update-actions">
+        <button class="update-btn update-btn-primary" id="update-primary-btn" type="button">Download in background</button>
+        <button class="update-btn update-btn-ghost" id="update-dismiss-btn" type="button">Later</button>
+      </div>
+    </div>
+
     <div class="workspace-heading">
       <div class="workspace-copy">
         <span class="workspace-eyebrow" id="workspace-eyebrow">SESSION / 01</span>
